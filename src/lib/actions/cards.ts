@@ -177,3 +177,28 @@ export async function setEnergyTodayAction(energy: string) {
   await setSetting(`energy:${today()}`, energy);
   revalidatePath("/");
 }
+
+/** Alta rápida directamente en una lista concreta del tablero. */
+export async function createCardInColumnAction(formData: FormData) {
+  await requireAuth();
+  const title = String(formData.get("title") ?? "").trim();
+  const columnId = String(formData.get("columnId") ?? "");
+  if (!title || !columnId) return;
+  const col = await db.select().from(schema.columns).where(eq(schema.columns.id, columnId)).get();
+  if (!col) return;
+  const board = await db.select().from(schema.boards).where(eq(schema.boards.id, col.boardId)).get();
+  if (!board) return;
+  const siblings = await db.select().from(schema.cards).where(eq(schema.cards.columnId, columnId));
+  const t = now();
+  await db.insert(schema.cards).values({
+    id: uid(),
+    title,
+    projectId: board.projectId,
+    boardId: board.id,
+    columnId,
+    position: siblings.length,
+    createdAt: t,
+    updatedAt: t,
+  });
+  revalidateCardViews(board.projectId);
+}
