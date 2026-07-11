@@ -38,11 +38,14 @@ export function Priorities({
   }
 
   return (
-    <section aria-labelledby="prioridades" className="card p-5">
+    <section aria-labelledby="prioridades">
       <div className="flex items-center justify-between mb-3">
-        <h2 id="prioridades" className="text-lg text-forest-deep flex items-center gap-2">
-          <Star size={18} className="text-olive" aria-hidden /> Tus 3 prioridades
-        </h2>
+        <div>
+          <h2 id="prioridades" className="text-lg text-forest-deep flex items-center gap-2">
+            <Star size={17} className="text-olive" aria-hidden /> Tus 3 prioridades
+          </h2>
+          <p className="intro-italic text-[13px] mt-0.5">Tu foco de hoy — máximo tres, a propósito.</p>
+        </div>
         {priorities.length < 3 && (
           <button type="button" className="btn btn-secondary !py-1.5 !px-3 text-xs" onClick={() => setPicking(!picking)} data-testid="pick-priority">
             <Plus size={14} aria-hidden /> Elegir
@@ -50,47 +53,66 @@ export function Priorities({
         )}
       </div>
 
-      {priorities.length === 0 && !picking && (
-        <p className="text-sm text-stone">
-          Todavía no eliges prioridades. Escoge un máximo de tres cosas que harían que hoy valga la pena.
-        </p>
-      )}
-
-      <ol className="flex flex-col divide-y divide-beige">
+      <ol className="grid gap-3 md:grid-cols-3">
         {priorities.map((card, i) => {
           const done = Boolean(card.completedAt);
           return (
-            <li key={card.id} className="flex items-center gap-3 py-2.5">
-              <span className="font-display text-xl text-sage-deep w-5 text-center shrink-0">{i + 1}</span>
-              <button
-                type="button"
-                aria-label={done ? `Reabrir «${card.title}»` : `Completar «${card.title}»`}
-                onClick={() => toggleComplete(card, done)}
-                disabled={pending}
-                className="text-sage-deep hover:text-forest shrink-0"
-              >
-                {done ? <CheckCircle2 size={20} aria-hidden /> : <Circle size={20} aria-hidden />}
-              </button>
-              <div className="min-w-0 flex-1">
-                <p className={`text-sm font-medium ${done ? "line-through text-stone-soft" : ""}`}>{card.title}</p>
-                {card.projectTitle && <p className="text-xs text-stone">{card.projectTitle}</p>}
+            <li key={card.id} className="card p-4 flex flex-col gap-2 min-h-[104px]">
+              <div className="flex items-start justify-between gap-2">
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-base ${
+                    done ? "bg-done-soft text-done" : "bg-sage-soft text-forest"
+                  }`}
+                  aria-hidden
+                >
+                  {i + 1}
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Quitar «${card.title}» de prioridades`}
+                  onClick={() => start(() => removeTodayPriority(card.id))}
+                  disabled={pending}
+                  className="text-stone-soft hover:text-blocked shrink-0 -mr-1 -mt-1 p-1"
+                >
+                  <X size={15} aria-hidden />
+                </button>
               </div>
-              <button
-                type="button"
-                aria-label={`Quitar «${card.title}» de prioridades`}
-                onClick={() => start(() => removeTodayPriority(card.id))}
-                disabled={pending}
-                className="text-stone-soft hover:text-blocked shrink-0"
-              >
-                <X size={16} aria-hidden />
-              </button>
+              <p className={`text-sm font-medium leading-snug flex-1 ${done ? "line-through text-stone-soft" : ""}`}>
+                {card.title}
+              </p>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-stone truncate">{card.projectTitle ?? ""}</span>
+                <button
+                  type="button"
+                  aria-label={done ? `Reabrir «${card.title}»` : `Completar «${card.title}»`}
+                  onClick={() => toggleComplete(card, done)}
+                  disabled={pending}
+                  className="text-sage-deep hover:text-forest shrink-0"
+                >
+                  {done ? <CheckCircle2 size={22} aria-hidden /> : <Circle size={22} aria-hidden />}
+                </button>
+              </div>
             </li>
           );
         })}
+        {Array.from({ length: Math.max(0, 3 - priorities.length) }, (_, i) => (
+          <li key={`slot-${i}`}>
+            <button
+              type="button"
+              onClick={() => setPicking(true)}
+              className="w-full h-full min-h-[104px] rounded-[20px] border border-dashed border-sand-deep/60 text-stone-soft hover:text-forest hover:border-sage-deep hover:bg-sage-soft/30 transition-colors flex flex-col items-center justify-center gap-1.5 text-sm"
+            >
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-sand-deep/60 font-display">
+                {priorities.length + i + 1}
+              </span>
+              Elegir prioridad
+            </button>
+          </li>
+        ))}
       </ol>
 
       {picking && (
-        <div className="mt-3 border-t border-beige pt-3">
+        <div className="card mt-3 p-3">
           <p className="text-xs text-stone mb-2">Elige de tus tareas abiertas:</p>
           <ul className="max-h-56 overflow-y-auto flex flex-col gap-1" data-testid="priority-candidates">
             {candidates

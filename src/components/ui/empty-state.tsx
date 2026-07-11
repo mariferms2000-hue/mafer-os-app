@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { SprigWide } from "./botanical";
 
 export function EmptyState({
   icon: Icon,
@@ -12,7 +13,7 @@ export function EmptyState({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="card border-dashed p-8 text-center flex flex-col items-center gap-2">
+    <div className="card !border-dashed p-8 text-center flex flex-col items-center gap-2">
       {Icon && (
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-sage-soft text-forest mb-1">
           <Icon size={22} aria-hidden />
@@ -21,6 +22,7 @@ export function EmptyState({
       <p className="font-medium text-charcoal">{title}</p>
       {hint && <p className="text-sm text-stone max-w-sm">{hint}</p>}
       {children && <div className="mt-2">{children}</div>}
+      <SprigWide className="h-7 w-16 text-sage-deep/50 mt-2" />
     </div>
   );
 }

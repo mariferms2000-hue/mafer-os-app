@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { SquareKanban, Ban, ListTodo, ArrowRight, CalendarClock } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
@@ -34,17 +34,26 @@ export default async function ProyectosPage({
 }) {
   const { f = "activos", area = "", nuevo } = await searchParams;
   const all = await db.select().from(schema.projects);
-  const openCards = await db
-    .select({ id: schema.cards.id, projectId: schema.cards.projectId, blocked: schema.cards.blockedReason })
+  const allCards = await db
+    .select({
+      id: schema.cards.id,
+      projectId: schema.cards.projectId,
+      blocked: schema.cards.blockedReason,
+      completedAt: schema.cards.completedAt,
+    })
     .from(schema.cards)
-    .where(and(eq(schema.cards.archived, false), isNull(schema.cards.completedAt)));
+    .where(eq(schema.cards.archived, false));
 
-  const counts = new Map<string, { open: number; blocked: number }>();
-  for (const c of openCards) {
+  const counts = new Map<string, { open: number; blocked: number; done: number; total: number }>();
+  for (const c of allCards) {
     if (!c.projectId) continue;
-    const e = counts.get(c.projectId) ?? { open: 0, blocked: 0 };
-    e.open++;
-    if (c.blocked) e.blocked++;
+    const e = counts.get(c.projectId) ?? { open: 0, blocked: 0, done: 0, total: 0 };
+    e.total++;
+    if (c.completedAt) e.done++;
+    else {
+      e.open++;
+      if (c.blocked) e.blocked++;
+    }
     counts.set(c.projectId, e);
   }
 
@@ -99,7 +108,8 @@ export default async function ProyectosPage({
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => {
-            const c = counts.get(p.id) ?? { open: 0, blocked: 0 };
+            const c = counts.get(p.id) ?? { open: 0, blocked: 0, done: 0, total: 0 };
+            const pct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
             return (
               <li key={p.id}>
                 <Link
@@ -121,7 +131,22 @@ export default async function ProyectosPage({
                       <span className="line-clamp-2">{p.nextAction}</span>
                     </p>
                   )}
-                  <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
+                  {c.total > 0 && (
+                    <div className="mt-auto flex items-center gap-2.5 pt-1">
+                      <div
+                        className="progress-track flex-1"
+                        role="progressbar"
+                        aria-valuenow={pct}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`Avance de ${p.title}`}
+                      >
+                        <div className="progress-fill" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs text-stone tabular-nums shrink-0">{pct}%</span>
+                    </div>
+                  )}
+                  <div className={`flex flex-wrap gap-1.5 pt-1 ${c.total > 0 ? "" : "mt-auto"}`}>
                     <span className={`chip ${p.status === "activo" ? "chip-sage" : ""} capitalize`}>{p.status}</span>
                     {p.health && p.health !== "bien" && (
                       <span className={`chip ${p.health === "riesgo" ? "chip-blocked" : "chip-waiting"}`}>

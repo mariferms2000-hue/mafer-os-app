@@ -15,6 +15,7 @@ import { getTodayData } from "@/lib/queries/today";
 import { Priorities, EnergySelector } from "@/components/hoy/priorities";
 import { TaskLine } from "@/components/hoy/task-line";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Sprig } from "@/components/ui/botanical";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Hoy" };
@@ -56,13 +57,14 @@ export default async function HoyPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <header className="flex flex-wrap items-end justify-between gap-3 mb-1">
         <div>
-          <p className="text-sm text-stone">{fechaLarga(data.date)}</p>
-          <h1 className="text-3xl text-forest-deep mt-0.5">
+          <p className="section-eyebrow">{fechaLarga(data.date)}</p>
+          <h1 className="text-[34px] md:text-[40px] leading-tight text-forest-deep mt-1 flex items-center gap-3">
             {saludo()}, {data.userName}
+            <Sprig className="h-9 w-9 text-sage-deep/70 shrink-0 hidden sm:block" />
           </h1>
-          <p className="text-sm text-stone mt-1">
+          <p className="intro-italic text-[15px] mt-1">
             {resumen.length ? `Hoy tienes ${resumen.join(", ")}.` : "Día tranquilo por ahora. Tú decides el rumbo."}
           </p>
         </div>
@@ -75,9 +77,12 @@ export default async function HoyPage() {
 
           {/* Reuniones y fechas de hoy */}
           <section aria-labelledby="agenda-hoy" className="card p-5">
-            <h2 id="agenda-hoy" className="text-lg text-forest-deep flex items-center gap-2 mb-2">
-              <CalendarDays size={18} className="text-olive" aria-hidden /> Agenda de hoy
-            </h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 id="agenda-hoy" className="text-lg text-forest-deep flex items-center gap-2">
+                <CalendarDays size={18} className="text-olive" aria-hidden /> Agenda de hoy
+              </h2>
+              <Link href="/calendario?vista=dia" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+            </div>
             {data.eventsToday.length === 0 && data.dueToday.length === 0 ? (
               <p className="text-sm text-stone">Sin reuniones ni fechas límite hoy. Espacio para trabajo con calma.</p>
             ) : (
@@ -119,9 +124,12 @@ export default async function HoyPage() {
 
           {/* Menos de 30 minutos */}
           <section aria-labelledby="rapidas" className="card p-5">
-            <h2 id="rapidas" className="text-lg text-forest-deep flex items-center gap-2 mb-1">
-              <Timer size={18} className="text-olive" aria-hidden /> Menos de 30 minutos
-            </h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 id="rapidas" className="text-lg text-forest-deep flex items-center gap-2">
+                <Timer size={18} className="text-olive" aria-hidden /> Menos de 30 minutos
+              </h2>
+              <Link href="/tareas?f=rapidas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+            </div>
             <p className="text-xs text-stone mb-2">
               {data.energy === "baja"
                 ? "Ajustado a tu energía baja: solo cosas ligeras que sí puedes terminar hoy."
@@ -146,9 +154,12 @@ export default async function HoyPage() {
 
           {/* Próximos pasos concretos */}
           <section aria-labelledby="siguientes" className="card p-5">
-            <h2 id="siguientes" className="text-lg text-forest-deep flex items-center gap-2 mb-2">
-              <ArrowRight size={18} className="text-olive" aria-hidden /> Siguiente paso por proyecto
-            </h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 id="siguientes" className="text-lg text-forest-deep flex items-center gap-2">
+                <ArrowRight size={18} className="text-olive" aria-hidden /> Siguiente paso por proyecto
+              </h2>
+              <Link href="/proyectos" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+            </div>
             {data.nextSteps.length === 0 ? (
               <p className="text-sm text-stone">
                 Cuando definas la «próxima acción» de cada proyecto activo, aparecerá aquí para que nunca tengas que
@@ -214,9 +225,12 @@ export default async function HoyPage() {
 
           {/* Bloqueado */}
           <section aria-labelledby="bloqueado" className="card p-5">
-            <h2 id="bloqueado" className="text-lg text-forest-deep flex items-center gap-2 mb-2">
-              <Ban size={18} className="text-blocked" aria-hidden /> Bloqueado
-            </h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 id="bloqueado" className="text-lg text-forest-deep flex items-center gap-2">
+                <Ban size={18} className="text-blocked" aria-hidden /> Bloqueado
+              </h2>
+              <Link href="/tareas?f=bloqueadas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+            </div>
             {data.blocked.length === 0 ? (
               <p className="text-sm text-stone">Nada bloqueado. 🌿</p>
             ) : (
@@ -232,9 +246,12 @@ export default async function HoyPage() {
 
           {/* Esperando */}
           <section aria-labelledby="esperando" className="card p-5">
-            <h2 id="esperando" className="text-lg text-forest-deep flex items-center gap-2 mb-2">
-              <Hourglass size={18} className="text-waiting" aria-hidden /> Esperando
-            </h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 id="esperando" className="text-lg text-forest-deep flex items-center gap-2">
+                <Hourglass size={18} className="text-waiting" aria-hidden /> Esperando
+              </h2>
+              <Link href="/tareas?f=esperando" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+            </div>
             {data.waiting.length === 0 ? (
               <p className="text-sm text-stone">No esperas nada de nadie por ahora.</p>
             ) : (

@@ -22,7 +22,7 @@ export function PageHeader({
           )}
           {title}
         </h1>
-        {intro && <p className="text-sm text-stone mt-1.5 max-w-xl">{intro}</p>}
+        {intro && <p className="intro-italic text-[14px] mt-1.5 max-w-xl">{intro}</p>}
       </div>
       {children && <div className="flex items-center gap-2">{children}</div>}
     </header>

@@ -32,10 +32,12 @@
   --font-body: var(--font-inter), system-ui, sans-serif;
 
   --radius-soft: 14px;
-  --radius-card: 18px;
+  --radius-card: 20px;
 
-  --shadow-soft: 0 1px 2px rgb(46 43 37 / 0.04), 0 4px 16px rgb(46 43 37 / 0.05);
-  --shadow-lift: 0 2px 6px rgb(46 43 37 / 0.08), 0 10px 30px rgb(46 43 37 / 0.10);
+  --shadow-soft: 0 1px 2px rgb(46 43 37 / 0.03), 0 6px 20px rgb(46 43 37 / 0.04);
+  --shadow-lift: 0 2px 6px rgb(46 43 37 / 0.07), 0 12px 32px rgb(46 43 37 / 0.09);
+
+  --color-card-border: #ece3d3;
 
   --color-toast-bg: #2e2b25;
   --color-toast-fg: #faf7f1;
@@ -51,10 +53,11 @@
 html[data-theme="dark"] {
   color-scheme: dark;
 
-  --color-cream: #1e231b;
-  --color-paper: #262c22;
-  --color-beige: #2c3327;
-  --color-sand: #3b4334;
+  --color-cream: #171c15;
+  --color-paper: #1f2519;
+  --color-beige: #262d20;
+  --color-sand: #343d2d;
+  --color-card-border: #2b3325;
   --color-sand-deep: #4f5946;
   --color-sage-soft: #35402e;
   --color-sage: #5f7254;
@@ -74,8 +77,8 @@ html[data-theme="dark"] {
   --color-done: #a5c497;
   --color-done-soft: #2e3a29;
 
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.25), 0 4px 16px rgb(0 0 0 / 0.20);
-  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 10px 30px rgb(0 0 0 / 0.30);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.30), 0 6px 22px rgb(0 0 0 / 0.25);
+  --shadow-lift: 0 2px 8px rgb(0 0 0 / 0.40), 0 14px 36px rgb(0 0 0 / 0.35);
 
   --color-toast-bg: #11150e;
   --color-toast-fg: #ece6d9;
@@ -107,9 +110,40 @@ h1, h2, h3, .font-display {
 /* Componentes base */
 .card {
   background: var(--color-paper);
-  border: 1px solid var(--color-sand);
+  border: 1px solid var(--color-card-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-soft);
+}
+
+/* Etiqueta de sección al estilo editorial: pequeña, espaciada, serena */
+.section-eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-stone);
+}
+
+/* Subtítulos en cursiva serif, como respiración editorial */
+.intro-italic {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 420;
+  color: var(--color-stone);
+}
+
+/* Barra de progreso serena */
+.progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-beige);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-sage-deep);
 }
 
 .btn {

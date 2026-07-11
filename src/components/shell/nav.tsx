@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
 import { ThemeQuickToggle } from "./theme";
+import { SidebarPlant } from "@/components/ui/botanical";
 
 const NAV = [
   { href: "/", label: "Hoy", icon: Sun },
@@ -103,7 +104,15 @@ function SidebarInner() {
           );
         })}
       </nav>
-      <div className="mt-auto flex flex-col gap-1 pt-6 border-t border-sand">
+      <div className="mt-auto flex flex-col items-center gap-1 px-2 pb-5 text-sage-deep/70">
+        <SidebarPlant className="h-16 w-16" />
+        <p className="intro-italic text-[13px] text-center leading-snug !text-stone-soft">
+          Pequeños pasos, con calma,
+          <br />
+          todos los días.
+        </p>
+      </div>
+      <div className="flex flex-col gap-1 pt-5 border-t border-sand">
         <Link
           href="/buscar"
           className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
