@@ -34,12 +34,21 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+import { THEME_INIT_SCRIPT } from "@/components/shell/theme-script";
+import { ThemeWatcher } from "@/components/shell/theme";
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${fraunces.variable} ${inter.variable}`}>
-      <body>{children}</body>
+    <html lang="es" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body>
+        <ThemeWatcher />
+        {children}
+      </body>
     </html>
   );
 }

@@ -3,8 +3,8 @@ import { Inbox as InboxIcon, Sparkles } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { InboxItem } from "@/components/inbox/inbox-item";
-import { LifecycleDiagram } from "@/components/diagrams/lifecycle";
+import { InboxList } from "@/components/inbox/inbox-list";
+import { LifecycleHelp } from "@/components/inbox/lifecycle-help";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inbox" };
@@ -28,11 +28,11 @@ export default async function InboxPage() {
     .orderBy(asc(schema.projects.title));
 
   return (
-    <div>
+    <div className="max-w-3xl">
       <PageHeader
         icon={InboxIcon}
         title="Inbox"
-        intro="Todo lo que capturas cae aquí. No decidas nada al capturar; decide después, con calma, qué es cada cosa."
+        intro="Captura sin decidir. Cuando tengas un momento, toca «Procesar» y dale un destino a cada cosa."
       />
 
       {pending.length === 0 ? (
@@ -42,20 +42,13 @@ export default async function InboxPage() {
           hint="Cuando algo te pase por la cabeza, usa el botón + (está en todas las pantallas). Se guarda aquí al instante."
         />
       ) : (
-        <ul className="flex flex-col gap-3" data-testid="inbox-list">
-          {pending.map((item) => (
-            <InboxItem key={item.id} item={item} projects={projects} />
-          ))}
-        </ul>
+        <InboxList items={pending} projects={projects} />
       )}
 
-      <section className="mt-10">
-        <h2 className="text-lg text-forest-deep mb-2">El viaje de una captura</h2>
-        <LifecycleDiagram />
-      </section>
+      <LifecycleHelp />
 
       {processed.length > 0 && (
-        <details className="mt-8">
+        <details className="mt-6">
           <summary className="text-sm text-stone cursor-pointer">
             Procesadas recientemente ({processed.length})
           </summary>
@@ -63,7 +56,11 @@ export default async function InboxPage() {
             {processed.map((i) => (
               <li key={i.id} className="text-sm text-stone-soft flex items-center gap-2 py-1">
                 <span className="line-through truncate">{i.content}</span>
-                {i.convertedTo && <span className="chip shrink-0">→ {i.convertedTo.split(":")[0]}</span>}
+                {i.convertedTo && (
+                  <span className="chip shrink-0">
+                    {i.convertedTo === "archivado" ? "archivada" : `→ ${i.convertedTo.split(":")[0]}`}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

@@ -40,6 +40,9 @@ export default async function ProyectoPage({
     .orderBy(desc(schema.decisions.date));
   const lastTouched = [...cards].sort((a, b) => (b.updatedAt < a.updatedAt ? -1 : 1))[0];
   const open = cards.filter((c) => !c.completedAt);
+  const resourcesCount = (
+    await db.select({ id: schema.resources.id }).from(schema.resources).where(eq(schema.resources.projectId, id))
+  ).length;
 
   await touchRecent("proyecto", id, project.title, `/proyectos/${id}`);
 
@@ -140,6 +143,9 @@ export default async function ProyectoPage({
         </Link>
         <Link href={`/explorar/decisiones?proyecto=${id}`} className="text-forest underline underline-offset-4 hover:text-forest-deep inline-flex items-center gap-1">
           <Scale size={13} aria-hidden /> Decisiones ({decisionsRows.length})
+        </Link>
+        <Link href={`/biblioteca/recursos?proyecto=${id}`} className="text-forest underline underline-offset-4 hover:text-forest-deep inline-flex items-center gap-1">
+          Recursos ({resourcesCount}) <ArrowRight size={13} aria-hidden />
         </Link>
       </div>
     </div>

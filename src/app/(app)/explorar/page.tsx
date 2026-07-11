@@ -10,7 +10,12 @@ import { createIdeaAction } from "@/lib/actions/explore";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Explorar" };
 
-export default async function ExplorarPage() {
+export default async function ExplorarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nueva?: string }>;
+}) {
+  const { nueva } = await searchParams;
   const incubando = await db
     .select()
     .from(schema.ideas)
@@ -40,6 +45,7 @@ export default async function ExplorarPage() {
           className="input flex-1"
           placeholder="¿Qué idea quieres dejar incubando?"
           required
+          autoFocus={nueva === "1"}
           data-testid="new-idea-input"
         />
         <select name="category" className="select md:!w-52" aria-label="Categoría">
@@ -80,6 +86,13 @@ export default async function ExplorarPage() {
           </ul>
         </details>
       )}
+
+      <p className="mt-10 text-xs text-stone-soft">
+        ¿Buscas el registro de decisiones? Vive dentro de cada proyecto y en{" "}
+        <a href="/explorar/decisiones" className="text-stone underline underline-offset-4 hover:text-charcoal">
+          la vista consolidada
+        </a>.
+      </p>
     </div>
   );
 }

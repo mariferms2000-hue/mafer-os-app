@@ -9,16 +9,16 @@ import { ResourceItem } from "@/components/library/resource-item";
 import { createResourceAction } from "@/lib/actions/library";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Recursos" };
+export const metadata = { title: "Recursos guardados" };
 
-const TYPES = ["video", "articulo", "sitio", "libro", "documento", "curso", "archivo", "herramienta"];
+const TYPES = ["video", "articulo", "libro", "curso", "paper", "sitio", "herramienta", "documento", "referencia-visual"];
 
 export default async function RecursosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tipo?: string; fav?: string; estado?: string }>;
+  searchParams: Promise<{ q?: string; tipo?: string; fav?: string; estado?: string; proyecto?: string }>;
 }) {
-  const { q = "", tipo = "", fav, estado = "" } = await searchParams;
+  const { q = "", tipo = "", fav, estado = "", proyecto = "" } = await searchParams;
   let resources = await db.select().from(schema.resources).orderBy(desc(schema.resources.createdAt));
   if (q) {
     const needle = q.toLowerCase();
@@ -29,6 +29,7 @@ export default async function RecursosPage({
   if (tipo) resources = resources.filter((r) => r.type === tipo);
   if (fav) resources = resources.filter((r) => r.favorite);
   if (estado) resources = resources.filter((r) => r.status === estado);
+  if (proyecto) resources = resources.filter((r) => r.projectId === proyecto);
 
   const projects = await db
     .select({ id: schema.projects.id, title: schema.projects.title })
@@ -40,8 +41,8 @@ export default async function RecursosPage({
     <div>
       <PageHeader
         icon={FolderOpen}
-        title="Recursos"
-        intro="Videos, artículos, libros y herramientas que quieres conservar, con notas y estado de lectura."
+        title="Recursos guardados"
+        intro="Materiales externos que quieres guardar, revisar o usar dentro de un proyecto o tema de aprendizaje."
       />
       <BibliotecaTabs />
 
@@ -87,6 +88,7 @@ export default async function RecursosPage({
           <option value="pendiente">Pendiente</option>
           <option value="en-proceso">En proceso</option>
           <option value="revisado">Revisado</option>
+          <option value="archivado">Archivado</option>
         </select>
         <button type="submit" className="btn btn-secondary !min-h-9 text-sm">Filtrar</button>
         <Link href="/biblioteca/recursos?fav=1" className={`chip self-center ${fav ? "!bg-forest !text-cream" : "hover:bg-sand"}`}>

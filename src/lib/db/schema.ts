@@ -194,7 +194,9 @@ export const agentsSkills = sqliteTable("agents_skills", {
   command: text("command").default(""),
   relationships: text("relationships", { mode: "json" }).$type<string[]>().default([]),
   sourcePath: text("source_path").default(""),
-  status: text("status").default("activo"), // activo|experimental|deprecado
+  status: text("status").default("activo"), // activo|experimental|planeado|deprecado|no-encontrado
+  scope: text("scope").default("maca"), // maca|global|mafer-os|otro
+  fileModified: text("file_modified"), // fecha de última modificación del archivo fuente
 });
 
 export const decisions = sqliteTable("decisions", {

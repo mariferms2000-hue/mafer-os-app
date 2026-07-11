@@ -8,6 +8,7 @@ import {
   completeCardAction,
   setEnergyTodayAction,
 } from "@/lib/actions/cards";
+import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 
 export function Priorities({
@@ -19,7 +20,22 @@ export function Priorities({
 }) {
   const [picking, setPicking] = useState(false);
   const [pending, start] = useTransition();
+  const toast = useToast();
   const chosenIds = new Set(priorities.map((p) => p.id));
+
+  function toggleComplete(card: CardRow, done: boolean) {
+    start(async () => {
+      await completeCardAction(card.id, !done);
+      if (!done) {
+        toast.show({
+          message: "Prioridad completada ✓",
+          action: { label: "Deshacer", onClick: () => completeCardAction(card.id, false) },
+          link: { label: "Ver en terminadas", href: "/tareas?f=terminadas" },
+          duration: 8000,
+        });
+      }
+    });
+  }
 
   return (
     <section aria-labelledby="prioridades" className="card p-5">
@@ -49,7 +65,7 @@ export function Priorities({
               <button
                 type="button"
                 aria-label={done ? `Reabrir «${card.title}»` : `Completar «${card.title}»`}
-                onClick={() => start(() => completeCardAction(card.id, !done))}
+                onClick={() => toggleComplete(card, done)}
                 disabled={pending}
                 className="text-sage-deep hover:text-forest shrink-0"
               >
@@ -109,22 +125,36 @@ export function Priorities({
   );
 }
 
+const ENERGY_EXPLANATION: Record<string, string> = {
+  baja: "He ajustado tus sugerencias para energía baja: tareas cortas y ligeras primero.",
+  media: "He ajustado tus sugerencias para energía media: balance entre corto y normal.",
+  alta: "He ajustado tus sugerencias para energía alta: trabajo profundo primero.",
+};
+
 export function EnergySelector({ current }: { current: string }) {
   const [pending, start] = useTransition();
+  const toast = useToast();
   const options = [
     { v: "baja", label: "Baja" },
     { v: "media", label: "Media" },
     { v: "alta", label: "Alta" },
   ];
   return (
-    <div className="flex items-center gap-1.5" role="group" aria-label="Tu energía de hoy">
-      <span className="text-xs text-stone mr-1">Energía:</span>
+    <div className="flex items-center gap-1.5" role="group" aria-label="¿Cómo está tu energía hoy?">
+      <span className="text-xs text-stone mr-1">¿Tu energía hoy?</span>
       {options.map((o) => (
         <button
           key={o.v}
           type="button"
           disabled={pending}
-          onClick={() => start(() => setEnergyTodayAction(o.v))}
+          data-testid={`energy-${o.v}`}
+          aria-pressed={current === o.v}
+          onClick={() =>
+            start(async () => {
+              await setEnergyTodayAction(o.v);
+              toast.show({ tone: "info", message: ENERGY_EXPLANATION[o.v] });
+            })
+          }
           className={`chip transition-colors ${
             current === o.v ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"
           }`}

@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
-const QA_DIR = path.join(__dirname, "..", "..", "project-management", "qa");
+const QA_DIR = path.join(__dirname, "..", "..", "project-management", "qa", "stabilization-round");
 const PASSWORD = "prueba-mafer-123";
 
 async function shot(page: Page, name: string) {
@@ -30,6 +30,7 @@ test("móvil: navegación inferior visible y sin scroll horizontal", async ({ pa
 test("móvil: captura rápida con pocos toques", async ({ page }) => {
   await login(page);
   await page.getByTestId("capture-fab").click();
+  await page.getByTestId("fab-captura").click();
   await page.getByTestId("capture-input").fill("Captura desde el teléfono");
   await page.getByTestId("capture-save").click();
   await expect(page.getByText("Capturado.")).toBeVisible();

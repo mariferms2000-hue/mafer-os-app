@@ -15,9 +15,9 @@ import { TEMPLATE_LABEL } from "@/components/explore/journal-labels";
 export default async function JournalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tipo?: string; fav?: string }>;
+  searchParams: Promise<{ q?: string; tipo?: string; fav?: string; nueva?: string }>;
 }) {
-  const { q = "", tipo = "", fav } = await searchParams;
+  const { q = "", tipo = "", fav, nueva } = await searchParams;
   let entries = await db.select().from(schema.journalEntries).orderBy(desc(schema.journalEntries.date));
   if (q) {
     const needle = q.toLowerCase();
@@ -40,7 +40,7 @@ export default async function JournalPage({
       <form action={createJournalAction} className="card p-4 mb-6 flex flex-col md:flex-row gap-2.5">
         <input type="hidden" name="date" value={today()} />
         <label className="sr-only" htmlFor="j-title">Título</label>
-        <input id="j-title" name="title" className="input flex-1" placeholder="¿Sobre qué quieres escribir hoy?" data-testid="new-journal-input" />
+        <input id="j-title" name="title" className="input flex-1" placeholder="¿Sobre qué quieres escribir hoy?" autoFocus={nueva === "1"} data-testid="new-journal-input" />
         <select name="templateType" className="select md:!w-56" aria-label="Tipo de entrada">
           {Object.entries(TEMPLATE_LABEL).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>

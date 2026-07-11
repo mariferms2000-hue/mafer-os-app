@@ -30,6 +30,11 @@ export function ResourceItem({ resource, projectTitle }: { resource: Resource; p
           {resource.topic && <span className="chip">#{resource.topic}</span>}
           {projectTitle && <span className="chip chip-sage">{projectTitle}</span>}
           {resource.isStarter && <span className="chip">Ejemplo</span>}
+          {!resource.projectId && !resource.learningId && (
+            <span className="chip !border-dashed" title="Edita el recurso para vincularlo a un proyecto o tema de aprendizaje">
+              Sin vincular aún
+            </span>
+          )}
         </div>
       </div>
       <label className="sr-only" htmlFor={`status-${resource.id}`}>Estado</label>
@@ -43,6 +48,7 @@ export function ResourceItem({ resource, projectTitle }: { resource: Resource; p
         <option value="pendiente">Pendiente</option>
         <option value="en-proceso">En proceso</option>
         <option value="revisado">Revisado</option>
+        <option value="archivado">Archivado</option>
       </select>
       <button
         type="button"

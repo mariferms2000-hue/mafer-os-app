@@ -11,6 +11,7 @@ import {
   addTodayPriority,
 } from "@/lib/actions/cards";
 import type { ChecklistItem } from "@/lib/db/schema";
+import { useToast } from "@/components/ui/toast";
 
 export type BoardCard = {
   id: string;
@@ -38,7 +39,25 @@ export function CardDetail({ card, onClose }: { card: BoardCard; onClose: () => 
   const [checklist, setChecklist] = useState<ChecklistItem[]>(card.checklist ?? []);
   const [newItem, setNewItem] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const toast = useToast();
   const done = Boolean(card.completedAt);
+
+  function toggleComplete() {
+    start(async () => {
+      await completeCardAction(card.id, !done);
+      if (!done) {
+        toast.show({
+          message: "Tarea completada ✓",
+          action: { label: "Deshacer", onClick: () => completeCardAction(card.id, false) },
+          link: { label: "Ver en terminadas", href: "/tareas?f=terminadas" },
+          duration: 8000,
+        });
+        onClose();
+      } else {
+        toast.show({ tone: "info", message: "Tarea reabierta — volvió a Próximo." });
+      }
+    });
+  }
 
   function saveChecklist(next: ChecklistItem[]) {
     setChecklist(next);
@@ -64,7 +83,7 @@ export function CardDetail({ card, onClose }: { card: BoardCard; onClose: () => 
               type="button"
               className={`btn !py-1.5 !px-3 text-xs ${done ? "btn-secondary" : "btn-primary"}`}
               disabled={pending}
-              onClick={() => start(() => completeCardAction(card.id, !done))}
+              onClick={toggleComplete}
               data-testid="card-complete"
             >
               <CheckCircle2 size={14} aria-hidden /> {done ? "Reabrir" : "Completar"}

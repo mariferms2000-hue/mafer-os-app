@@ -38,8 +38,15 @@ function saludo() {
 
 export default async function HoyPage() {
   const data = await getTodayData();
+  // La energía del día cambia las sugerencias automáticas (nunca tus 3 prioridades manuales):
+  // baja → solo tareas cortas y ligeras · media → todo lo corto · alta → además trabajo profundo.
   const quickFiltered =
-    data.energy === "baja" ? data.quick.filter((c) => !c.energy || c.energy === "baja") : data.quick;
+    data.energy === "baja"
+      ? data.quick.filter((c) => !c.energy || c.energy === "baja")
+      : data.energy === "alta"
+        ? data.quick.filter((c) => c.energy !== "baja").concat(data.quick.filter((c) => c.energy === "baja"))
+        : data.quick;
+  const showDeepWork = data.energy === "alta" && data.deepWork.length > 0;
 
   const resumen: string[] = [];
   if (data.priorities.length) resumen.push(`${data.priorities.length} prioridad${data.priorities.length > 1 ? "es" : ""}`);
@@ -91,6 +98,25 @@ export default async function HoyPage() {
             )}
           </section>
 
+          {/* Con energía alta, el trabajo profundo va primero */}
+          {showDeepWork && (
+            <section aria-labelledby="profundo" className="card p-5 !border-sage-deep">
+              <h2 id="profundo" className="text-lg text-forest-deep flex items-center gap-2 mb-1">
+                <Sun size={18} className="text-olive" aria-hidden /> Aprovecha tu energía alta
+              </h2>
+              <p className="text-xs text-stone mb-2">
+                Trabajo profundo, decisiones y tareas importantes — el mejor uso de un día con pila.
+              </p>
+              <ul className="divide-y divide-beige" data-testid="deep-work-list">
+                {data.deepWork.slice(0, 5).map((c) => (
+                  <li key={c.id}>
+                    <TaskLine card={c} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {/* Menos de 30 minutos */}
           <section aria-labelledby="rapidas" className="card p-5">
             <h2 id="rapidas" className="text-lg text-forest-deep flex items-center gap-2 mb-1">
@@ -98,8 +124,10 @@ export default async function HoyPage() {
             </h2>
             <p className="text-xs text-stone mb-2">
               {data.energy === "baja"
-                ? "Filtrado para energía baja: cosas ligeras que sí puedes terminar."
-                : "Cosas que puedes terminar en un hueco corto."}
+                ? "Ajustado a tu energía baja: solo cosas ligeras que sí puedes terminar hoy."
+                : data.energy === "alta"
+                  ? "Para los huecos entre bloques de trabajo profundo."
+                  : "Cosas que puedes terminar en un hueco corto."}
             </p>
             {quickFiltered.length === 0 ? (
               <p className="text-sm text-stone">

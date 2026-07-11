@@ -1,6 +1,17 @@
 import Link from "next/link";
 import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
-import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, Unplug } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  Unplug,
+  Users,
+  Flag,
+  Bell,
+  CircleCheckBig,
+  type LucideIcon,
+} from "lucide-react";
 import { db, today, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { NewEventButton } from "@/components/calendar/new-event";
@@ -17,27 +28,66 @@ type Occurrence = {
   id: string;
   date: string;
   time: string | null;
+  endTime?: string | null;
   title: string;
   kind: "evento" | "tarea";
-  type: string;
+  type: string; // reunion|deadline|recordatorio|evento|tarea
   projectId: string | null;
   href?: string;
+};
+
+const TYPE_META: Record<string, { icon: LucideIcon; label: string; chip: string }> = {
+  reunion: { icon: Users, label: "Reunión", chip: "chip-sage" },
+  deadline: { icon: Flag, label: "Deadline", chip: "chip-blocked" },
+  recordatorio: { icon: Bell, label: "Recordatorio", chip: "chip-waiting" },
+  evento: { icon: CalendarDays, label: "Evento", chip: "chip-sage" },
+  tarea: { icon: CircleCheckBig, label: "Tarea", chip: "" },
 };
 
 function iso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+function parseIso(s: string) {
+  return new Date(`${s}T12:00:00`);
+}
+function addDays(s: string, n: number) {
+  const d = parseIso(s);
+  d.setDate(d.getDate() + n);
+  return iso(d);
+}
+function fechaLegible(s: string, opts: Intl.DateTimeFormatOptions) {
+  return parseIso(s).toLocaleDateString("es-MX", opts);
+}
+
+function OccLine({ o }: { o: Occurrence }) {
+  const meta = TYPE_META[o.type] ?? TYPE_META.evento;
+  const Icon = meta.icon;
+  return (
+    <div className="flex items-center gap-2 text-sm py-1 min-w-0">
+      <span className={`chip shrink-0 ${meta.chip}`} title={meta.label}>
+        <Icon size={11} aria-hidden /> {o.time ?? "Día"}
+      </span>
+      {o.href ? (
+        <Link href={o.href} className="truncate hover:underline underline-offset-4">{o.title}</Link>
+      ) : (
+        <span className="truncate">{o.title}</span>
+      )}
+    </div>
+  );
+}
 
 export default async function CalendarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string; mes?: string; proyecto?: string; tipo?: string; google?: string }>;
+  searchParams: Promise<{ vista?: string; fecha?: string; mes?: string; proyecto?: string; tipo?: string; google?: string; nuevo?: string }>;
 }) {
-  const { vista = "mes", mes, proyecto = "", tipo = "", google } = await searchParams;
+  const params = await searchParams;
+  const { vista = "mes", proyecto = "", tipo = "", google, nuevo } = params;
   const hoy = today();
-  const base = mes ? new Date(`${mes}-01T12:00:00`) : new Date();
-  const year = base.getFullYear();
-  const month = base.getMonth();
+  const fecha = params.fecha ?? (params.mes ? `${params.mes}-01` : hoy);
+  const anchor = parseIso(fecha);
+  const year = anchor.getFullYear();
+  const month = anchor.getMonth();
 
   const events = await db.select().from(schema.events).orderBy(asc(schema.events.date));
   const datedCards = await db
@@ -56,6 +106,7 @@ export default async function CalendarioPage({
       id: `e-${e.id}`,
       date: e.date,
       time: e.startTime,
+      endTime: e.endTime,
       title: e.title,
       kind: "evento" as const,
       type: e.type ?? "evento",
@@ -69,7 +120,7 @@ export default async function CalendarioPage({
       kind: "tarea" as const,
       type: "tarea",
       projectId: c.projectId,
-      href: c.projectId ? `/proyectos/${c.projectId}` : undefined,
+      href: c.projectId ? `/proyectos/${c.projectId}` : "/tareas?f=confecha",
     })),
   ];
   if (proyecto) occ = occ.filter((o) => o.projectId === proyecto);
@@ -77,12 +128,24 @@ export default async function CalendarioPage({
 
   const byDate = new Map<string, Occurrence[]>();
   for (const o of occ) byDate.set(o.date, [...(byDate.get(o.date) ?? []), o]);
-  for (const list of byDate.values()) list.sort((a, b) => (a.time ?? "99") < (b.time ?? "99") ? -1 : 1);
+  for (const list of byDate.values()) list.sort((a, b) => ((a.time ?? "99") < (b.time ?? "99") ? -1 : 1));
 
-  const prevMonth = iso(new Date(year, month - 1, 1)).slice(0, 7);
-  const nextMonth = iso(new Date(year, month + 1, 1)).slice(0, 7);
+  const keep = (extra: Record<string, string>) => {
+    const merged: Record<string, string> = { vista, fecha, proyecto, tipo, ...extra };
+    const parts = Object.entries(merged)
+      .filter(([k, v]) => v && !(k === "vista" && v === "mes") && !(k === "fecha" && v === hoy))
+      .map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
+    return `/calendario${parts.length ? "?" + parts.join("&") : ""}`;
+  };
 
-  // Celdas del mes (semana empieza en lunes)
+  // navegación anterior/siguiente según vista
+  const step = vista === "dia" ? 1 : vista === "semana" ? 7 : 0;
+  const prevHref =
+    vista === "mes" ? keep({ fecha: iso(new Date(year, month - 1, 1)) }) : keep({ fecha: addDays(fecha, -step) });
+  const nextHref =
+    vista === "mes" ? keep({ fecha: iso(new Date(year, month + 1, 1)) }) : keep({ fecha: addDays(fecha, step) });
+
+  // celdas del mes (lunes primero)
   const first = new Date(year, month, 1);
   const startOffset = (first.getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -92,65 +155,53 @@ export default async function CalendarioPage({
   ];
   while (cells.length % 7 !== 0) cells.push(null);
 
-  // Semana actual (7 días desde hoy) y agenda (30 días)
-  const upcoming: { date: string; items: Occurrence[] }[] = [];
-  const horizon = vista === "semana" ? 7 : 30;
-  for (let i = 0; i < horizon; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const key = iso(d);
-    upcoming.push({ date: key, items: byDate.get(key) ?? [] });
-  }
+  // semana que contiene `fecha` (lunes a domingo)
+  const weekStart = addDays(fecha, -((parseIso(fecha).getDay() + 6) % 7));
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  const qs = (v: string, m?: string) =>
-    `/calendario?vista=${v}${m ? `&mes=${m}` : ""}${proyecto ? `&proyecto=${proyecto}` : ""}${tipo ? `&tipo=${tipo}` : ""}`;
+  const HOURS = Array.from({ length: 16 }, (_, i) => i + 7); // 7:00–22:00
+  const nowHour = new Date().getHours();
+
+  const titulo =
+    vista === "dia"
+      ? fechaLegible(fecha, { weekday: "long", day: "numeric", month: "long" })
+      : vista === "semana"
+        ? `Semana del ${fechaLegible(weekStart, { day: "numeric", month: "long" })}`
+        : `${MESES[month]} ${year}`;
 
   return (
     <div>
       <PageHeader
         icon={CalendarDays}
         title="Calendario"
-        intro="Tus reuniones, fechas límite y tareas con fecha, en un solo lugar."
+        intro="Reuniones, fechas límite, tareas con fecha y recordatorios."
       >
-        <NewEventButton projects={projects} />
+        <NewEventButton projects={projects} autoOpen={nuevo === "1"} />
       </PageHeader>
 
       {google === "conectado" && (
         <p className="card !border-done-soft p-3 mb-4 text-sm text-done flex items-center gap-2">
-          <CheckCircle2 size={16} aria-hidden /> Google Calendar conectado. Se creó el calendario «Mafer OS»: tus
-          recordatorios sonarán en tu teléfono.
+          <CheckCircle2 size={16} aria-hidden /> Google Calendar conectado. Se creó el calendario «Mafer OS».
         </p>
       )}
       {google === "error" && (
         <p className="card !border-blocked-soft p-3 mb-4 text-sm text-blocked">
-          No se pudo conectar con Google. Intenta de nuevo desde Ajustes, o revisa la guía «Calendario y recordatorios».
+          No se pudo conectar con Google. Revisa la guía «Calendario y recordatorios» en Ajustes.
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-1.5 mb-5">
+      <div className="flex flex-wrap items-center gap-1.5 mb-4">
         {[
-          { k: "mes", label: "Mes" },
+          { k: "dia", label: "Día" },
           { k: "semana", label: "Semana" },
+          { k: "mes", label: "Mes" },
           { k: "agenda", label: "Agenda" },
         ].map((v) => (
-          <Link key={v.k} href={qs(v.k)} className={`chip ${vista === v.k ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}>
+          <Link key={v.k} href={keep({ vista: v.k })} data-testid={`vista-${v.k}`} className={`chip ${vista === v.k ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}>
             {v.label}
           </Link>
         ))}
         <span className="mx-1 text-sand-deep" aria-hidden>·</span>
-        <details className="relative">
-          <summary className="chip cursor-pointer list-none hover:bg-sand">
-            {proyecto ? `Proyecto: ${projectName.get(proyecto) ?? ""}` : "Todos los proyectos"}
-          </summary>
-          <div className="absolute z-20 mt-1 card p-2 flex flex-col gap-0.5 min-w-48">
-            <Link href={`/calendario?vista=${vista}`} className="text-sm px-2 py-1 rounded hover:bg-beige">Todos</Link>
-            {projects.map((p) => (
-              <Link key={p.id} href={`/calendario?vista=${vista}&proyecto=${p.id}`} className="text-sm px-2 py-1 rounded hover:bg-beige">
-                {p.title}
-              </Link>
-            ))}
-          </div>
-        </details>
         {[
           { k: "", label: "Todo" },
           { k: "reunion", label: "Reuniones" },
@@ -158,112 +209,167 @@ export default async function CalendarioPage({
           { k: "recordatorio", label: "Recordatorios" },
           { k: "tareas", label: "Tareas" },
         ].map((t) => (
-          <Link
-            key={t.k}
-            href={`/calendario?vista=${vista}${proyecto ? `&proyecto=${proyecto}` : ""}${t.k ? `&tipo=${t.k}` : ""}`}
-            className={`chip ${tipo === t.k ? "!bg-olive !text-cream !border-olive" : "hover:bg-sand"}`}
-          >
+          <Link key={t.k} href={keep({ tipo: t.k })} className={`chip ${tipo === t.k ? "!bg-olive !text-cream !border-olive" : "hover:bg-sand"}`}>
             {t.label}
           </Link>
         ))}
+        <details className="relative ml-1">
+          <summary className="chip cursor-pointer list-none hover:bg-sand">
+            {proyecto ? `Proyecto: ${projectName.get(proyecto) ?? ""}` : "Todos los proyectos"}
+          </summary>
+          <div className="absolute z-20 mt-1 card p-2 flex flex-col gap-0.5 min-w-48">
+            <Link href={keep({ proyecto: "" })} className="text-sm px-2 py-1 rounded hover:bg-beige">Todos</Link>
+            {projects.map((p) => (
+              <Link key={p.id} href={keep({ proyecto: p.id })} className="text-sm px-2 py-1 rounded hover:bg-beige">
+                {p.title}
+              </Link>
+            ))}
+          </div>
+        </details>
       </div>
 
-      {vista === "mes" && (
-        <section className="card p-4 md:p-5 overflow-x-auto">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl text-forest-deep">{MESES[month]} {year}</h2>
-            <div className="flex gap-1">
-              <Link href={qs("mes", prevMonth)} className="btn btn-ghost !p-2" aria-label="Mes anterior">
-                <ChevronLeft size={18} aria-hidden />
-              </Link>
-              <Link href={qs("mes", nextMonth)} className="btn btn-ghost !p-2" aria-label="Mes siguiente">
-                <ChevronRight size={18} aria-hidden />
-              </Link>
+      <section className="card p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl md:text-2xl text-forest-deep capitalize">{titulo}</h2>
+          <div className="flex items-center gap-1">
+            <Link href={keep({ fecha: hoy })} className="btn btn-secondary !py-1.5 !px-3 text-xs">Hoy</Link>
+            {vista !== "agenda" && (
+              <>
+                <Link href={prevHref} className="btn btn-ghost !p-2" aria-label="Anterior">
+                  <ChevronLeft size={18} aria-hidden />
+                </Link>
+                <Link href={nextHref} className="btn btn-ghost !p-2" aria-label="Siguiente">
+                  <ChevronRight size={18} aria-hidden />
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+
+        {vista === "mes" && (
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-7 gap-1.5 min-w-[640px]">
+              {DIAS_CORTOS.map((d) => (
+                <div key={d} className="text-center text-xs font-semibold text-stone py-1">{d}</div>
+              ))}
+              {cells.map((date, i) => (
+                <div
+                  key={i}
+                  className={`min-h-28 rounded-xl border p-1.5 ${
+                    date === hoy ? "border-forest bg-sage-soft/60" : "border-beige bg-paper"
+                  } ${date ? "" : "opacity-0"}`}
+                >
+                  {date && (
+                    <>
+                      <Link
+                        href={keep({ vista: "dia", fecha: date })}
+                        className={`text-xs mb-1 inline-block rounded px-1 hover:bg-sand ${date === hoy ? "font-bold text-forest" : "text-stone"}`}
+                      >
+                        {Number(date.slice(8))}
+                      </Link>
+                      <ul className="flex flex-col gap-0.5">
+                        {(byDate.get(date) ?? []).slice(0, 4).map((o) => {
+                          const meta = TYPE_META[o.type] ?? TYPE_META.evento;
+                          const Icon = meta.icon;
+                          return (
+                            <li
+                              key={o.id}
+                              className={`flex items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] leading-tight ${
+                                o.kind === "evento" ? "bg-sage-soft text-forest-deep" : "bg-beige text-ink-green"
+                              }`}
+                              title={`${meta.label}: ${o.title}`}
+                            >
+                              <Icon size={10} className="shrink-0" aria-hidden />
+                              {o.time && <span className="font-semibold shrink-0">{o.time}</span>}
+                              <span className="truncate">{o.title}</span>
+                            </li>
+                          );
+                        })}
+                        {(byDate.get(date)?.length ?? 0) > 4 && (
+                          <li className="text-[10px] text-stone-soft px-1">+{byDate.get(date)!.length - 4} más</li>
+                        )}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
-          <div className="grid grid-cols-7 gap-1 min-w-[560px]">
-            {DIAS_CORTOS.map((d) => (
-              <div key={d} className="text-center text-xs font-semibold text-stone py-1">{d}</div>
-            ))}
-            {cells.map((date, i) => (
-              <div
-                key={i}
-                className={`min-h-20 rounded-lg border p-1 ${
-                  date === hoy ? "border-forest bg-sage-soft/60" : "border-beige bg-paper"
-                } ${date ? "" : "opacity-0"}`}
-              >
-                {date && (
-                  <>
-                    <p className={`text-xs mb-0.5 ${date === hoy ? "font-bold text-forest" : "text-stone"}`}>
-                      {Number(date.slice(8))}
-                    </p>
-                    <ul className="flex flex-col gap-0.5">
-                      {(byDate.get(date) ?? []).slice(0, 3).map((o) => (
-                        <li
+        )}
+
+        {vista === "dia" && (
+          <DayView items={byDate.get(fecha) ?? []} hours={HOURS} nowHour={fecha === hoy ? nowHour : null} />
+        )}
+
+        {vista === "semana" && (
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-7 gap-1.5 min-w-[760px]">
+              {weekDays.map((d) => (
+                <div key={d} className={`rounded-xl border p-2 min-h-48 ${d === hoy ? "border-forest bg-sage-soft/50" : "border-beige bg-paper"}`}>
+                  <Link
+                    href={keep({ vista: "dia", fecha: d })}
+                    className={`block text-center text-xs mb-2 rounded hover:bg-sand ${d === hoy ? "font-bold text-forest" : "text-stone"}`}
+                  >
+                    {fechaLegible(d, { weekday: "short", day: "numeric" })}
+                  </Link>
+                  <div className="flex flex-col gap-1">
+                    {(byDate.get(d) ?? []).map((o) => {
+                      const meta = TYPE_META[o.type] ?? TYPE_META.evento;
+                      const Icon = meta.icon;
+                      return (
+                        <div
                           key={o.id}
-                          className={`truncate rounded px-1 py-0.5 text-[10px] leading-tight ${
+                          className={`rounded-md px-1.5 py-1 text-[11px] leading-tight ${
                             o.kind === "evento" ? "bg-sage-soft text-forest-deep" : "bg-beige text-ink-green"
                           }`}
-                          title={o.title}
+                          title={`${meta.label}: ${o.title}`}
                         >
-                          {o.time && <span className="font-semibold">{o.time} </span>}
-                          {o.title}
-                        </li>
-                      ))}
-                      {(byDate.get(date)?.length ?? 0) > 3 && (
-                        <li className="text-[10px] text-stone-soft px-1">+{byDate.get(date)!.length - 3} más</li>
-                      )}
-                    </ul>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {(vista === "semana" || vista === "agenda") && (
-        <section className="flex flex-col gap-3">
-          {upcoming.filter((u) => vista === "semana" || u.items.length > 0).map((u) => (
-            <div key={u.date} className={`card p-4 ${u.date === hoy ? "!border-sage-deep" : ""}`}>
-              <p className="text-sm font-semibold text-ink-green capitalize mb-1">
-                {new Date(`${u.date}T12:00:00`).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" })}
-                {u.date === hoy && <span className="chip chip-sage ml-2">Hoy</span>}
-              </p>
-              {u.items.length === 0 ? (
-                <p className="text-xs text-stone-soft">Sin nada agendado.</p>
-              ) : (
-                <ul className="divide-y divide-beige">
-                  {u.items.map((o) => (
-                    <li key={o.id} className="py-1.5 flex items-center gap-2.5 text-sm">
-                      <span className="chip shrink-0">{o.time ?? "Día"}</span>
-                      {o.href ? (
-                        <Link href={o.href} className="hover:underline underline-offset-4">{o.title}</Link>
-                      ) : (
-                        <span>{o.title}</span>
-                      )}
-                      <span className="ml-auto text-xs text-stone-soft capitalize">{o.kind === "tarea" ? "tarea" : o.type}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                          <span className="flex items-center gap-1 font-semibold">
+                            <Icon size={10} aria-hidden /> {o.time ?? "Día"}
+                          </span>
+                          <span className="block truncate">{o.title}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-          {vista === "agenda" && occ.length === 0 && (
-            <p className="text-sm text-stone">No hay nada agendado en los próximos 30 días.</p>
-          )}
-        </section>
-      )}
+          </div>
+        )}
+
+        {vista === "agenda" && (
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 30 }, (_, i) => addDays(hoy, i))
+              .filter((d) => (byDate.get(d) ?? []).length > 0)
+              .map((d) => (
+                <div key={d} className={`rounded-xl border p-3 ${d === hoy ? "border-forest" : "border-beige"}`}>
+                  <p className="text-sm font-semibold text-ink-green capitalize mb-1">
+                    {fechaLegible(d, { weekday: "long", day: "numeric", month: "long" })}
+                    {d === hoy && <span className="chip chip-sage ml-2">Hoy</span>}
+                  </p>
+                  <div className="divide-y divide-beige">
+                    {(byDate.get(d) ?? []).map((o) => (
+                      <OccLine key={o.id} o={o} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            {occ.filter((o) => o.date >= hoy && o.date <= addDays(hoy, 29)).length === 0 && (
+              <p className="text-sm text-stone">No hay nada agendado en los próximos 30 días.</p>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* Estado de Google Calendar */}
       <section className="card p-5 mt-6">
         <h2 className="text-lg text-forest-deep mb-1">Recordatorios en tu teléfono</h2>
         {!gstatus.configured ? (
           <p className="text-sm text-stone">
-            Para que Mafer OS pueda mandar recordatorios a tu iPhone vía Google Calendar hace falta un paso único de
-            configuración (crear credenciales en Google Cloud). La guía paso a paso está en{" "}
+            Falta un paso único de configuración de Google (guía en{" "}
             <Link href="/ajustes" className="text-forest underline underline-offset-4">Ajustes</Link> y en el manual
-            «Calendario y recordatorios».
+            «Calendario y recordatorios»). La integración ya está construida; no está conectada todavía.
           </p>
         ) : !gstatus.connected ? (
           <div className="flex flex-wrap items-center gap-3">
@@ -273,8 +379,8 @@ export default async function CalendarioPage({
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm text-done flex items-center gap-1.5">
-              <CheckCircle2 size={15} aria-hidden /> Conectado. Los eventos y tarjetas con recordatorio se copian al
-              calendario «Mafer OS» de tu cuenta de Google.
+              <CheckCircle2 size={15} aria-hidden /> Conectado. Eventos y tarjetas con recordatorio se copian al
+              calendario «Mafer OS».
             </p>
             <form action={disconnectGoogleAction}>
               <button type="submit" className="btn btn-ghost text-xs">
@@ -284,6 +390,66 @@ export default async function CalendarioPage({
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function DayView({
+  items,
+  hours,
+  nowHour,
+}: {
+  items: Occurrence[];
+  hours: number[];
+  nowHour: number | null;
+}) {
+  const allDay = items.filter((o) => !o.time);
+  const timed = items.filter((o) => o.time);
+  const byHour = new Map<number, Occurrence[]>();
+  for (const o of timed) {
+    const h = Number(o.time!.split(":")[0]);
+    byHour.set(h, [...(byHour.get(h) ?? []), o]);
+  }
+
+  return (
+    <div data-testid="day-view">
+      {allDay.length > 0 && (
+        <div className="mb-3 rounded-xl bg-beige/70 border border-sand p-3">
+          <p className="label !mb-1.5">Todo el día</p>
+          <div className="flex flex-col">
+            {allDay.map((o) => (
+              <OccLine key={o.id} o={o} />
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="rounded-xl border border-beige overflow-hidden">
+        {hours.map((h) => {
+          const isNow = nowHour === h;
+          const list = byHour.get(h) ?? [];
+          return (
+            <div
+              key={h}
+              className={`flex gap-3 border-b border-beige last:border-b-0 px-3 ${
+                isNow ? "bg-sage-soft/50" : ""
+              } ${list.length ? "py-2" : "py-1.5"}`}
+            >
+              <span className={`w-12 shrink-0 text-xs tabular-nums pt-1 ${isNow ? "font-bold text-forest" : "text-stone-soft"}`}>
+                {String(h).padStart(2, "0")}:00
+                {isNow && <span className="block h-0.5 mt-1 rounded bg-forest" aria-hidden />}
+              </span>
+              <div className="min-w-0 flex-1 flex flex-col">
+                {list.map((o) => (
+                  <OccLine key={o.id} o={o} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {items.length === 0 && (
+        <p className="text-sm text-stone mt-3">Nada agendado para este día.</p>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { completeCardAction } from "@/lib/actions/cards";
+import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 
 export const DURATION_LABEL: Record<string, string> = {
@@ -14,10 +15,28 @@ export const DURATION_LABEL: Record<string, string> = {
   deep: "Trabajo profundo",
 };
 
-/** Línea de tarea reutilizable: check + título + chips de contexto. */
+/** Línea de tarea reutilizable: check + título + chips de contexto.
+ *  Completar nunca borra: mueve a Terminado, guarda la fecha y ofrece deshacer. */
 export function TaskLine({ card, showProject = true }: { card: CardRow; showProject?: boolean }) {
   const [pending, start] = useTransition();
+  const toast = useToast();
   const done = Boolean(card.completedAt);
+
+  function toggle() {
+    start(async () => {
+      await completeCardAction(card.id, !done);
+      if (!done) {
+        toast.show({
+          message: "Tarea completada ✓",
+          action: { label: "Deshacer", onClick: () => completeCardAction(card.id, false) },
+          link: { label: "Ver en terminadas", href: "/tareas?f=terminadas" },
+          duration: 8000,
+        });
+      } else {
+        toast.show({ tone: "info", message: "Tarea reabierta — volvió a Próximo." });
+      }
+    });
+  }
 
   return (
     <div className="flex items-start gap-2.5 py-2 group">
@@ -25,7 +44,7 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
         type="button"
         aria-label={done ? `Reabrir «${card.title}»` : `Completar «${card.title}»`}
         disabled={pending}
-        onClick={() => start(() => completeCardAction(card.id, !done))}
+        onClick={toggle}
         className="mt-0.5 text-sage-deep hover:text-forest transition-colors shrink-0"
       >
         {done ? <CheckCircle2 size={19} aria-hidden /> : <Circle size={19} aria-hidden />}
@@ -64,6 +83,9 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
             <span className="chip chip-waiting">
               <Hourglass size={11} aria-hidden /> Espera: {card.waitingFor}
             </span>
+          )}
+          {done && card.completedAt && (
+            <span className="chip chip-done">✓ {card.completedAt.slice(0, 10)}</span>
           )}
         </div>
       </div>

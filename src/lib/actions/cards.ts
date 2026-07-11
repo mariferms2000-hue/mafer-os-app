@@ -19,7 +19,7 @@ export async function createCardAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return;
   const projectId = (formData.get("projectId") as string) || null;
-  await createCardInColumnKind({
+  const cardId = await createCardInColumnKind({
     title,
     description: String(formData.get("description") ?? ""),
     projectId,
@@ -30,6 +30,21 @@ export async function createCardAction(formData: FormData) {
     energy: (formData.get("energy") as string) || null,
     priority: (formData.get("priority") as string) || "media",
   });
+  // Campos avanzados opcionales del formulario «Nueva tarea».
+  const extras: Record<string, unknown> = {};
+  const blockedReason = String(formData.get("blockedReason") ?? "").trim();
+  const waitingFor = String(formData.get("waitingFor") ?? "").trim();
+  const startTime = String(formData.get("startTime") ?? "").trim();
+  const reminder = String(formData.get("reminder") ?? "").trim();
+  const tags = String(formData.get("tags") ?? "").split(",").map((t) => t.trim()).filter(Boolean);
+  if (blockedReason) extras.blockedReason = blockedReason;
+  if (waitingFor) extras.waitingFor = waitingFor;
+  if (startTime) extras.startTime = startTime;
+  if (reminder) extras.reminder = reminder;
+  if (tags.length) extras.tags = tags;
+  if (Object.keys(extras).length) {
+    await db.update(schema.cards).set(extras).where(eq(schema.cards.id, cardId));
+  }
   revalidateCardViews(projectId);
 }
 

@@ -30,9 +30,9 @@ const AREAS = [
 export default async function ProyectosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string; area?: string }>;
+  searchParams: Promise<{ f?: string; area?: string; nuevo?: string }>;
 }) {
-  const { f = "activos", area = "" } = await searchParams;
+  const { f = "activos", area = "", nuevo } = await searchParams;
   const all = await db.select().from(schema.projects);
   const openCards = await db
     .select({ id: schema.cards.id, projectId: schema.cards.projectId, blocked: schema.cards.blockedReason })
@@ -63,7 +63,7 @@ export default async function ProyectosPage({
         title="Proyectos"
         intro="Tu portafolio completo: qué está vivo, qué espera y cuál es el siguiente paso de cada cosa."
       >
-        <NewProjectButton />
+        <NewProjectButton autoOpen={nuevo === "1"} />
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-1.5 mb-5">
@@ -140,11 +140,6 @@ export default async function ProyectosPage({
         </ul>
       )}
 
-      <p className="mt-6 text-sm">
-        <Link href="/tareas" className="text-forest underline underline-offset-4 hover:text-forest-deep">
-          Ver todas mis tareas en un solo lugar →
-        </Link>
-      </p>
     </div>
   );
 }

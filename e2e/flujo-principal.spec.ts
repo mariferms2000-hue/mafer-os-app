@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
-const QA_DIR = path.join(__dirname, "..", "..", "project-management", "qa");
+const QA_DIR = path.join(__dirname, "..", "..", "project-management", "qa", "stabilization-round");
 const PASSWORD = "prueba-mafer-123";
 
 test.describe.configure({ mode: "serial" });
@@ -49,6 +49,7 @@ test("captura al Inbox y conversión a tarea", async ({ page }, testInfo) => {
   const item = `Comprar regalo para mamá ${testInfo.retry}`;
   await login(page);
   await page.getByTestId("capture-fab").click();
+  await page.getByTestId("fab-captura").click();
   await page.getByTestId("capture-input").fill(item);
   await page.getByTestId("capture-save").click();
   await expect(page.getByText("Capturado.")).toBeVisible();
@@ -57,7 +58,11 @@ test("captura al Inbox y conversión a tarea", async ({ page }, testInfo) => {
   const pendiente = page.getByTestId("inbox-item").filter({ hasText: item });
   await expect(pendiente).toHaveCount(1);
   await shot(page, "03-inbox");
-  await pendiente.getByTestId("inbox-convert").click();
+  await pendiente.getByTestId("inbox-process").click();
+  await expect(page.getByTestId("process-panel")).toBeVisible();
+  await page.getByTestId("type-tarea").click();
+  await shot(page, "03b-inbox-procesar");
+  await page.getByTestId("process-submit").click();
   await expect(pendiente).toHaveCount(0, { timeout: 20_000 });
   await page.goto("/tareas");
   await expect(page.getByText(item)).toBeVisible();

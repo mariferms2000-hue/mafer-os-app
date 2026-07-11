@@ -4,8 +4,14 @@ import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { createEventAction } from "@/lib/actions/events";
 
-export function NewEventButton({ projects }: { projects: { id: string; title: string }[] }) {
-  const [open, setOpen] = useState(false);
+export function NewEventButton({
+  projects,
+  autoOpen = false,
+}: {
+  projects: { id: string; title: string }[];
+  autoOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(autoOpen);
   const [pending, start] = useTransition();
 
   return (

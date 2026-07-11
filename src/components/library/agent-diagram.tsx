@@ -111,6 +111,8 @@ export function AgentDiagram({ agents }: { agents: Agent[] }) {
           {selected.sourcePath && (
             <p className="text-xs text-stone-soft mt-3 flex items-center gap-1.5">
               <FileCode2 size={12} aria-hidden /> {selected.sourcePath}
+              {selected.fileModified && <span>· modificado {selected.fileModified}</span>}
+              <span>· estado: {selected.status}</span>
             </p>
           )}
         </div>

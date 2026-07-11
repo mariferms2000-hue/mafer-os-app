@@ -36,10 +36,49 @@
 
   --shadow-soft: 0 1px 2px rgb(46 43 37 / 0.04), 0 4px 16px rgb(46 43 37 / 0.05);
   --shadow-lift: 0 2px 6px rgb(46 43 37 / 0.08), 0 10px 30px rgb(46 43 37 / 0.10);
+
+  --color-toast-bg: #2e2b25;
+  --color-toast-fg: #faf7f1;
 }
 
 :root {
   color-scheme: light;
+}
+
+/* ─── Modo oscuro: bosque cálido, misma identidad orgánica ───────
+   Las utilidades de Tailwind v4 usan var(--color-*), así que basta
+   con redefinir los tokens bajo [data-theme="dark"]. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-cream: #1e231b;
+  --color-paper: #262c22;
+  --color-beige: #2c3327;
+  --color-sand: #3b4334;
+  --color-sand-deep: #4f5946;
+  --color-sage-soft: #35402e;
+  --color-sage: #5f7254;
+  --color-sage-deep: #8fa982;
+  --color-olive: #a3b585;
+  --color-forest: #9dbb8d;
+  --color-forest-deep: #b7cfa9;
+  --color-stone: #aaa496;
+  --color-stone-soft: #7f7a6e;
+  --color-charcoal: #ece6d9;
+  --color-ink-green: #c8d4bb;
+
+  --color-blocked: #d38f7b;
+  --color-blocked-soft: #453029;
+  --color-waiting: #d7b377;
+  --color-waiting-soft: #433b29;
+  --color-done: #a5c497;
+  --color-done-soft: #2e3a29;
+
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.25), 0 4px 16px rgb(0 0 0 / 0.20);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.35), 0 10px 30px rgb(0 0 0 / 0.30);
+
+  --color-toast-bg: #11150e;
+  --color-toast-fg: #ece6d9;
 }
 
 html {
@@ -108,6 +147,28 @@ h1, h2, h3, .font-display {
   min-height: 42px;
 }
 .textarea { min-height: 90px; resize: vertical; }
+
+/* Select con apariencia propia (nada de flecha gris nativa) */
+.select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c766a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 14px;
+  padding-right: 2.3rem;
+  cursor: pointer;
+}
+html[data-theme="dark"] .select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23aaa496' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+input[type="checkbox"], input[type="radio"] {
+  accent-color: var(--color-forest);
+}
+input[type="date"], input[type="time"] {
+  -webkit-appearance: none;
+}
 .input:focus, .select:focus, .textarea:focus {
   outline: 2px solid var(--color-sage-deep);
   outline-offset: 1px;

@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { Wand2, Bot, Wrench, ScrollText, FolderOpen } from "lucide-react";
 
 const TABS = [
-  { href: "/biblioteca", label: "Qué IA usar", icon: Wand2 },
+  { href: "/biblioteca", label: "Mi sistema de IA", icon: Wand2 },
   { href: "/biblioteca/agentes", label: "Agentes", icon: Bot },
   { href: "/biblioteca/skills", label: "Skills", icon: Wrench },
   { href: "/biblioteca/prompts", label: "Prompts", icon: ScrollText },
-  { href: "/biblioteca/recursos", label: "Recursos", icon: FolderOpen },
+  { href: "/biblioteca/recursos", label: "Recursos guardados", icon: FolderOpen },
 ];
 
 export function BibliotecaTabs() {

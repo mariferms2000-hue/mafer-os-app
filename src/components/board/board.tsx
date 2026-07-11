@@ -25,6 +25,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, Clock, Ban, Hourglass, CalendarClock, ListChecks } from "lucide-react";
 import { moveCardAction, createCardInColumnAction } from "@/lib/actions/cards";
+import { useToast } from "@/components/ui/toast";
 import { CardDetail, type BoardCard } from "./card-detail";
 
 export type BoardColumn = { id: string; title: string; kind: string };
@@ -36,23 +37,28 @@ const KIND_ACCENT: Record<string, string> = {
   proceso: "border-t-sage-deep/60",
 };
 
-export function Board({
-  columns,
-  cards,
-}: {
-  columns: BoardColumn[];
-  cards: BoardCard[];
-}) {
-  // Estado local optimista: mapa columna → tarjetas ordenadas.
-  const [items, setItems] = useState<Record<string, BoardCard[]>>({});
+type ItemsMap = Record<string, BoardCard[]>;
+
+/**
+ * Tablero estable para Safari/WebKit:
+ * - La tarjeta activa NUNCA cambia de contenedor durante el arrastre (evita que WebKit
+ *   destruya el nodo con pointer capture — causa del crash "This page couldn't load").
+ * - El movimiento se calcula y aplica únicamente en onDragEnd.
+ * - Persistencia con snapshot + rollback + aviso si el guardado falla.
+ */
+export function Board({ columns, cards }: { columns: BoardColumn[]; cards: BoardCard[] }) {
+  const [items, setItems] = useState<ItemsMap>({});
   const [active, setActive] = useState<BoardCard | null>(null);
+  const [targetCol, setTargetCol] = useState<string | null>(null);
   const [openCard, setOpenCard] = useState<BoardCard | null>(null);
   const [, startTransition] = useTransition();
   const dragging = useRef(false);
+  const justDragged = useRef(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (dragging.current) return; // no pisar el estado mientras se arrastra
-    const map: Record<string, BoardCard[]> = {};
+    const map: ItemsMap = {};
     for (const col of columns) map[col.id] = [];
     for (const c of cards) {
       if (c.columnId && map[c.columnId]) map[c.columnId].push(c);
@@ -62,7 +68,7 @@ export function Board({
   }, [columns, cards]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
@@ -84,45 +90,65 @@ export function Board({
   }
 
   function onDragOver(e: DragOverEvent) {
-    const { active, over } = e;
-    if (!over) return;
-    const from = findColumn(String(active.id));
-    const to = findColumn(String(over.id));
-    if (!from || !to || from === to) return;
+    // Solo señalamos la columna destino (highlight). Nada de mutar listas aquí.
+    const over = e.over ? findColumn(String(e.over.id)) : null;
+    setTargetCol(over ?? null);
+  }
 
-    setItems((prev) => {
-      const moving = prev[from].find((c) => c.id === active.id);
-      if (!moving) return prev;
-      const fromList = prev[from].filter((c) => c.id !== active.id);
-      const toList = [...prev[to]];
-      const overIndex = toList.findIndex((c) => c.id === over.id);
-      const insertAt = overIndex >= 0 ? overIndex : toList.length;
-      toList.splice(insertAt, 0, { ...moving, columnId: to });
-      return { ...prev, [from]: fromList, [to]: toList };
-    });
+  function finishDrag() {
+    setActive(null);
+    setTargetCol(null);
+    dragging.current = false;
+    justDragged.current = true;
+    setTimeout(() => (justDragged.current = false), 120);
   }
 
   function onDragEnd(e: DragEndEvent) {
-    const { active, over } = e;
-    setActive(null);
-    dragging.current = false;
+    const { active: a, over } = e;
+    finishDrag();
     if (!over) return;
-    const colId = findColumn(String(over.id)) ?? findColumn(String(active.id));
-    if (!colId) return;
 
-    setItems((prev) => {
-      const list = prev[colId];
-      const oldIndex = list.findIndex((c) => c.id === active.id);
-      const overIndex = list.findIndex((c) => c.id === over.id);
-      const newList =
-        oldIndex >= 0 && overIndex >= 0 && oldIndex !== overIndex
-          ? arrayMove(list, oldIndex, overIndex)
-          : list;
-      const orderedIds = newList.map((c) => c.id);
-      startTransition(() =>
-        moveCardAction({ cardId: String(active.id), toColumnId: colId, orderedIds })
-      );
-      return { ...prev, [colId]: newList };
+    const cardId = String(a.id);
+    const fromCol = findColumn(cardId);
+    const toCol = findColumn(String(over.id));
+    if (!fromCol || !toCol) return;
+
+    const snapshot = items; // para rollback
+    let next: ItemsMap;
+    let orderedIds: string[];
+
+    if (fromCol === toCol) {
+      const list = items[fromCol];
+      const oldIndex = list.findIndex((c) => c.id === cardId);
+      const overIndex = list.findIndex((c) => c.id === String(over.id));
+      if (oldIndex < 0 || overIndex < 0 || oldIndex === overIndex) return;
+      const newList = arrayMove(list, oldIndex, overIndex);
+      next = { ...items, [fromCol]: newList };
+      orderedIds = newList.map((c) => c.id);
+    } else {
+      const moving = items[fromCol].find((c) => c.id === cardId);
+      if (!moving) return;
+      const fromList = items[fromCol].filter((c) => c.id !== cardId);
+      const toList = [...items[toCol]];
+      const overIndex = toList.findIndex((c) => c.id === String(over.id));
+      const insertAt = overIndex >= 0 ? overIndex : toList.length;
+      toList.splice(insertAt, 0, { ...moving, columnId: toCol });
+      next = { ...items, [fromCol]: fromList, [toCol]: toList };
+      orderedIds = toList.map((c) => c.id);
+    }
+
+    setItems(next);
+    startTransition(async () => {
+      try {
+        await moveCardAction({ cardId, toColumnId: toCol, orderedIds });
+      } catch (err) {
+        if (process.env.NODE_ENV === "development") console.error("[board] moveCardAction falló:", err);
+        setItems(snapshot); // rollback visual
+        toast.show({
+          tone: "warn",
+          message: "No se pudo guardar el movimiento. La tarjeta volvió a su lugar.",
+        });
+      }
     });
   }
 
@@ -134,22 +160,23 @@ export function Board({
         onDragStart={onDragStart}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
-        onDragCancel={() => {
-          setActive(null);
-          dragging.current = false;
-        }}
+        onDragCancel={finishDrag}
       >
-        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-2 md:px-2 snap-x" data-testid="board">
+        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:-mx-2 md:px-2" data-testid="board">
           {columns.map((col) => (
             <Column
               key={col.id}
               column={col}
               cards={items[col.id] ?? []}
-              onOpen={setOpenCard}
+              highlight={targetCol === col.id}
+              activeId={active?.id ?? null}
+              onOpen={(c) => {
+                if (!justDragged.current) setOpenCard(c);
+              }}
             />
           ))}
         </div>
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {active && (
             <div className="w-64 rotate-2">
               <CardFace card={active} />
@@ -165,21 +192,25 @@ export function Board({
 function Column({
   column,
   cards,
+  highlight,
+  activeId,
   onOpen,
 }: {
   column: BoardColumn;
   cards: BoardCard[];
+  highlight: boolean;
+  activeId: string | null;
   onOpen: (c: BoardCard) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const { setNodeRef } = useDroppable({ id: column.id });
   const [adding, setAdding] = useState(false);
   const accent = KIND_ACCENT[column.kind] ?? "border-t-sand-deep";
 
   return (
     <section
       aria-label={`Lista ${column.title}`}
-      className={`w-[272px] shrink-0 snap-start rounded-2xl bg-beige/70 border border-sand border-t-[3px] ${accent} flex flex-col max-h-[70vh] ${
-        isOver ? "ring-2 ring-sage-deep/50" : ""
+      className={`w-[276px] shrink-0 rounded-2xl bg-beige/70 border border-sand border-t-[3px] ${accent} flex flex-col max-h-[70vh] transition-shadow ${
+        highlight ? "ring-2 ring-sage-deep/60" : ""
       }`}
       data-testid={`column-${column.kind}`}
     >
@@ -187,10 +218,10 @@ function Column({
         <h3 className="text-[13px] font-semibold text-ink-green font-body">{column.title}</h3>
         <span className="text-xs text-stone-soft tabular-nums">{cards.length}</span>
       </header>
-      <div ref={setNodeRef} className="flex-1 overflow-y-auto px-2 pb-1 flex flex-col gap-2 min-h-[40px]">
+      <div ref={setNodeRef} className="flex-1 overflow-y-auto px-2 pb-1 flex flex-col gap-2 min-h-[48px]">
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
-            <SortableCard key={card.id} card={card} onOpen={onOpen} />
+            <SortableCard key={card.id} card={card} dimmed={card.id === activeId} onOpen={onOpen} />
           ))}
         </SortableContext>
       </div>
@@ -235,7 +266,15 @@ function Column({
   );
 }
 
-function SortableCard({ card, onOpen }: { card: BoardCard; onOpen: (c: BoardCard) => void }) {
+function SortableCard({
+  card,
+  dimmed,
+  onOpen,
+}: {
+  card: BoardCard;
+  dimmed: boolean;
+  onOpen: (c: BoardCard) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
   });
@@ -245,7 +284,7 @@ function SortableCard({ card, onOpen }: { card: BoardCard; onOpen: (c: BoardCard
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      className={isDragging ? "opacity-40" : ""}
+      className={isDragging || dimmed ? "opacity-40" : ""}
     >
       <button
         type="button"

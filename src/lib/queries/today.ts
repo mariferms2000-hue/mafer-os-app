@@ -61,6 +61,13 @@ export async function getTodayData() {
   const quick = open.filter(
     (c) => ["5m", "15m", "30m"].includes(c.duration ?? "") && c.columnKind !== "despues"
   );
+  const deepWork = open.filter(
+    (c) =>
+      (c.duration === "deep" || c.duration === "60m" || c.energy === "alta" || c.priority === "alta") &&
+      c.columnKind !== "despues" &&
+      c.columnKind !== "bloqueado" &&
+      !c.waitingFor
+  );
   const blocked = open.filter((c) => c.columnKind === "bloqueado" || c.blockedReason);
   const waiting = open.filter(
     (c) => (c.columnKind === "esperando" || c.waitingFor) && !blocked.includes(c)
@@ -95,6 +102,7 @@ export async function getTodayData() {
     overdue,
     approaching,
     quick,
+    deepWork,
     blocked,
     waiting,
     deferred,

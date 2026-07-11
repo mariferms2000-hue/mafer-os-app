@@ -1,10 +1,20 @@
-import { Settings, Download, CalendarDays, Smartphone, HardDriveDownload } from "lucide-react";
-import { getUserName } from "@/lib/auth";
+import {
+  Settings,
+  CalendarDays,
+  Smartphone,
+  HardDriveDownload,
+  Palette,
+  FlaskConical,
+} from "lucide-react";
+import { getUserName, getSetting } from "@/lib/auth";
 import { googleStatus } from "@/lib/google/calendar";
 import { PageHeader } from "@/components/ui/page-header";
 import { updateNameAction } from "@/lib/actions/settings";
 import { PasswordForm } from "@/components/settings/password-form";
 import { disconnectGoogleAction } from "@/lib/actions/google";
+import { ThemeSelector } from "@/components/shell/theme";
+import { BackupButtons, DemoDataControls } from "@/components/settings/maintenance";
+import { getDemoCounts } from "@/lib/actions/maintenance";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ajustes" };
@@ -12,27 +22,40 @@ export const metadata = { title: "Ajustes" };
 export default async function AjustesPage() {
   const name = await getUserName();
   const g = await googleStatus();
+  const demoCounts = await getDemoCounts();
+  const lastBackup = (await getSetting("last_backup_at")) || null;
+  const lastSync = (await getSetting("last_obsidian_sync_at")) || null;
 
   return (
     <div className="max-w-2xl">
-      <PageHeader icon={Settings} title="Ajustes" intro="Tu cuenta, tus respaldos y las conexiones externas." />
+      <PageHeader icon={Settings} title="Ajustes" intro="Tu perfil, apariencia, conexiones, respaldos y datos de ejemplo." />
 
+      {/* Perfil */}
       <section className="card p-5 mb-5">
-        <h2 className="text-lg text-forest-deep mb-3">Tu perfil</h2>
-        <form action={updateNameAction} className="flex gap-2 items-end">
+        <h2 className="text-lg text-forest-deep mb-3">Perfil</h2>
+        <form action={updateNameAction} className="flex gap-2 items-end mb-5">
           <div className="flex-1">
             <label className="label" htmlFor="set-name">Tu nombre (para el saludo)</label>
             <input id="set-name" name="name" className="input" defaultValue={name} />
           </div>
           <button type="submit" className="btn btn-secondary">Guardar</button>
         </form>
-      </section>
-
-      <section className="card p-5 mb-5">
-        <h2 className="text-lg text-forest-deep mb-3">Cambiar contraseña</h2>
+        <h3 className="text-sm font-semibold text-ink-green mb-2">Cambiar contraseña</h3>
         <PasswordForm />
       </section>
 
+      {/* Apariencia */}
+      <section className="card p-5 mb-5">
+        <h2 className="text-lg text-forest-deep mb-1 flex items-center gap-2">
+          <Palette size={18} className="text-olive" aria-hidden /> Apariencia
+        </h2>
+        <p className="text-sm text-stone mb-3">
+          «Automático» sigue la preferencia de tu Mac o iPhone: claro de día, oscuro de noche.
+        </p>
+        <ThemeSelector />
+      </section>
+
+      {/* Google Calendar */}
       <section className="card p-5 mb-5">
         <h2 className="text-lg text-forest-deep mb-2 flex items-center gap-2">
           <CalendarDays size={18} className="text-olive" aria-hidden /> Google Calendar
@@ -67,36 +90,54 @@ export default async function AjustesPage() {
         )}
       </section>
 
+      {/* Respaldos y exportación */}
       <section className="card p-5 mb-5">
         <h2 className="text-lg text-forest-deep mb-2 flex items-center gap-2">
-          <HardDriveDownload size={18} className="text-olive" aria-hidden /> Tus datos, tuyos
+          <HardDriveDownload size={18} className="text-olive" aria-hidden /> Respaldos y exportación
         </h2>
-        <p className="text-sm text-stone mb-3">
-          Descarga todo tu sistema en formatos abiertos. También puedes correr <code className="bg-beige px-1 rounded">npm run backup</code>{" "}
-          para un respaldo completo con carpetas por fecha, o <code className="bg-beige px-1 rounded">npm run sync:obsidian</code> para
-          actualizar tu vault de Obsidian.
+        <ul className="text-sm text-stone mb-4 flex flex-col gap-1">
+          <li><strong className="text-charcoal">Descargar JSON:</strong> copia completa para restauración técnica.</li>
+          <li><strong className="text-charcoal">Descargar Markdown:</strong> copia legible de todo tu sistema.</li>
+          <li><strong className="text-charcoal">Crear respaldo completo:</strong> guarda una carpeta con fecha en <code className="bg-beige px-1 rounded">backups-and-exports</code> (JSON + Markdown + base de datos).</li>
+          <li><strong className="text-charcoal">Actualizar Obsidian:</strong> lleva la información actual a tu vault local.</li>
+        </ul>
+        <BackupButtons lastBackup={lastBackup} lastSync={lastSync} />
+        <details className="mt-4">
+          <summary className="text-sm text-forest cursor-pointer underline underline-offset-4">¿Cómo restaurar un respaldo?</summary>
+          <ol className="list-decimal ml-5 text-sm text-stone mt-2 flex flex-col gap-1">
+            <li>Cierra la app (la ventanita negra).</li>
+            <li>Abre <code className="bg-beige px-1 rounded">backups-and-exports</code> → la carpeta con la fecha que quieras.</li>
+            <li>Copia <code className="bg-beige px-1 rounded">mafer-os.db</code> a <code className="bg-beige px-1 rounded">mafer-os-app/data/</code>, reemplazando.</li>
+            <li>Vuelve a abrir la app. Guía completa: manual «Recuperación» del vault.</li>
+          </ol>
+        </details>
+        <p className="text-xs text-stone-soft mt-3">
+          Vault: <code className="bg-beige px-1 rounded">Escritorio → Mafer OS → mafer-os-vault</code> · Respaldos:{" "}
+          <code className="bg-beige px-1 rounded">Escritorio → Mafer OS → backups-and-exports</code>
         </p>
-        <div className="flex flex-wrap gap-2">
-          <a href="/api/export/json" className="btn btn-secondary" download>
-            <Download size={15} aria-hidden /> Exportar JSON
-          </a>
-          <a href="/api/export/markdown" className="btn btn-secondary" download>
-            <Download size={15} aria-hidden /> Exportar Markdown
-          </a>
-        </div>
       </section>
 
+      {/* Datos de demostración */}
+      <section className="card p-5 mb-5">
+        <h2 className="text-lg text-forest-deep mb-2 flex items-center gap-2">
+          <FlaskConical size={18} className="text-olive" aria-hidden /> Datos de demostración
+        </h2>
+        <DemoDataControls counts={demoCounts} />
+      </section>
+
+      {/* Instalación */}
       <section className="card p-5">
         <h2 className="text-lg text-forest-deep mb-2 flex items-center gap-2">
-          <Smartphone size={18} className="text-olive" aria-hidden /> Instalar en tu iPhone
+          <Smartphone size={18} className="text-olive" aria-hidden /> Instalación en dispositivos
         </h2>
         <ol className="list-decimal ml-5 text-sm text-stone flex flex-col gap-1">
           <li>Abre Mafer OS en <strong>Safari</strong> en tu iPhone (misma red Wi-Fi que tu Mac).</li>
           <li>Toca el botón de <strong>Compartir</strong> (el cuadrito con flecha).</li>
           <li>Elige <strong>«Agregar a inicio»</strong>.</li>
-          <li>Listo: tendrás Mafer OS como app con su propio ícono. 🌿</li>
         </ol>
-        <p className="text-xs text-stone-soft mt-2">La guía completa (con la dirección exacta) está en el manual «Instalar en iPhone».</p>
+        <p className="text-xs text-stone-soft mt-2">
+          iPad: mismos pasos. Mac: Safari → Archivo → Agregar a Dock. Guía completa: manual «Instalar en iPhone».
+        </p>
       </section>
     </div>
   );

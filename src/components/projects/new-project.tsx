@@ -5,8 +5,8 @@ import { Plus, X } from "lucide-react";
 import { createProjectAction } from "@/lib/actions/projects";
 import { PROJECT_ICON_OPTIONS } from "./project-icon";
 
-export function NewProjectButton() {
-  const [open, setOpen] = useState(false);
+export function NewProjectButton({ autoOpen = false }: { autoOpen?: boolean }) {
+  const [open, setOpen] = useState(autoOpen);
   return (
     <>
       <button type="button" className="btn btn-primary" onClick={() => setOpen(true)} data-testid="new-project">
