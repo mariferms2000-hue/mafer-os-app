@@ -20,6 +20,7 @@ const CATS = [
   { key: "decision", label: "Decisiones" },
   { key: "recurso", label: "Recursos" },
   { key: "agente", label: "Agentes" },
+  { key: "evento", label: "Eventos" },
 ];
 
 export default async function BuscarPage({
@@ -34,7 +35,7 @@ export default async function BuscarPage({
 
   let hits: Hit[] = [];
   if (needle) {
-    const [projects, cards, journal, prompts, learning, ideas, decisionsRows, resources, agents] = await Promise.all([
+    const [projects, cards, journal, prompts, learning, ideas, decisionsRows, resources, agents, events] = await Promise.all([
       db.select().from(schema.projects),
       db.select().from(schema.cards),
       db.select().from(schema.journalEntries),
@@ -44,6 +45,7 @@ export default async function BuscarPage({
       db.select().from(schema.decisions),
       db.select().from(schema.resources),
       db.select().from(schema.agentsSkills),
+      db.select().from(schema.events),
     ]);
     hits = [
       ...projects.filter((p) => has(p.title, p.description, p.objective, p.notes)).map((p) => ({
@@ -64,6 +66,8 @@ export default async function BuscarPage({
         title: r.title, sub: r.notes || r.url || "", href: "/biblioteca/recursos?q=" + encodeURIComponent(r.title), category: "recurso" })),
       ...agents.filter((a) => has(a.name, a.purpose)).map((a) => ({
         title: a.name, sub: a.purpose || "", href: a.kind === "skill" ? "/biblioteca/skills" : "/biblioteca/agentes", category: "agente" })),
+      ...events.filter((e) => has(e.title, e.notes)).map((e) => ({
+        title: e.title, sub: e.date, href: "/calendario?vista=agenda", category: "evento" })),
     ];
     if (cat) hits = hits.filter((h) => h.category === cat);
   }

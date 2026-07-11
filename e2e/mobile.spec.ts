@@ -1,0 +1,57 @@
+import { test, expect, type Page } from "@playwright/test";
+import fs from "fs";
+import path from "path";
+
+const QA_DIR = path.join(__dirname, "..", "..", "project-management", "qa");
+const PASSWORD = "prueba-mafer-123";
+
+async function shot(page: Page, name: string) {
+  fs.mkdirSync(QA_DIR, { recursive: true });
+  await page.screenshot({ path: path.join(QA_DIR, `${name}.png`), fullPage: false });
+}
+
+async function login(page: Page) {
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+}
+
+test("móvil: navegación inferior visible y sin scroll horizontal", async ({ page }) => {
+  await login(page);
+  await expect(page.getByRole("navigation", { name: "Navegación principal" }).last()).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  await shot(page, "10-movil-hoy");
+});
+
+test("móvil: captura rápida con pocos toques", async ({ page }) => {
+  await login(page);
+  await page.getByTestId("capture-fab").click();
+  await page.getByTestId("capture-input").fill("Captura desde el teléfono");
+  await page.getByTestId("capture-save").click();
+  await expect(page.getByText("Capturado.")).toBeVisible();
+  await shot(page, "11-movil-captura");
+});
+
+test("móvil: tablero con scroll horizontal por listas", async ({ page }) => {
+  await login(page);
+  await page.goto("/proyectos");
+  await page.getByText("Proyecto de prueba E2E").click();
+  await page.waitForURL(/\/proyectos\/.+/);
+  await expect(page.getByTestId("column-backlog")).toBeVisible();
+  await shot(page, "12-movil-tablero");
+  // el contenedor del tablero permite desplazarse a las demás listas
+  const board = page.getByTestId("board");
+  const canScroll = await board.evaluate((el) => el.scrollWidth > el.clientWidth);
+  expect(canScroll).toBeTruthy();
+});
+
+test("móvil: calendario legible", async ({ page }) => {
+  await login(page);
+  await page.goto("/calendario?vista=agenda");
+  await expect(page.getByText("Reunión de prueba")).toBeVisible();
+  await shot(page, "13-movil-calendario");
+});

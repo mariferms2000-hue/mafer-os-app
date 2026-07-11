@@ -25,7 +25,8 @@ const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábad
 function fechaLarga(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   const date = new Date(y, m - 1, d);
-  return `${DIAS[date.getDay()]} ${d} de ${MESES[m - 1]}`;
+  const dia = DIAS[date.getDay()];
+  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${d} de ${MESES[m - 1]}`;
 }
 
 function saludo() {
@@ -50,7 +51,7 @@ export default async function HoyPage() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm text-stone capitalize">{fechaLarga(data.date)}</p>
+          <p className="text-sm text-stone">{fechaLarga(data.date)}</p>
           <h1 className="text-3xl text-forest-deep mt-0.5">
             {saludo()}, {data.userName}
           </h1>
