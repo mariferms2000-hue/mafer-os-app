@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db, now, today, uid, schema } from "@/lib/db";
 import { requireAuth, setSetting } from "@/lib/auth";
 import { createCardInColumnKind } from "@/lib/db/helpers";
+import { syncCardToGoogle } from "@/lib/google/calendar";
 
 function revalidateCardViews(projectId?: string | null) {
   revalidatePath("/");
@@ -65,6 +66,8 @@ export async function updateCardAction(formData: FormData) {
       updatedAt: now(),
     })
     .where(eq(schema.cards.id, id));
+  // Sincroniza el recordatorio con Google Calendar si está conectado (no-op si no).
+  await syncCardToGoogle(id).catch(() => {});
   revalidateCardViews(card.projectId);
 }
 
