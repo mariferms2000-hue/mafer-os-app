@@ -1,0 +1,26 @@
+import { Sidebar, BottomNav } from "@/components/shell/nav";
+import { CaptureFab } from "@/components/shell/capture";
+import { GlobalShortcuts } from "@/components/shell/shortcuts";
+import { db, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const projects = await db
+    .select({ id: schema.projects.id, title: schema.projects.title })
+    .from(schema.projects)
+    .where(eq(schema.projects.archived, false));
+
+  return (
+    <div className="min-h-dvh md:flex">
+      <Sidebar />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <main className="flex-1 px-4 pb-28 pt-5 md:px-10 md:pb-12 md:pt-8 max-w-6xl w-full mx-auto">
+          {children}
+        </main>
+      </div>
+      <CaptureFab projects={projects} />
+      <BottomNav />
+      <GlobalShortcuts />
+    </div>
+  );
+}

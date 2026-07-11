@@ -1,26 +1,165 @@
 @import "tailwindcss";
 
+/* ─── Mafer OS · tokens de diseño ───────────────────────────────
+   Paleta cálida y orgánica: crema, arena, salvia, oliva, bosque.
+   Los verdes "ink" están verificados para contraste AA sobre crema. */
+@theme {
+  --color-cream: #faf7f1;
+  --color-paper: #fdfcf8;
+  --color-beige: #f1eadd;
+  --color-sand: #e5dac6;
+  --color-sand-deep: #d4c5a9;
+  --color-sage-soft: #dde5d6;
+  --color-sage: #a9bca0;
+  --color-sage-deep: #7c9473;
+  --color-olive: #6d7a54;
+  --color-forest: #45573f;
+  --color-forest-deep: #324230;
+  --color-stone: #7c766a;
+  --color-stone-soft: #a39d90;
+  --color-charcoal: #2e2b25;
+  --color-ink-green: #4a5c42;
+
+  /* estados — apagados, nunca chillones */
+  --color-blocked: #a05c4c;
+  --color-blocked-soft: #f3e2dc;
+  --color-waiting: #96702e;
+  --color-waiting-soft: #f4e9d4;
+  --color-done: #5f7d55;
+  --color-done-soft: #e2eadd;
+
+  --font-display: var(--font-fraunces), "Georgia", serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+
+  --radius-soft: 14px;
+  --radius-card: 18px;
+
+  --shadow-soft: 0 1px 2px rgb(46 43 37 / 0.04), 0 4px 16px rgb(46 43 37 / 0.05);
+  --shadow-lift: 0 2px 6px rgb(46 43 37 / 0.08), 0 10px 30px rgb(46 43 37 / 0.10);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-cream);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-charcoal);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  font-weight: 550;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--color-sage);
+  color: var(--color-forest-deep);
+}
+
+/* Componentes base */
+.card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-sand);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-soft);
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, opacity 150ms ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+  min-height: 40px;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--color-forest); color: var(--color-cream); }
+.btn-primary:hover { background: var(--color-forest-deep); }
+.btn-secondary { background: var(--color-beige); color: var(--color-forest-deep); border-color: var(--color-sand); }
+.btn-secondary:hover { background: var(--color-sand); }
+.btn-ghost { background: transparent; color: var(--color-stone); }
+.btn-ghost:hover { background: var(--color-beige); color: var(--color-charcoal); }
+.btn-danger { background: transparent; color: var(--color-blocked); border-color: var(--color-blocked-soft); }
+.btn-danger:hover { background: var(--color-blocked-soft); }
+
+.input, .select, .textarea {
+  width: 100%;
+  background: var(--color-paper);
+  border: 1px solid var(--color-sand);
+  border-radius: var(--radius-soft);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+  color: var(--color-charcoal);
+  min-height: 42px;
+}
+.textarea { min-height: 90px; resize: vertical; }
+.input:focus, .select:focus, .textarea:focus {
+  outline: 2px solid var(--color-sage-deep);
+  outline-offset: 1px;
+  border-color: var(--color-sage-deep);
+}
+.input::placeholder, .textarea::placeholder { color: var(--color-stone-soft); }
+
+.label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-stone);
+  margin-bottom: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: var(--color-beige);
+  color: var(--color-ink-green);
+  border: 1px solid var(--color-sand);
+  white-space: nowrap;
+}
+.chip-blocked { background: var(--color-blocked-soft); color: var(--color-blocked); border-color: transparent; }
+.chip-waiting { background: var(--color-waiting-soft); color: var(--color-waiting); border-color: transparent; }
+.chip-done { background: var(--color-done-soft); color: var(--color-done); border-color: transparent; }
+.chip-sage { background: var(--color-sage-soft); color: var(--color-forest); border-color: transparent; }
+
+/* Foco visible accesible en todo */
+a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--color-sage-deep);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Scrollbars discretos */
+* { scrollbar-width: thin; scrollbar-color: var(--color-sand-deep) transparent; }
+
+/* Safe areas iPhone */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

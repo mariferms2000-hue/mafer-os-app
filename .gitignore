@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Mafer OS
+/data/
+.env.local
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+/test-results/
+/playwright-report/
