@@ -6,12 +6,13 @@ import { db, now, today, uid, schema } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { createCardInColumnKind, createDefaultBoard } from "@/lib/db/helpers";
 
-export async function captureAction(formData: FormData) {
+export async function captureAction(formData: FormData): Promise<{ id: string } | undefined> {
   await requireAuth();
   const content = String(formData.get("content") ?? "").trim();
-  if (!content) return;
+  if (!content) return undefined;
+  const id = uid();
   await db.insert(schema.inboxItems).values({
-    id: uid(),
+    id,
     content,
     note: String(formData.get("note") ?? "").trim(),
     typeHint: (formData.get("typeHint") as string) || null,
@@ -21,6 +22,7 @@ export async function captureAction(formData: FormData) {
   });
   revalidatePath("/inbox");
   revalidatePath("/");
+  return { id };
 }
 
 export async function updateInboxItem(formData: FormData) {

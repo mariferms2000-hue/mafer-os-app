@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Plus,
   X,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { captureAction } from "@/lib/actions/inbox";
 import { NewTaskModal, type ProjectOption } from "@/components/tasks/new-task";
+import { NewCapturePanel } from "@/components/inbox/quick-capture";
 
 const TYPES = [
   { value: "", label: "Sin clasificar" },
@@ -27,11 +28,14 @@ const TYPES = [
   { value: "recurso", label: "Recurso" },
 ];
 
-/** Botón flotante global: abre un menú explícito — nunca crea algo sin decir qué. */
+/** Botón flotante global: abre un menú explícito — nunca crea algo sin decir qué.
+ *  Contextual: dentro del Inbox, una sola pulsación abre directamente «Nueva captura». */
 export function CaptureFab({ projects }: { projects: ProjectOption[] }) {
   const [menu, setMenu] = useState(false);
-  const [modal, setModal] = useState<"captura" | "tarea" | null>(null);
+  const [modal, setModal] = useState<"captura" | "tarea" | "captura-inbox" | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const enInbox = pathname.startsWith("/inbox");
 
   const go = (href: string) => {
     setMenu(false);
@@ -51,9 +55,15 @@ export function CaptureFab({ projects }: { projects: ProjectOption[] }) {
     <>
       <button
         type="button"
-        onClick={() => setMenu((m) => !m)}
-        aria-label={menu ? "Cerrar menú de creación" : "Crear algo nuevo"}
-        aria-expanded={menu}
+        onClick={() => {
+          if (enInbox) {
+            setModal("captura-inbox");
+          } else {
+            setMenu((m) => !m);
+          }
+        }}
+        aria-label={enInbox ? "Nueva captura" : menu ? "Cerrar menú de creación" : "Crear algo nuevo"}
+        aria-expanded={enInbox ? undefined : menu}
         className={`fixed z-50 bottom-20 right-4 md:bottom-8 md:right-8 h-14 w-14 rounded-full bg-forest text-cream shadow-lift flex items-center justify-center hover:bg-forest-deep transition-transform ${
           menu ? "rotate-45" : ""
         }`}
@@ -97,6 +107,7 @@ export function CaptureFab({ projects }: { projects: ProjectOption[] }) {
       )}
 
       {modal === "captura" && <CaptureModal projects={projects} onClose={() => setModal(null)} />}
+      {modal === "captura-inbox" && <NewCapturePanel onClose={() => setModal(null)} />}
       {modal === "tarea" && <NewTaskModal projects={projects} onClose={() => setModal(null)} />}
     </>
   );

@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InboxList } from "@/components/inbox/inbox-list";
 import { LifecycleHelp } from "@/components/inbox/lifecycle-help";
+import { QuickCaptureBar, NewCaptureButton } from "@/components/inbox/quick-capture";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inbox" };
@@ -33,7 +34,11 @@ export default async function InboxPage() {
         icon={InboxIcon}
         title="Inbox"
         intro="Captura sin decidir. Cuando tengas un momento, toca «Procesar» y dale un destino a cada cosa."
-      />
+      >
+        <NewCaptureButton />
+      </PageHeader>
+
+      <QuickCaptureBar />
 
       {pending.length === 0 ? (
         <EmptyState

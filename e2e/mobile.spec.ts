@@ -56,3 +56,16 @@ test("móvil: calendario legible", async ({ page }) => {
   await expect(page.getByText("Reunión de prueba")).toBeVisible();
   await shot(page, "13-movil-calendario");
 });
+
+test("móvil: nueva captura desde el Inbox en segundos", async ({ page }, testInfo) => {
+  const texto = `Captura móvil ${testInfo.retry}`;
+  await login(page);
+  await page.goto("/inbox");
+  await page.getByTestId("new-capture").click();
+  await expect(page.getByTestId("new-capture-panel")).toBeVisible();
+  await page.getByTestId("new-capture-content").fill(texto);
+  await page.getByTestId("new-capture-save").click();
+  await expect(page.getByTestId("new-capture-panel")).not.toBeVisible();
+  await expect(page.getByTestId("inbox-item").first()).toContainText(texto);
+  await shot(page, "14-movil-inbox-captura");
+});
