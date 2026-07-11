@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { NotebookPen, Star, Plus } from "lucide-react";
 import { db, today, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";

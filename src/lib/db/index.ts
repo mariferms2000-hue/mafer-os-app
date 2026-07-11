@@ -8,7 +8,6 @@ import * as schema from "./schema";
 const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "data", "mafer-os.db");
 
 declare global {
-  // eslint-disable-next-line no-var
   var __maferDb: ReturnType<typeof createDb> | undefined;
 }
 

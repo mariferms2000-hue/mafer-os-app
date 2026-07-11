@@ -1,6 +1,7 @@
 import { Sidebar, BottomNav } from "@/components/shell/nav";
 import { CaptureFab } from "@/components/shell/capture";
 import { GlobalShortcuts } from "@/components/shell/shortcuts";
+import { PwaSetup } from "@/components/shell/sw-register";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
 
@@ -21,6 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <CaptureFab projects={projects} />
       <BottomNav />
       <GlobalShortcuts />
+      <PwaSetup />
     </div>
   );
 }

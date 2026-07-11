@@ -9,7 +9,8 @@ import { openDb, dumpAll, toMarkdownFiles, writeFiles, SCHEMA_VERSION } from "./
 const BACKUPS = process.env.BACKUPS_PATH ?? path.join(process.cwd(), "..", "backups-and-exports");
 const db = openDb();
 const dump = dumpAll(db);
-const date = dump.exportedAt.slice(0, 10);
+const d = new Date();
+const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const dir = path.join(BACKUPS, date);
 fs.mkdirSync(dir, { recursive: true });
 
@@ -34,9 +35,8 @@ for (const [rel, content] of Object.entries(files)) {
 }
 writeFiles(dir, remapped);
 
-// 3) Copia del archivo SQLite (respaldo binario exacto)
-const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "data", "mafer-os.db");
-fs.copyFileSync(DB_PATH, path.join(dir, "mafer-os.db"));
+// 3) Copia consistente de la base SQLite (API de backup: incluye lo pendiente en WAL)
+await db.backup(path.join(dir, "mafer-os.db"));
 
 // 4) Manifiesto
 const manifest = `# Respaldo de Mafer OS — ${date}
