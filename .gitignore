@@ -42,6 +42,7 @@ next-env.d.ts
 
 # Mafer OS
 /data/
+/src/generated/
 .env.local
 .env
 *.db

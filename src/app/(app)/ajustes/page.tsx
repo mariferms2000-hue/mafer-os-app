@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import {
   Settings,
   CalendarDays,
@@ -19,9 +21,21 @@ import { getDemoCounts } from "@/lib/actions/maintenance";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ajustes" };
 
+/** Info generada al compilar (scripts/build-info.mjs) para saber qué versión corre. */
+function buildInfo(): { commit: string; dirty?: boolean; builtAt: string } | null {
+  try {
+    const raw = fs.readFileSync(path.join(process.cwd(), "src", "generated", "build-info.json"), "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export default async function AjustesPage() {
   const name = await getUserName();
   const g = await googleStatus();
+  const build = buildInfo();
+  const entorno = process.env.NODE_ENV === "production" ? "producción" : "desarrollo";
   const demoCounts = await getDemoCounts();
   const lastBackup = (await getSetting("last_backup_at")) || null;
   const lastSync = (await getSetting("last_obsidian_sync_at")) || null;
@@ -139,6 +153,20 @@ export default async function AjustesPage() {
           iPad: mismos pasos. Mac: Safari → Archivo → Agregar a Dock. Guía completa: manual «Instalar en iPhone».
         </p>
       </section>
+
+      {/* Versión en ejecución — para comprobar de un vistazo que ves lo más reciente */}
+      <p className="text-xs text-stone-soft mt-6 text-center" data-testid="version-info">
+        {build ? (
+          <>
+            Versión <code className="bg-beige px-1 rounded">{build.commit}</code>
+            {build.dirty && " (con cambios sin commit)"} · compilada el{" "}
+            {new Date(build.builtAt).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })} ·{" "}
+            entorno: {entorno}
+          </>
+        ) : (
+          <>Versión desconocida (falta build-info) · entorno: {entorno}</>
+        )}
+      </p>
     </div>
   );
 }

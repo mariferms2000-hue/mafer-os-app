@@ -402,6 +402,16 @@ test("menú «⋯» de la fila ofrece Abrir tarea como respaldo", async ({ page 
   await page.getByTestId("card-cancel").click();
 });
 
+test("Ajustes muestra la versión en ejecución (commit, fecha del build y entorno)", async ({ page }) => {
+  await login(page);
+  await page.goto("/ajustes");
+  const version = page.getByTestId("version-info");
+  await expect(version).toBeVisible();
+  await expect(version).toContainText(/Versión [0-9a-f]{7}/);
+  await expect(version).toContainText("compilada el");
+  await expect(version).toContainText("entorno: producción");
+});
+
 test("convertir captura en tarea ofrece abrirla al momento", async ({ page }, info) => {
   const texto = t(info, "Captura convertible");
   await login(page);
