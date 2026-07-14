@@ -26,9 +26,31 @@ import { CSS } from "@dnd-kit/utilities";
 import { Plus, Clock, Ban, Hourglass, CalendarClock, ListChecks } from "lucide-react";
 import { moveCardAction, createCardInColumnAction } from "@/lib/actions/cards";
 import { useToast } from "@/components/ui/toast";
-import { CardDetail, type BoardCard } from "./card-detail";
+import { TaskDetailModal } from "@/components/tasks/task-detail";
+import type { ChecklistItem } from "@/lib/db/schema";
 
 export type BoardColumn = { id: string; title: string; kind: string };
+
+export type BoardCard = {
+  id: string;
+  title: string;
+  description: string | null;
+  columnId: string | null;
+  position: number;
+  type: string;
+  priority: string | null;
+  duration: string | null;
+  energy: string | null;
+  dueDate: string | null;
+  startTime: string | null;
+  reminder: string | null;
+  nextAction: string | null;
+  blockedReason: string | null;
+  waitingFor: string | null;
+  tags: string[] | null;
+  checklist: ChecklistItem[] | null;
+  completedAt: string | null;
+};
 
 const KIND_ACCENT: Record<string, string> = {
   bloqueado: "border-t-blocked/50",
@@ -186,7 +208,7 @@ export function Board({ columns, cards }: { columns: BoardColumn[]; cards: Board
           )}
         </DragOverlay>
       </DndContext>
-      {openCard && <CardDetail card={cardById.get(openCard.id) ?? openCard} onClose={() => setOpenCard(null)} />}
+      {openCard && <TaskDetailModal cardId={openCard.id} onClose={() => setOpenCard(null)} />}
     </>
   );
 }

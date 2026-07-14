@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass } from "lucide-react";
 import Link from "next/link";
 import { completeCardAction } from "@/lib/actions/cards";
+import { TaskDetailModal } from "@/components/tasks/task-detail";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 
@@ -16,9 +17,11 @@ export const DURATION_LABEL: Record<string, string> = {
 };
 
 /** Línea de tarea reutilizable: check + título + chips de contexto.
+ *  El cuerpo abre el detalle editable; el círculo solo completa/reabre.
  *  Completar nunca borra: mueve a Terminado, guarda la fecha y ofrece deshacer. */
 export function TaskLine({ card, showProject = true }: { card: CardRow; showProject?: boolean }) {
   const [pending, start] = useTransition();
+  const [openDetail, setOpenDetail] = useState(false);
   const toast = useToast();
   const done = Boolean(card.completedAt);
 
@@ -63,7 +66,24 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
       >
         {done ? <CheckCircle2 size={19} aria-hidden /> : <Circle size={19} aria-hidden />}
       </button>
-      <div className="min-w-0 flex-1">
+      <div
+        className="min-w-0 flex-1 cursor-pointer"
+        role="button"
+        tabIndex={0}
+        aria-label={`Abrir detalle de «${card.title}»`}
+        data-testid="task-open"
+        onClick={(e) => {
+          // los enlaces y botones internos (proyecto, etc.) conservan su función
+          if ((e.target as HTMLElement).closest("a, button, input")) return;
+          setOpenDetail(true);
+        }}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+            e.preventDefault();
+            setOpenDetail(true);
+          }
+        }}
+      >
         <p className={`text-sm leading-snug ${done ? "line-through text-stone-soft" : "text-charcoal"}`}>
           {card.title}
         </p>
@@ -103,6 +123,7 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
           )}
         </div>
       </div>
+      {openDetail && <TaskDetailModal cardId={card.id} onClose={() => setOpenDetail(false)} />}
     </div>
   );
 }

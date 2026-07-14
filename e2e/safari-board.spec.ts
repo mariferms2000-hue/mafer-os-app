@@ -66,3 +66,30 @@ test("safari/webkit: estrés de drag & drop sin crash", async ({ page }) => {
   const relevantes = pageErrors.filter((e) => !e.includes("sw.js"));
   expect(relevantes, `errores de página: ${relevantes.join(" | ")}`).toHaveLength(0);
 });
+
+test("safari/webkit: abrir el detalle de una tarjeta, editar y guardar", async ({ page }, testInfo) => {
+  const titulo = `Detalle Safari R${testInfo.retry}`;
+  const editado = `Detalle Safari editada R${testInfo.retry}`;
+
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+
+  await page.goto("/proyectos");
+  await page.getByText("Estrés Safari", { exact: true }).click();
+  await page.waitForURL(/\/proyectos\/.+/);
+  await page.getByTestId("quickadd-backlog").click();
+  await page.getByTestId("quickadd-input-backlog").fill(titulo);
+  await page.keyboard.press("Enter");
+
+  await page.getByTestId("column-backlog").getByText(titulo, { exact: true }).click();
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+  await expect(page.getByTestId("card-title-input")).toHaveValue(titulo);
+
+  await page.getByTestId("card-title-input").fill(editado);
+  await page.getByTestId("card-save").click();
+  await expect(page.getByText("Tarea actualizada ✓").first()).toBeVisible();
+  await expect(page.getByTestId("card-detail")).toHaveCount(0);
+  await expect(page.getByText(editado, { exact: true })).toBeVisible();
+});

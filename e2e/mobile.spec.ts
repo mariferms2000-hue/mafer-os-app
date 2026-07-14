@@ -57,6 +57,27 @@ test("móvil: calendario legible", async ({ page }) => {
   await shot(page, "13-movil-calendario");
 });
 
+test("móvil: abrir el detalle de una tarea, editar y guardar sin scroll horizontal", async ({ page }) => {
+  await login(page);
+  await page.goto("/tareas");
+  await page.getByTestId("task-open").filter({ hasText: "Tarea detalle editada" }).first().click();
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+
+  // sin scroll horizontal en el detalle
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  const detailShot = path.join(__dirname, "..", "docs", "qa", "phase-1-task-detail", "04-detalle-movil.png");
+  fs.mkdirSync(path.dirname(detailShot), { recursive: true });
+  await page.screenshot({ path: detailShot, fullPage: false });
+
+  await page.getByTestId("card-desc-input").fill("Editada desde el teléfono.");
+  await page.getByTestId("card-save").click();
+  await expect(page.getByText("Tarea actualizada ✓")).toBeVisible();
+  await expect(page.getByTestId("card-detail")).toHaveCount(0);
+});
+
 test("móvil: nueva captura desde el Inbox en segundos", async ({ page }, testInfo) => {
   const texto = `Captura móvil ${testInfo.retry}`;
   await login(page);

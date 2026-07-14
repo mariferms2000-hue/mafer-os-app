@@ -8,6 +8,7 @@ import {
   completeCardAction,
   setEnergyTodayAction,
 } from "@/lib/actions/cards";
+import { TaskDetailModal } from "@/components/tasks/task-detail";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 
@@ -19,6 +20,7 @@ export function Priorities({
   candidates: CardRow[];
 }) {
   const [picking, setPicking] = useState(false);
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const toast = useToast();
   const chosenIds = new Set(priorities.map((p) => p.id));
@@ -77,9 +79,15 @@ export function Priorities({
                   <X size={15} aria-hidden />
                 </button>
               </div>
-              <p className={`text-sm font-medium leading-snug flex-1 ${done ? "line-through text-stone-soft" : ""}`}>
+              <button
+                type="button"
+                onClick={() => setOpenCardId(card.id)}
+                data-testid="priority-open"
+                className={`text-sm font-medium leading-snug flex-1 text-left ${done ? "line-through text-stone-soft" : ""}`}
+                aria-label={`Abrir detalle de «${card.title}»`}
+              >
                 {card.title}
-              </p>
+              </button>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-stone truncate">{card.projectTitle ?? ""}</span>
                 <button
@@ -110,6 +118,8 @@ export function Priorities({
           </li>
         ))}
       </ol>
+
+      {openCardId && <TaskDetailModal cardId={openCardId} onClose={() => setOpenCardId(null)} />}
 
       {picking && (
         <div className="card mt-3 p-3">

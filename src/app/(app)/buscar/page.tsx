@@ -51,7 +51,7 @@ export default async function BuscarPage({
       ...projects.filter((p) => has(p.title, p.description, p.objective, p.notes)).map((p) => ({
         title: p.title, sub: p.objective || p.description || "", href: `/proyectos/${p.id}`, category: "proyecto" })),
       ...cards.filter((c) => has(c.title, c.description, c.nextAction)).map((c) => ({
-        title: c.title, sub: c.description || "", href: c.projectId ? `/proyectos/${c.projectId}` : "/tareas", category: "tarea" })),
+        title: c.title, sub: c.description || "", href: `/tareas?abrir=${c.id}`, category: "tarea" })),
       ...journal.filter((j) => has(j.title, j.body)).map((j) => ({
         title: j.title, sub: j.date, href: `/explorar/journal/${j.id}`, category: "journal" })),
       ...prompts.filter((p) => has(p.title, p.body, p.purpose)).map((p) => ({

@@ -21,6 +21,7 @@ import {
   archiveInboxItem,
   deleteInboxItem,
 } from "@/lib/actions/inbox";
+import { TaskDetailModal } from "@/components/tasks/task-detail";
 import { useToast } from "@/components/ui/toast";
 import type { schema } from "@/lib/db";
 
@@ -41,6 +42,7 @@ const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
 
 export function InboxList({ items, projects }: { items: Item[]; projects: Project[] }) {
   const [openItem, setOpenItem] = useState<Item | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   return (
     <>
@@ -54,8 +56,10 @@ export function InboxList({ items, projects }: { items: Item[]; projects: Projec
           item={openItem}
           projects={projects}
           onClose={() => setOpenItem(null)}
+          onOpenTask={setOpenTaskId}
         />
       )}
+      {openTaskId && <TaskDetailModal cardId={openTaskId} onClose={() => setOpenTaskId(null)} />}
     </>
   );
 }
@@ -164,10 +168,12 @@ function ProcessPanel({
   item,
   projects,
   onClose,
+  onOpenTask,
 }: {
   item: Item;
   projects: Project[];
   onClose: () => void;
+  onOpenTask: (cardId: string) => void;
 }) {
   const [type, setType] = useState<string | null>(item.typeHint || null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -198,10 +204,19 @@ function ProcessPanel({
           action={(fd) =>
             start(async () => {
               if (type) {
-                await convertInboxItem(fd);
-                toast.show({
-                  message: `Convertido en ${TYPE_LABEL[type].toLowerCase()} ✓`,
-                });
+                const res = await convertInboxItem(fd);
+                const [tipo, targetId] = res?.convertedTo.split(":") ?? [];
+                if (tipo === "tarea" && targetId) {
+                  toast.show({
+                    message: "Convertida en tarea ✓",
+                    action: { label: "Abrir tarea", onClick: () => onOpenTask(targetId) },
+                    duration: 8000,
+                  });
+                } else {
+                  toast.show({
+                    message: `Convertido en ${TYPE_LABEL[type].toLowerCase()} ✓`,
+                  });
+                }
               } else {
                 await updateInboxItem(fd);
                 toast.show({ message: "Cambios guardados. Sigue en tu Inbox." });

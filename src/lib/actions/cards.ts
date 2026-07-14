@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db, now, today, uid, schema } from "@/lib/db";
 import { requireAuth, setSetting } from "@/lib/auth";
-import { createCardInColumnKind } from "@/lib/db/helpers";
+import { createCardInColumnKind, getOrCreateBoard } from "@/lib/db/helpers";
 import { syncCardToGoogle } from "@/lib/google/calendar";
 
 function revalidateCardViews(projectId?: string | null) {
@@ -48,7 +48,58 @@ export async function createCardAction(formData: FormData) {
   revalidateCardViews(projectId);
 }
 
-export async function updateCardAction(formData: FormData) {
+/* ── Detalle editable de tarea ───────────────────────── */
+
+export type TaskDetailData = {
+  card: typeof schema.cards.$inferSelect & { projectTitle: string | null; columnKind: string | null };
+  projects: { id: string; title: string }[];
+  columns: { id: string; title: string; kind: string }[];
+};
+
+/** Datos frescos para abrir el detalle: la tarjeta, los proyectos activos y
+ *  las listas del tablero de su proyecto actual. */
+export async function getTaskDetailAction(cardId: string): Promise<TaskDetailData | null> {
+  await requireAuth();
+  const row = await db
+    .select({ card: schema.cards, projectTitle: schema.projects.title, columnKind: schema.columns.kind })
+    .from(schema.cards)
+    .leftJoin(schema.projects, eq(schema.cards.projectId, schema.projects.id))
+    .leftJoin(schema.columns, eq(schema.cards.columnId, schema.columns.id))
+    .where(eq(schema.cards.id, cardId))
+    .get();
+  if (!row) return null;
+  const projects = await db
+    .select({ id: schema.projects.id, title: schema.projects.title })
+    .from(schema.projects)
+    .where(eq(schema.projects.archived, false))
+    .orderBy(asc(schema.projects.title));
+  const columns = row.card.projectId ? await getProjectColumnsAction(row.card.projectId) : [];
+  return {
+    card: { ...row.card, projectTitle: row.projectTitle, columnKind: row.columnKind },
+    projects,
+    columns,
+  };
+}
+
+/** Listas del tablero de un proyecto (lo crea si el proyecto aún no tiene). */
+export async function getProjectColumnsAction(projectId: string) {
+  await requireAuth();
+  if (!projectId) return [];
+  const boardId = await getOrCreateBoard(projectId);
+  return db
+    .select({ id: schema.columns.id, title: schema.columns.title, kind: schema.columns.kind })
+    .from(schema.columns)
+    .where(eq(schema.columns.boardId, boardId))
+    .orderBy(asc(schema.columns.position));
+}
+
+/** Guardado completo del detalle: campos + proyecto + lista, en una sola operación.
+ *  Reglas de reasignación:
+ *  - a otro proyecto → tablero del nuevo proyecto, lista elegida o Backlog, al final;
+ *  - a «Sin proyecto» → se limpian tablero y lista, el resto de datos se conserva;
+ *  - cambio de lista dentro del mismo proyecto → al final de la lista destino;
+ *  - solo se toca completedAt si la tarjeta cambió a/desde una lista Terminado. */
+export async function saveTaskAction(formData: FormData) {
   await requireAuth();
   const id = String(formData.get("id"));
   const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
@@ -56,6 +107,78 @@ export async function updateCardAction(formData: FormData) {
 
   const str = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "") : undefined);
   const nul = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "") || null : undefined);
+
+  // Enlaces (JSON serializado por el formulario)
+  let links: { label: string; url: string }[] | undefined;
+  if (formData.has("links")) {
+    try {
+      const parsed: unknown = JSON.parse(String(formData.get("links")));
+      if (Array.isArray(parsed)) {
+        links = parsed
+          .filter((l): l is { label?: unknown; url?: unknown } => Boolean(l) && typeof l === "object")
+          .map((l) => ({ label: String(l.label ?? "").trim(), url: String(l.url ?? "").trim() }))
+          .filter((l) => l.url)
+          .map((l) => ({ label: l.label || l.url, url: l.url }));
+      }
+    } catch {
+      links = undefined; // enlaces malformados: no tocar los existentes
+    }
+  }
+
+  // Proyecto y lista
+  const requestedProject = formData.has("projectId") ? String(formData.get("projectId")) || null : undefined;
+  const requestedColumn = formData.has("columnId") ? String(formData.get("columnId")) || null : undefined;
+
+  let projectId = card.projectId;
+  let boardId = card.boardId;
+  let columnId = card.columnId;
+  let position = card.position;
+
+  const endOf = async (colId: string) => {
+    const siblings = await db.select().from(schema.cards).where(eq(schema.cards.columnId, colId));
+    return siblings.filter((c) => c.id !== card.id).length;
+  };
+
+  if (requestedProject !== undefined && requestedProject !== card.projectId) {
+    if (!requestedProject) {
+      // Sin proyecto: fuera del tablero, se conserva todo lo demás.
+      projectId = null;
+      boardId = null;
+      columnId = null;
+      position = 0;
+    } else {
+      projectId = requestedProject;
+      boardId = await getOrCreateBoard(requestedProject);
+      const cols = await db
+        .select()
+        .from(schema.columns)
+        .where(eq(schema.columns.boardId, boardId))
+        .orderBy(asc(schema.columns.position));
+      const target =
+        cols.find((c) => c.id === requestedColumn) ?? cols.find((c) => c.kind === "backlog") ?? cols[0] ?? null;
+      columnId = target?.id ?? null;
+      position = columnId ? await endOf(columnId) : 0;
+    }
+  } else if (requestedColumn !== undefined && requestedColumn !== card.columnId && card.boardId) {
+    const col = requestedColumn
+      ? await db
+          .select()
+          .from(schema.columns)
+          .where(and(eq(schema.columns.id, requestedColumn), eq(schema.columns.boardId, card.boardId)))
+          .get()
+      : null;
+    if (col) {
+      columnId = col.id;
+      position = await endOf(col.id);
+    }
+  }
+
+  // completedAt solo cambia si la tarjeta se movió de lista (a Terminado o fuera de él).
+  let completedAt = card.completedAt;
+  if (columnId && columnId !== card.columnId) {
+    const newCol = await db.select().from(schema.columns).where(eq(schema.columns.id, columnId)).get();
+    completedAt = newCol?.kind === "terminado" ? (card.completedAt ?? now()) : null;
+  }
 
   await db
     .update(schema.cards)
@@ -78,12 +201,22 @@ export async function updateCardAction(formData: FormData) {
             .map((t) => t.trim())
             .filter(Boolean)
         : undefined,
+      links,
+      projectId,
+      boardId,
+      columnId,
+      position,
+      completedAt,
       updatedAt: now(),
     })
     .where(eq(schema.cards.id, id));
-  // Sincroniza el recordatorio con Google Calendar si está conectado (no-op si no).
+
   await syncCardToGoogle(id).catch(() => {});
   revalidateCardViews(card.projectId);
+  if (projectId !== card.projectId) {
+    if (projectId) revalidatePath(`/proyectos/${projectId}`);
+    revalidatePath("/proyectos");
+  }
 }
 
 export async function setChecklistAction(id: string, checklist: { id: string; text: string; done: boolean }[]) {

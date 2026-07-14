@@ -59,8 +59,9 @@ export async function deleteInboxItem(id: string) {
 }
 
 /** Convierte una captura en otra entidad sin re-escribirla.
- *  Los campos específicos por tipo llegan en el mismo formulario (progressive disclosure). */
-export async function convertInboxItem(formData: FormData) {
+ *  Los campos específicos por tipo llegan en el mismo formulario (progressive disclosure).
+ *  Devuelve el destino ("tipo:id") para poder abrirlo justo después. */
+export async function convertInboxItem(formData: FormData): Promise<{ convertedTo: string } | undefined> {
   await requireAuth();
   const id = String(formData.get("id"));
   const target = String(formData.get("target"));
@@ -174,4 +175,5 @@ export async function convertInboxItem(formData: FormData) {
   revalidatePath("/proyectos");
   revalidatePath("/explorar");
   revalidatePath("/biblioteca/recursos");
+  return { convertedTo };
 }
