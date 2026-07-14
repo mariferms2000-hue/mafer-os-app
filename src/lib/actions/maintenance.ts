@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, like } from "drizzle-orm";
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
-import { db, schema } from "@/lib/db";
+import { db, schema, uid, now, today } from "@/lib/db";
 import { requireAuth, setSetting, getSetting } from "@/lib/auth";
 import { exportAllJson, exportAllMarkdown, SCHEMA_VERSION } from "@/lib/export/exporters";
 
@@ -167,4 +167,77 @@ export async function deleteDemoDataAction() {
   await db.delete(schema.resources).where(eq(schema.resources.isStarter, true));
   await db.delete(schema.events).where(eq(schema.events.isStarter, true));
   revalidatePath("/", "layout");
+}
+
+/* ── Pruebas de alertas antiolvido (solo desarrollo) ─────────────────
+   Crea datos temporales con el prefijo visible «QA ALERTA» para validar los
+   seis escenarios sin esperar días reales. Nunca toca datos reales y todo se
+   elimina con un botón. No disponible en producción. */
+
+const QA_PREFIX = "QA ALERTA";
+
+export async function qaToolsEnabled(): Promise<boolean> {
+  return process.env.NODE_ENV === "development" || process.env.MAFER_QA_TOOLS === "1";
+}
+
+function haceDias(n: number): string {
+  return new Date(Date.now() - n * 86_400_000).toISOString();
+}
+
+export async function seedAlertQaAction() {
+  await requireAuth();
+  if (!(await qaToolsEnabled())) throw new Error("Las herramientas QA no están disponibles en producción.");
+  const t = now();
+  const hoy = today();
+  const ayer5 = hoy && new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10);
+
+  // 1) Tarea vencida (hace 5 días)
+  await db.insert(schema.cards).values({
+    id: uid(), title: `${QA_PREFIX} — Tarea vencida`, dueDate: ayer5, createdAt: t, updatedAt: t,
+  });
+  // 2) Tarea de hoy sin duración ni energía
+  await db.insert(schema.cards).values({
+    id: uid(), title: `${QA_PREFIX} — Tarea de hoy sin estimar`, dueDate: hoy, createdAt: t, updatedAt: t,
+  });
+  // 3) Proyecto activo sin siguiente acción (con actividad reciente)
+  await db.insert(schema.projects).values({
+    id: uid(), title: `${QA_PREFIX} — Proyecto sin siguiente acción`, status: "activo", nextAction: "",
+    createdAt: t, updatedAt: t,
+  });
+  // 4) Captura del Inbox con más de 3 días
+  await db.insert(schema.inboxItems).values({
+    id: uid(), content: `${QA_PREFIX} — Captura olvidada`, createdAt: haceDias(5),
+  });
+  // 5) Tarea en Esperando con más de 7 días
+  await db.insert(schema.cards).values({
+    id: uid(), title: `${QA_PREFIX} — Esperando respuesta`, waitingFor: "QA proveedor",
+    createdAt: haceDias(10), updatedAt: haceDias(10),
+  });
+  // 6) Proyecto sin actividad durante más de 14 días (con siguiente acción para no duplicar el escenario 3)
+  await db.insert(schema.projects).values({
+    id: uid(), title: `${QA_PREFIX} — Proyecto dormido`, status: "activo", nextAction: "QA retomar guion",
+    createdAt: haceDias(20), updatedAt: haceDias(20),
+  });
+
+  revalidatePath("/", "layout");
+}
+
+export async function deleteAlertQaAction() {
+  await requireAuth();
+  if (!(await qaToolsEnabled())) throw new Error("Las herramientas QA no están disponibles en producción.");
+  await db.delete(schema.cards).where(like(schema.cards.title, `${QA_PREFIX}%`));
+  await db.delete(schema.projects).where(like(schema.projects.title, `${QA_PREFIX}%`));
+  await db.delete(schema.inboxItems).where(like(schema.inboxItems.content, `${QA_PREFIX}%`));
+  revalidatePath("/", "layout");
+}
+
+export async function alertQaCount(): Promise<number> {
+  await requireAuth();
+  if (!(await qaToolsEnabled())) return 0;
+  const [c, p, i] = await Promise.all([
+    db.select({ id: schema.cards.id }).from(schema.cards).where(like(schema.cards.title, `${QA_PREFIX}%`)),
+    db.select({ id: schema.projects.id }).from(schema.projects).where(like(schema.projects.title, `${QA_PREFIX}%`)),
+    db.select({ id: schema.inboxItems.id }).from(schema.inboxItems).where(like(schema.inboxItems.content, `${QA_PREFIX}%`)),
+  ]);
+  return c.length + p.length + i.length;
 }

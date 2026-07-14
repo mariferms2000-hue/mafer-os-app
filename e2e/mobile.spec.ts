@@ -102,6 +102,29 @@ test("móvil: Hoy responde en un vistazo — Haz esto ahora y antiolvido sin scr
   await page.getByTestId("card-cancel").click();
 });
 
+test("móvil: toast legible en modo oscuro y prioridad con feedback", async ({ page }) => {
+  await login(page);
+  await page.goto("/ajustes");
+  await page.getByTestId("theme-dark").click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  await page.goto("/tareas");
+  await page.getByRole("button", { name: /^Completar «/ }).first().click();
+  const toast = page.locator('[role="status"]').first();
+  await expect(toast).toBeVisible();
+  const css = await toast.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { bg: s.backgroundColor, fg: s.color };
+  });
+  expect(css.bg).toBe("rgb(34, 49, 34)");
+  expect(css.fg).toBe("rgb(242, 236, 223)");
+  await expect(toast.getByRole("button", { name: "Deshacer" })).toBeVisible();
+  await toast.getByRole("button", { name: "Deshacer" }).click();
+  await page.goto("/ajustes");
+  await page.getByTestId("theme-light").click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+});
+
 test("móvil: crear con solo título y clasificar con chips al toque", async ({ page }, testInfo) => {
   const titulo = `Llamar farmacia móvil R${testInfo.retry}`;
   await login(page);

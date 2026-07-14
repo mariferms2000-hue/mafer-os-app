@@ -26,12 +26,18 @@ export function Priorities({
 
   function toggleComplete(card: CardRow, done: boolean) {
     start(async () => {
-      await completeCardAction(card.id, !done);
+      const res = await completeCardAction(card.id, !done);
       if (!done) {
+        // el espacio queda libre; nunca se elige otra automáticamente
         toast.show({
-          message: "Prioridad completada ✓",
-          action: { label: "Deshacer", onClick: () => completeCardAction(card.id, false) },
-          link: { label: "Ver en terminadas", href: "/tareas?f=terminadas" },
+          message: "Prioridad completada ✓ — su espacio quedó libre",
+          action: {
+            label: "Deshacer",
+            onClick: async () => {
+              await completeCardAction(card.id, false, res.freedPriorityAt);
+            },
+          },
+          secondAction: { label: "Elegir reemplazo", onClick: () => setPicking(true) },
           duration: 8000,
         });
       }
@@ -132,8 +138,18 @@ export function Priorities({
                     disabled={pending}
                     onClick={() =>
                       start(async () => {
-                        await addTodayPriority(c.id);
+                        const res = await addTodayPriority(c.id);
                         setPicking(false);
+                        if (res.status === "added") {
+                          toast.show({
+                            message: "Añadida a tus prioridades de hoy ✓",
+                            action: { label: "Deshacer", onClick: () => removeTodayPriority(c.id) },
+                          });
+                        } else if (res.status === "duplicate") {
+                          toast.show({ tone: "info", message: "Ya está en tus prioridades de hoy." });
+                        } else {
+                          toast.show({ tone: "warn", message: "Tus 3 prioridades ya están llenas. Quita una primero." });
+                        }
                       })
                     }
                   >

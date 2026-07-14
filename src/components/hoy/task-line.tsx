@@ -21,10 +21,12 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
 
   function toggle() {
     start(async () => {
+      let freedAt: number | null = null;
       try {
-        await completeCardAction(card.id, !done);
+        const res = await completeCardAction(card.id, !done);
+        freedAt = res.freedPriorityAt;
       } catch {
-        toast.show({ tone: "warn", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
+        toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
         return;
       }
       if (!done) {
@@ -34,9 +36,9 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
             label: "Deshacer",
             onClick: async () => {
               try {
-                await completeCardAction(card.id, false);
+                await completeCardAction(card.id, false, freedAt);
               } catch {
-                toast.show({ tone: "warn", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
+                toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
               }
             },
           },

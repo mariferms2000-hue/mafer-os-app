@@ -143,6 +143,37 @@ test("safari/webkit: «Haz esto ahora» y alertas antiolvido funcionan", async (
   await expect(page.getByTestId("card-detail")).toHaveCount(0);
 });
 
+test("safari/webkit: prioridad con feedback y toast legible en modo oscuro", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+
+  // marcar prioridad desde «Haz esto ahora» SIEMPRE responde algo (toast o selector)
+  await page.getByTestId("do-now").getByTestId("mark-priority").click();
+  await expect(
+    page.getByText(/Añadida a tus prioridades|Ya está en tus prioridades|prioridades están llenas/).first()
+  ).toBeVisible();
+
+  // toast en oscuro: superficie bosque, texto crema
+  await page.goto("/ajustes");
+  await page.getByTestId("theme-dark").click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.goto("/tareas");
+  await page.getByRole("button", { name: /^Completar «/ }).first().click();
+  const toast = page.locator('[role="status"]').first();
+  await expect(toast).toBeVisible();
+  const css = await toast.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { bg: s.backgroundColor, fg: s.color };
+  });
+  expect(css.bg).toBe("rgb(34, 49, 34)");
+  expect(css.fg).toBe("rgb(242, 236, 223)");
+  await toast.getByRole("button", { name: "Deshacer" }).click();
+  await page.goto("/ajustes");
+  await page.getByTestId("theme-light").click();
+});
+
 test("safari/webkit: clic físico en una fila de Tareas abre el detalle y persiste", async ({ page }, testInfo) => {
   const titulo = `Clic real Safari R${testInfo.retry}`;
 

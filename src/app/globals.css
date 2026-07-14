@@ -39,8 +39,15 @@
 
   --color-card-border: #ece3d3;
 
+  /* Toasts: superficie propia con tokens por tono (nunca colores sueltos) */
   --color-toast-bg: #2e2b25;
   --color-toast-fg: #faf7f1;
+  --color-toast-muted: #cfc9bb;
+  --color-toast-border: #3a362e;
+  --color-toast-ok: #a9c29c;
+  --color-toast-info: #a9b8c9;
+  --color-toast-warn: #e8b47a;
+  --color-toast-error: #e39a86;
 }
 
 :root {
@@ -80,8 +87,15 @@ html[data-theme="dark"] {
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.30), 0 6px 22px rgb(0 0 0 / 0.25);
   --shadow-lift: 0 2px 8px rgb(0 0 0 / 0.40), 0 14px 36px rgb(0 0 0 / 0.35);
 
-  --color-toast-bg: #11150e;
-  --color-toast-fg: #ece6d9;
+  /* Toast en oscuro: superficie verde bosque elevada, texto crema legible */
+  --color-toast-bg: #223122;
+  --color-toast-fg: #f2ecdf;
+  --color-toast-muted: #b9c4ac;
+  --color-toast-border: #3b4d39;
+  --color-toast-ok: #a5c497;
+  --color-toast-info: #9fb4c0;
+  --color-toast-warn: #d7b377;
+  --color-toast-error: #d38f7b;
 }
 
 html {

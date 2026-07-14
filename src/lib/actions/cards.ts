@@ -278,10 +278,40 @@ export async function moveCardAction(input: {
   revalidateCardViews(card.projectId);
 }
 
-export async function completeCardAction(id: string, complete: boolean) {
+/** Completa o reabre una tarea.
+ *  Al completar, si era prioridad de HOY libera su espacio (nunca se elige otra
+ *  automáticamente) y devuelve la posición liberada para poder deshacer.
+ *  Al reabrir, `restorePriorityAt` re-coloca la prioridad en ese espacio. */
+export async function completeCardAction(
+  id: string,
+  complete: boolean,
+  restorePriorityAt?: number | null
+): Promise<{ freedPriorityAt: number | null }> {
   await requireAuth();
   const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
-  if (!card) return;
+  if (!card) return { freedPriorityAt: null };
+
+  let freedPriorityAt: number | null = null;
+  const d = today();
+  if (complete) {
+    const row = await db
+      .select()
+      .from(schema.todayPriorities)
+      .where(and(eq(schema.todayPriorities.date, d), eq(schema.todayPriorities.cardId, id)))
+      .get();
+    if (row) {
+      freedPriorityAt = row.position;
+      await db.delete(schema.todayPriorities).where(eq(schema.todayPriorities.id, row.id));
+    }
+  } else if (restorePriorityAt !== undefined && restorePriorityAt !== null) {
+    const existing = await db
+      .select()
+      .from(schema.todayPriorities)
+      .where(eq(schema.todayPriorities.date, d));
+    if (existing.length < 3 && !existing.some((p) => p.cardId === id)) {
+      await db.insert(schema.todayPriorities).values({ id: uid(), date: d, cardId: id, position: restorePriorityAt });
+    }
+  }
 
   let columnId = card.columnId;
   let position = card.position;
@@ -304,6 +334,7 @@ export async function completeCardAction(id: string, complete: boolean) {
     .set({ completedAt: complete ? now() : null, columnId, position, updatedAt: now() })
     .where(eq(schema.cards.id, id));
   revalidateCardViews(card.projectId);
+  return { freedPriorityAt };
 }
 
 export async function archiveCardAction(id: string, archived: boolean) {
@@ -324,21 +355,57 @@ export async function deleteCardAction(id: string) {
 
 /* ── Prioridades del día ─────────────────────────────── */
 
-export async function addTodayPriority(cardId: string) {
+export type PriorityAddResult =
+  | { status: "added" }
+  | { status: "duplicate" }
+  | { status: "full"; current: { cardId: string; title: string; position: number }[] };
+
+/** Marca una tarea como prioridad de HOY. Nunca reemplaza en silencio:
+ *  si ya lo es responde «duplicate»; si los 3 espacios están llenos responde
+ *  «full» con las prioridades actuales para que Mafer elija cuál reemplazar. */
+export async function addTodayPriority(cardId: string): Promise<PriorityAddResult> {
   await requireAuth();
   const d = today();
   const existing = await db
     .select()
     .from(schema.todayPriorities)
-    .where(eq(schema.todayPriorities.date, d));
-  if (existing.some((p) => p.cardId === cardId)) return;
-  if (existing.length >= 3) return; // máximo tres
+    .where(eq(schema.todayPriorities.date, d))
+    .orderBy(asc(schema.todayPriorities.position));
+  if (existing.some((p) => p.cardId === cardId)) return { status: "duplicate" };
+  if (existing.length >= 3) {
+    const cards = await db.select({ id: schema.cards.id, title: schema.cards.title }).from(schema.cards);
+    const titleOf = new Map(cards.map((c) => [c.id, c.title]));
+    return {
+      status: "full",
+      current: existing.map((p) => ({ cardId: p.cardId, title: titleOf.get(p.cardId) ?? "(tarea)", position: p.position })),
+    };
+  }
   await db.insert(schema.todayPriorities).values({
     id: uid(),
     date: d,
     cardId,
     position: existing.length,
   });
+  revalidatePath("/");
+  return { status: "added" };
+}
+
+/** Reemplaza una prioridad de hoy por otra tarea, conservando su posición.
+ *  Solo se llama después de que Mafer eligió explícitamente cuál sustituir. */
+export async function replaceTodayPriority(oldCardId: string, newCardId: string) {
+  await requireAuth();
+  const d = today();
+  const existing = await db
+    .select()
+    .from(schema.todayPriorities)
+    .where(eq(schema.todayPriorities.date, d));
+  if (existing.some((p) => p.cardId === newCardId)) return; // ya es prioridad: nada que hacer
+  const old = existing.find((p) => p.cardId === oldCardId);
+  if (!old) return;
+  await db
+    .update(schema.todayPriorities)
+    .set({ cardId: newCardId })
+    .where(eq(schema.todayPriorities.id, old.id));
   revalidatePath("/");
 }
 

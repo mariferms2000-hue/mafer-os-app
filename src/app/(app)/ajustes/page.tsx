@@ -16,7 +16,8 @@ import { PasswordForm } from "@/components/settings/password-form";
 import { disconnectGoogleAction } from "@/lib/actions/google";
 import { ThemeSelector } from "@/components/shell/theme";
 import { BackupButtons, DemoDataControls } from "@/components/settings/maintenance";
-import { getDemoCounts } from "@/lib/actions/maintenance";
+import { AlertQaPanel } from "@/components/settings/alert-qa";
+import { getDemoCounts, qaToolsEnabled, alertQaCount } from "@/lib/actions/maintenance";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ajustes" };
@@ -37,6 +38,8 @@ export default async function AjustesPage() {
   const build = buildInfo();
   const entorno = process.env.NODE_ENV === "production" ? "producción" : "desarrollo";
   const demoCounts = await getDemoCounts();
+  const qaTools = await qaToolsEnabled();
+  const qaCount = qaTools ? await alertQaCount() : 0;
   const lastBackup = (await getSetting("last_backup_at")) || null;
   const lastSync = (await getSetting("last_obsidian_sync_at")) || null;
 
@@ -153,6 +156,9 @@ export default async function AjustesPage() {
           iPad: mismos pasos. Mac: Safari → Archivo → Agregar a Dock. Guía completa: manual «Instalar en iPhone».
         </p>
       </section>
+
+      {/* Herramientas QA — solo existen fuera de producción */}
+      {qaTools && <div className="mt-5"><AlertQaPanel initialCount={qaCount} /></div>}
 
       {/* Versión en ejecución — para comprobar de un vistazo que ves lo más reciente */}
       <p className="text-xs text-stone-soft mt-6 text-center" data-testid="version-info">

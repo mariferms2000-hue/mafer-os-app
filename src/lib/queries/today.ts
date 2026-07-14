@@ -152,7 +152,10 @@ export async function getTodayData() {
       icon: p.icon,
       nextAction: p.nextAction ?? "",
     })),
-    candidates: open.filter((c) => c.columnKind !== "despues").slice(0, 60),
+    // candidatas a prioridad: abiertas, sin las pospuestas ni las bloqueadas
+    candidates: open
+      .filter((c) => c.columnKind !== "despues" && c.columnKind !== "bloqueado" && !c.blockedReason)
+      .slice(0, 60),
     inboxCount,
   };
 }

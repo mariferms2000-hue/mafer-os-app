@@ -26,6 +26,7 @@ export default defineConfig({
       AUTH_SECRET: "secreto-solo-para-tests-0123456789abcdef",
       LOCAL_HTTP: "1",
       NODE_ENV: "production",
+      MAFER_QA_TOOLS: "1", // habilita el panel QA de alertas en el entorno de pruebas (nunca en el lanzador real)
     },
   },
   projects: [

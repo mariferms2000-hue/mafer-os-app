@@ -8,14 +8,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { CheckCircle2, Info, AlertTriangle, X } from "lucide-react";
+import { CheckCircle2, Info, AlertTriangle, CircleX, X } from "lucide-react";
 
 export type Toast = {
   id: number;
   message: string;
-  tone?: "ok" | "info" | "warn";
+  /** ok = éxito · info = información · warn = advertencia · error = falló algo */
+  tone?: "ok" | "info" | "warn" | "error";
   /** Acción principal, p. ej. «Deshacer». */
   action?: { label: string; onClick: () => void | Promise<void> };
+  /** Acción secundaria, p. ej. «Elegir reemplazo». */
+  secondAction?: { label: string; onClick: () => void | Promise<void> };
   /** Enlace secundario, p. ej. «Ver en terminadas». */
   link?: { label: string; href: string };
   duration?: number;
@@ -31,7 +34,7 @@ export function useToast() {
   return ctx;
 }
 
-const ICONS = { ok: CheckCircle2, info: Info, warn: AlertTriangle };
+const ICONS = { ok: CheckCircle2, info: Info, warn: AlertTriangle, error: CircleX };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -61,19 +64,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         className="fixed z-[70] bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 flex flex-col gap-2 w-[calc(100%-2rem)] max-w-md pointer-events-none"
       >
         {toasts.map((t) => {
-          const Icon = ICONS[t.tone ?? "ok"];
+          const tone = t.tone ?? "ok";
+          const Icon = ICONS[tone];
           return (
             <div
               key={t.id}
               role="status"
-              className="pointer-events-auto card !bg-charcoal !border-charcoal text-cream shadow-lift px-4 py-3 flex items-center gap-3 text-sm"
-              style={{ background: "var(--color-toast-bg)", borderColor: "var(--color-toast-bg)", color: "var(--color-toast-fg)" }}
+              data-tone={tone}
+              className="pointer-events-auto rounded-2xl border px-4 py-3 flex items-center gap-3 text-sm shadow-lift"
+              style={{
+                background: "var(--color-toast-bg)",
+                borderColor: "var(--color-toast-border)",
+                color: "var(--color-toast-fg)",
+              }}
             >
-              <Icon
-                size={17}
-                aria-hidden
-                className={t.tone === "warn" ? "text-[#e8b47a]" : "text-[#a9c29c]"}
-              />
+              <Icon size={17} aria-hidden style={{ color: `var(--color-toast-${tone})` }} className="shrink-0" />
               <span className="flex-1">{t.message}</span>
               {t.action && (
                 <button
@@ -87,15 +92,31 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   {t.action.label}
                 </button>
               )}
+              {t.secondAction && (
+                <button
+                  type="button"
+                  className="font-semibold underline underline-offset-4 hover:opacity-80 shrink-0"
+                  onClick={async () => {
+                    dismiss(t.id);
+                    await t.secondAction!.onClick();
+                  }}
+                >
+                  {t.secondAction.label}
+                </button>
+              )}
               {t.link && (
-                <a href={t.link.href} className="underline underline-offset-4 opacity-80 hover:opacity-100 shrink-0">
+                <a
+                  href={t.link.href}
+                  className="underline underline-offset-4 hover:opacity-80 shrink-0"
+                  style={{ color: "var(--color-toast-muted)" }}
+                >
                   {t.link.label}
                 </a>
               )}
               <button
                 type="button"
                 aria-label="Cerrar aviso"
-                className="opacity-60 hover:opacity-100 shrink-0"
+                className="opacity-70 hover:opacity-100 shrink-0"
                 onClick={() => dismiss(t.id)}
               >
                 <X size={14} aria-hidden />

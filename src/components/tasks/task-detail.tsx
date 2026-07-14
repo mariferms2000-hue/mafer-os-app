@@ -2,18 +2,18 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { X, Trash2, Archive, CheckCircle2, Star, Plus, Link2, CalendarX2, Sparkles } from "lucide-react";
+import { X, Trash2, Archive, CheckCircle2, Plus, Link2, CalendarX2, Sparkles } from "lucide-react";
 import {
   saveTaskAction,
   deleteCardAction,
   archiveCardAction,
   completeCardAction,
   setChecklistAction,
-  addTodayPriority,
   getTaskDetailAction,
   getProjectColumnsAction,
   type TaskDetailData,
 } from "@/lib/actions/cards";
+import { MarkPriorityButton } from "./priority-button";
 import type { ChecklistItem } from "@/lib/db/schema";
 import { suggestEstimates, normalizeDuration, normalizeEnergy, DURATION_LABEL, ENERGY_LABEL } from "@/lib/estimates";
 import { DurationChips, EnergyChips } from "./estimate-chips";
@@ -139,10 +139,12 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
 
   function toggleComplete() {
     start(async () => {
+      let freedAt: number | null = null;
       try {
-        await completeCardAction(card.id, !done);
+        const res = await completeCardAction(card.id, !done);
+        freedAt = res.freedPriorityAt;
       } catch {
-        toast.show({ tone: "warn", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
+        toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
         return;
       }
       if (!done) {
@@ -152,9 +154,9 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
             label: "Deshacer",
             onClick: async () => {
               try {
-                await completeCardAction(card.id, false);
+                await completeCardAction(card.id, false, freedAt);
               } catch {
-                toast.show({ tone: "warn", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
+                toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
               }
             },
           },
@@ -216,17 +218,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
             >
               <CheckCircle2 size={14} aria-hidden /> {done ? "Reabrir" : "Completar"}
             </button>
-            {!done && (
-              <button
-                type="button"
-                className="btn btn-secondary !py-1.5 !px-3 text-xs"
-                disabled={pending}
-                onClick={() => start(() => addTodayPriority(card.id))}
-                title="Añadir a las 3 prioridades de hoy"
-              >
-                <Star size={14} aria-hidden /> Prioridad de hoy
-              </button>
-            )}
+            {!done && <MarkPriorityButton cardId={card.id} />}
             {done && card.completedAt && (
               <span className="chip chip-done">✓ Terminada el {card.completedAt.slice(0, 10)}</span>
             )}

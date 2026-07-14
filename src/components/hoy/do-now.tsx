@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { CheckCircle2, PencilLine, Shuffle, Target } from "lucide-react";
 import { completeCardAction } from "@/lib/actions/cards";
 import { openTaskUrl } from "@/components/tasks/task-detail";
+import { MarkPriorityButton } from "@/components/tasks/priority-button";
 import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
@@ -33,10 +34,12 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
 
   function complete() {
     start(async () => {
+      let freedAt: number | null = null;
       try {
-        await completeCardAction(card.id, true);
+        const res = await completeCardAction(card.id, true);
+        freedAt = res.freedPriorityAt;
       } catch {
-        toast.show({ tone: "warn", message: "No se pudo completar. Inténtalo de nuevo." });
+        toast.show({ tone: "error", message: "No se pudo completar. Inténtalo de nuevo." });
         return;
       }
       toast.show({
@@ -45,9 +48,9 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
           label: "Deshacer",
           onClick: async () => {
             try {
-              await completeCardAction(card.id, false);
+              await completeCardAction(card.id, false, freedAt);
             } catch {
-              toast.show({ tone: "warn", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
+              toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
             }
           },
         },
@@ -117,6 +120,7 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
         >
           <PencilLine size={15} aria-hidden /> Abrir tarea
         </button>
+        <MarkPriorityButton cardId={card.id} className="btn btn-secondary !py-2 text-sm" />
       </div>
     </section>
   );
