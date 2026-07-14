@@ -8,7 +8,7 @@ import {
   completeCardAction,
   setEnergyTodayAction,
 } from "@/lib/actions/cards";
-import { TaskDetailModal } from "@/components/tasks/task-detail";
+import { openTaskUrl } from "@/components/tasks/task-detail";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 
@@ -20,7 +20,6 @@ export function Priorities({
   candidates: CardRow[];
 }) {
   const [picking, setPicking] = useState(false);
-  const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const toast = useToast();
   const chosenIds = new Set(priorities.map((p) => p.id));
@@ -81,7 +80,7 @@ export function Priorities({
               </div>
               <button
                 type="button"
-                onClick={() => setOpenCardId(card.id)}
+                onClick={() => openTaskUrl(card.id)}
                 data-testid="priority-open"
                 className={`text-sm font-medium leading-snug flex-1 text-left ${done ? "line-through text-stone-soft" : ""}`}
                 aria-label={`Abrir detalle de «${card.title}»`}
@@ -118,8 +117,6 @@ export function Priorities({
           </li>
         ))}
       </ol>
-
-      {openCardId && <TaskDetailModal cardId={openCardId} onClose={() => setOpenCardId(null)} />}
 
       {picking && (
         <div className="card mt-3 p-3">

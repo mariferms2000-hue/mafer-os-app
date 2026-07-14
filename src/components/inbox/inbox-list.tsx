@@ -21,7 +21,7 @@ import {
   archiveInboxItem,
   deleteInboxItem,
 } from "@/lib/actions/inbox";
-import { TaskDetailModal } from "@/components/tasks/task-detail";
+import { openTaskUrl } from "@/components/tasks/task-detail";
 import { useToast } from "@/components/ui/toast";
 import type { schema } from "@/lib/db";
 
@@ -42,7 +42,6 @@ const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
 
 export function InboxList({ items, projects }: { items: Item[]; projects: Project[] }) {
   const [openItem, setOpenItem] = useState<Item | null>(null);
-  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
 
   return (
     <>
@@ -56,10 +55,9 @@ export function InboxList({ items, projects }: { items: Item[]; projects: Projec
           item={openItem}
           projects={projects}
           onClose={() => setOpenItem(null)}
-          onOpenTask={setOpenTaskId}
+          onOpenTask={openTaskUrl}
         />
       )}
-      {openTaskId && <TaskDetailModal cardId={openTaskId} onClose={() => setOpenTaskId(null)} />}
     </>
   );
 }

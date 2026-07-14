@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass } from "lucide-react";
+import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass, MoreHorizontal, PencilLine } from "lucide-react";
 import Link from "next/link";
 import { completeCardAction } from "@/lib/actions/cards";
-import { TaskDetailModal } from "@/components/tasks/task-detail";
+import { openTaskUrl } from "@/components/tasks/task-detail";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 
@@ -17,11 +17,12 @@ export const DURATION_LABEL: Record<string, string> = {
 };
 
 /** Línea de tarea reutilizable: check + título + chips de contexto.
- *  El cuerpo abre el detalle editable; el círculo solo completa/reabre.
- *  Completar nunca borra: mueve a Terminado, guarda la fecha y ofrece deshacer. */
+ *  El cuerpo abre el detalle editable (reflejado en la URL con ?abrir=<id>);
+ *  el círculo solo completa/reabre. Completar nunca borra: mueve a Terminado,
+ *  guarda la fecha y ofrece deshacer. */
 export function TaskLine({ card, showProject = true }: { card: CardRow; showProject?: boolean }) {
   const [pending, start] = useTransition();
-  const [openDetail, setOpenDetail] = useState(false);
+  const [menu, setMenu] = useState(false);
   const toast = useToast();
   const done = Boolean(card.completedAt);
 
@@ -75,12 +76,12 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
         onClick={(e) => {
           // los enlaces y botones internos (proyecto, etc.) conservan su función
           if ((e.target as HTMLElement).closest("a, button, input")) return;
-          setOpenDetail(true);
+          openTaskUrl(card.id);
         }}
         onKeyDown={(e) => {
           if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
             e.preventDefault();
-            setOpenDetail(true);
+            openTaskUrl(card.id);
           }
         }}
       >
@@ -123,7 +124,33 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
           )}
         </div>
       </div>
-      {openDetail && <TaskDetailModal cardId={card.id} onClose={() => setOpenDetail(false)} />}
+      {/* Menú de respaldo: siempre hay un camino explícito para abrir la tarea */}
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          aria-label={`Menú de «${card.title}»`}
+          className="btn btn-ghost !p-1.5 opacity-60 group-hover:opacity-100"
+          onClick={() => setMenu((m) => !m)}
+          data-testid="task-menu"
+        >
+          <MoreHorizontal size={15} aria-hidden />
+        </button>
+        {menu && (
+          <div className="absolute right-0 z-20 mt-1 card p-1.5 flex flex-col min-w-40 text-sm">
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-beige"
+              data-testid="task-menu-open"
+              onClick={() => {
+                setMenu(false);
+                openTaskUrl(card.id);
+              }}
+            >
+              <PencilLine size={14} aria-hidden /> Abrir tarea
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

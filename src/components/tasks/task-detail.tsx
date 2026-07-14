@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { X, Trash2, Archive, CheckCircle2, Star, Plus, Link2, CalendarX2 } from "lucide-react";
 import {
   saveTaskAction,
@@ -54,20 +54,28 @@ export function TaskDetailModal({ cardId, onClose }: { cardId: string; onClose: 
   return <TaskDetailEditor data={data} onClose={onClose} />;
 }
 
-/** Para abrir el detalle desde una URL: /tareas?abrir=<id> (búsqueda, conversión del Inbox…). */
-export function OpenTaskFromQuery({ cardId }: { cardId: string }) {
-  const router = useRouter();
-  const [open, setOpen] = useState(true);
-  if (!open) return null;
-  return (
-    <TaskDetailModal
-      cardId={cardId}
-      onClose={() => {
-        setOpen(false);
-        router.replace("/tareas");
-      }}
-    />
-  );
+/** Abre el detalle reflejándolo en la URL (?abrir=<id>) sin recargar la página.
+ *  pushState/replaceState se integran con el router de Next → useSearchParams reacciona. */
+export function openTaskUrl(cardId: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("abrir", cardId);
+  window.history.pushState(null, "", url.toString());
+}
+
+function closeTaskUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("abrir");
+  window.history.replaceState(null, "", url.toString());
+}
+
+/** Se monta una vez en el layout: si la URL trae ?abrir=<id> (clic, enlace directo,
+ *  refresh o botón atrás), muestra el detalle; al cerrar limpia solo ese parámetro
+ *  conservando página y filtros. */
+export function TaskDetailFromUrl() {
+  const searchParams = useSearchParams();
+  const abrir = searchParams.get("abrir");
+  if (!abrir) return null;
+  return <TaskDetailModal key={abrir} cardId={abrir} onClose={closeTaskUrl} />;
 }
 
 function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: () => void }) {

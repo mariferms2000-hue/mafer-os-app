@@ -352,6 +352,56 @@ test("el círculo de completar no abre el modal", async ({ page }, info) => {
   await page.getByRole("button", { name: "Deshacer" }).first().click();
 });
 
+test("clic físico en el centro de la fila abre el detalle y la URL lleva ?abrir=", async ({ page }, info) => {
+  const titulo = t(info, "Tarea clic real");
+  await login(page);
+  await createTask(page, titulo);
+
+  // clic con el mouse en el centro geométrico del cuerpo de la fila (como lo haría Mafer)
+  const fila = page.getByTestId("task-open").filter({ hasText: titulo }).first();
+  await fila.scrollIntoViewIfNeeded();
+  const box = await fila.boundingBox();
+  if (!box) throw new Error("No se pudo medir la fila");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+  await expect(page.getByTestId("card-title-input")).toHaveValue(titulo);
+  expect(page.url()).toContain("abrir=");
+  const urlAbierta = page.url();
+
+  // editar, guardar: el parámetro se limpia y seguimos en Tareas
+  await page.getByTestId("card-title-input").fill(`${titulo} editada`);
+  await page.getByTestId("card-save").click();
+  await expect(toast(page, "Tarea actualizada ✓")).toBeVisible();
+  await expect(page.getByTestId("card-detail")).toHaveCount(0);
+  expect(page.url()).not.toContain("abrir=");
+  expect(page.url()).toContain("/tareas");
+
+  // refrescar: el cambio persiste
+  await page.reload();
+  await expect(page.getByTestId("task-groups").getByText(`${titulo} editada`, { exact: true })).toBeVisible();
+
+  // URL directa con ?abrir= recupera y abre la tarea (sin pantalla vacía)
+  await page.goto(urlAbierta);
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+  await expect(page.getByTestId("card-title-input")).toHaveValue(`${titulo} editada`);
+  await page.getByTestId("card-cancel").click();
+  await expect(page.getByTestId("card-detail")).toHaveCount(0);
+  expect(page.url()).not.toContain("abrir=");
+});
+
+test("menú «⋯» de la fila ofrece Abrir tarea como respaldo", async ({ page }, info) => {
+  const editada = t(info, "Tarea detalle editada");
+  await login(page);
+  await page.goto("/tareas");
+  const fila = page.locator("li", { has: page.getByTestId("task-open").filter({ hasText: editada }) }).first();
+  await fila.getByTestId("task-menu").click();
+  await fila.getByTestId("task-menu-open").click();
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+  expect(page.url()).toContain("abrir=");
+  await page.getByTestId("card-cancel").click();
+});
+
 test("convertir captura en tarea ofrece abrirla al momento", async ({ page }, info) => {
   const texto = t(info, "Captura convertible");
   await login(page);

@@ -26,7 +26,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Plus, Clock, Ban, Hourglass, CalendarClock, ListChecks } from "lucide-react";
 import { moveCardAction, createCardInColumnAction } from "@/lib/actions/cards";
 import { useToast } from "@/components/ui/toast";
-import { TaskDetailModal } from "@/components/tasks/task-detail";
+import { openTaskUrl } from "@/components/tasks/task-detail";
 import type { ChecklistItem } from "@/lib/db/schema";
 
 export type BoardColumn = { id: string; title: string; kind: string };
@@ -72,7 +72,6 @@ export function Board({ columns, cards }: { columns: BoardColumn[]; cards: Board
   const [items, setItems] = useState<ItemsMap>({});
   const [active, setActive] = useState<BoardCard | null>(null);
   const [targetCol, setTargetCol] = useState<string | null>(null);
-  const [openCard, setOpenCard] = useState<BoardCard | null>(null);
   const [, startTransition] = useTransition();
   const dragging = useRef(false);
   const justDragged = useRef(false);
@@ -195,7 +194,7 @@ export function Board({ columns, cards }: { columns: BoardColumn[]; cards: Board
               highlight={targetCol === col.id}
               activeId={active?.id ?? null}
               onOpen={(c) => {
-                if (!justDragged.current) setOpenCard(c);
+                if (!justDragged.current) openTaskUrl(c.id);
               }}
             />
           ))}
@@ -208,7 +207,6 @@ export function Board({ columns, cards }: { columns: BoardColumn[]; cards: Board
           )}
         </DragOverlay>
       </DndContext>
-      {openCard && <TaskDetailModal cardId={openCard.id} onClose={() => setOpenCard(null)} />}
     </>
   );
 }

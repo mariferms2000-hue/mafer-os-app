@@ -52,7 +52,10 @@ function useSectionMemory() {
   useEffect(() => {
     const section = sectionOf(pathname);
     if (!section) return;
-    const full = searchParams.size ? `${pathname}?${searchParams.toString()}` : pathname;
+    // `abrir` (detalle de tarea) es estado transitorio: no se recuerda como filtro.
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("abrir");
+    const full = params.size ? `${pathname}?${params.toString()}` : pathname;
     try {
       sessionStorage.setItem(`nav:${section}`, full);
     } catch {}

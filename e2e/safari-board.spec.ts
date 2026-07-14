@@ -93,3 +93,35 @@ test("safari/webkit: abrir el detalle de una tarjeta, editar y guardar", async (
   await expect(page.getByTestId("card-detail")).toHaveCount(0);
   await expect(page.getByText(editado, { exact: true })).toBeVisible();
 });
+
+test("safari/webkit: clic físico en una fila de Tareas abre el detalle y persiste", async ({ page }, testInfo) => {
+  const titulo = `Clic real Safari R${testInfo.retry}`;
+
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+
+  await page.goto("/tareas");
+  await page.getByTestId("new-task").click();
+  await page.getByTestId("new-task-title").fill(titulo);
+  await page.getByTestId("new-task-save").click();
+  await expect(page.getByTestId("task-groups").getByText(titulo, { exact: true })).toBeVisible();
+
+  // clic con el mouse en el centro del cuerpo de la fila
+  const fila = page.getByTestId("task-open").filter({ hasText: titulo }).first();
+  await fila.scrollIntoViewIfNeeded();
+  const box = await fila.boundingBox();
+  if (!box) throw new Error("No se pudo medir la fila");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+  await expect(page.getByTestId("card-title-input")).toHaveValue(titulo);
+  expect(page.url()).toContain("abrir=");
+
+  await page.getByTestId("card-title-input").fill(`${titulo} editada`);
+  await page.getByTestId("card-save").click();
+  await expect(page.getByText("Tarea actualizada ✓").first()).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("task-groups").getByText(`${titulo} editada`, { exact: true })).toBeVisible();
+});

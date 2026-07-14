@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { Sidebar, BottomNav } from "@/components/shell/nav";
 import { CaptureFab } from "@/components/shell/capture";
 import { GlobalShortcuts } from "@/components/shell/shortcuts";
 import { PwaSetup } from "@/components/shell/sw-register";
+import { TaskDetailFromUrl } from "@/components/tasks/task-detail";
 import { ToastProvider } from "@/components/ui/toast";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
@@ -24,6 +26,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <CaptureFab projects={projects} />
         <BottomNav />
         <GlobalShortcuts />
+        <Suspense fallback={null}>
+          <TaskDetailFromUrl />
+        </Suspense>
         <PwaSetup />
       </div>
     </ToastProvider>

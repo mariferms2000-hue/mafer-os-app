@@ -60,8 +60,14 @@ test("móvil: calendario legible", async ({ page }) => {
 test("móvil: abrir el detalle de una tarea, editar y guardar sin scroll horizontal", async ({ page }) => {
   await login(page);
   await page.goto("/tareas");
-  await page.getByTestId("task-open").filter({ hasText: "Tarea detalle editada" }).first().click();
+  // toque en el centro del cuerpo de la fila, como con el dedo
+  const fila = page.getByTestId("task-open").filter({ hasText: "Tarea detalle editada" }).first();
+  await fila.scrollIntoViewIfNeeded();
+  const box = await fila.boundingBox();
+  if (!box) throw new Error("No se pudo medir la fila");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page.getByTestId("card-detail")).toBeVisible();
+  expect(page.url()).toContain("abrir=");
 
   // sin scroll horizontal en el detalle
   const overflow = await page.evaluate(

@@ -7,7 +7,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TaskLine, DURATION_LABEL } from "@/components/hoy/task-line";
 import { NewTaskButton } from "@/components/tasks/new-task";
 import { ArchivedLine } from "@/components/tasks/archived-line";
-import { OpenTaskFromQuery } from "@/components/tasks/task-detail";
 import type { CardRow } from "@/lib/queries/today";
 
 export const dynamic = "force-dynamic";
@@ -45,9 +44,9 @@ const KIND_LABEL: Record<string, string> = {
 export default async function TareasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ f?: string; agrupar?: string; q?: string; abrir?: string }>;
+  searchParams: Promise<{ f?: string; agrupar?: string; q?: string }>;
 }) {
-  const { f = "abiertas", agrupar = "proyecto", q = "", abrir = "" } = await searchParams;
+  const { f = "abiertas", agrupar = "proyecto", q = "" } = await searchParams;
 
   const rows = await db
     .select({ card: schema.cards, projectTitle: schema.projects.title, columnKind: schema.columns.kind })
@@ -109,7 +108,6 @@ export default async function TareasPage({
 
   return (
     <div>
-      {abrir && <OpenTaskFromQuery cardId={abrir} />}
       <PageHeader
         icon={CircleCheckBig}
         title="Tareas"
