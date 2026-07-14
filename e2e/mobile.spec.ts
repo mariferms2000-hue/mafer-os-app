@@ -84,6 +84,24 @@ test("móvil: abrir el detalle de una tarea, editar y guardar sin scroll horizon
   await expect(page.getByTestId("card-detail")).toHaveCount(0);
 });
 
+test("móvil: Hoy responde en un vistazo — Haz esto ahora y antiolvido sin scroll horizontal", async ({ page }) => {
+  await login(page);
+  await expect(page.getByTestId("do-now")).toBeVisible();
+  await expect(page.getByTestId("do-now-reasons")).toContainText("Porque");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  const qa = path.join(__dirname, "..", "docs", "qa", "phase-3", "04-movil-hoy.png");
+  fs.mkdirSync(path.dirname(qa), { recursive: true });
+  await page.screenshot({ path: qa, fullPage: false });
+
+  // tocar la recomendación abre su detalle
+  await page.getByTestId("do-now-title").click();
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+  await page.getByTestId("card-cancel").click();
+});
+
 test("móvil: crear con solo título y clasificar con chips al toque", async ({ page }, testInfo) => {
   const titulo = `Llamar farmacia móvil R${testInfo.retry}`;
   await login(page);

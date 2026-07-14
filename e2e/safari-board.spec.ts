@@ -126,6 +126,23 @@ test("safari/webkit: chips de duración y energía en el detalle", async ({ page
   await expect(page.getByTestId("energy-high")).toHaveAttribute("aria-checked", "true");
 });
 
+test("safari/webkit: «Haz esto ahora» y alertas antiolvido funcionan", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+
+  await expect(page.getByTestId("do-now")).toBeVisible();
+  await expect(page.getByTestId("do-now-reasons")).toContainText("Porque");
+  await expect(page.getByTestId("forget-alerts")).toBeVisible();
+
+  // abrir la recomendación lleva al detalle editable
+  await page.getByTestId("do-now-open").click();
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+  await page.getByTestId("card-cancel").click();
+  await expect(page.getByTestId("card-detail")).toHaveCount(0);
+});
+
 test("safari/webkit: clic físico en una fila de Tareas abre el detalle y persiste", async ({ page }, testInfo) => {
   const titulo = `Clic real Safari R${testInfo.retry}`;
 

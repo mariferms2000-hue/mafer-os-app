@@ -1,8 +1,9 @@
 import "server-only";
-import { and, asc, eq, isNull, ne } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, today, schema } from "@/lib/db";
 import { getSetting } from "@/lib/auth";
 import { QUICK_DURATIONS } from "@/lib/estimates";
+import { recommendNow, buildForgetAlerts, type ForgetAlert } from "@/lib/recommend";
 
 export type CardRow = typeof schema.cards.$inferSelect & {
   projectTitle?: string | null;
@@ -79,26 +80,63 @@ export async function getTodayData() {
   const activeProjects = await db
     .select()
     .from(schema.projects)
-    .where(
-      and(
-        eq(schema.projects.archived, false),
-        eq(schema.projects.status, "activo"),
-        ne(schema.projects.nextAction, "")
-      )
-    );
+    .where(and(eq(schema.projects.archived, false), eq(schema.projects.status, "activo")));
+  const projectsWithNext = activeProjects.filter((p) => (p.nextAction ?? "").trim() !== "");
 
   const energy = (await getSetting(`energy:${d}`)) ?? "";
   const userName = (await getSetting("user_name")) ?? "Mafer";
-  const inboxCount = (
-    await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.processed, false))
-  ).length;
+  const inboxPending = await db
+    .select({ id: schema.inboxItems.id, createdAt: schema.inboxItems.createdAt })
+    .from(schema.inboxItems)
+    .where(eq(schema.inboxItems.processed, false));
+  const inboxCount = inboxPending.length;
+
+  // «Haz esto ahora»: hasta 3 candidatas explicadas (la primera es LA recomendación)
+  const priorityIds = priorityRows.map((p) => p.cardId);
+  const recommendations = recommendNow({
+    tasks: open,
+    dayEnergy: energy,
+    priorityIds,
+    today: d,
+    limit: 3,
+  });
+  const openById = new Map(open.map((c) => [c.id, c]));
+  const doNow = recommendations
+    .map((r) => ({ card: openById.get(r.id), reasons: r.reasons }))
+    .filter((r): r is { card: CardRow; reasons: string[] } => Boolean(r.card));
+
+  // Alertas antiolvido: última actividad de cada proyecto = su updatedAt o el de su tarjeta más reciente
+  const allCards = await db
+    .select({ projectId: schema.cards.projectId, updatedAt: schema.cards.updatedAt })
+    .from(schema.cards);
+  const lastCardActivity = new Map<string, string>();
+  for (const c of allCards) {
+    if (!c.projectId) continue;
+    const prev = lastCardActivity.get(c.projectId);
+    if (!prev || c.updatedAt > prev) lastCardActivity.set(c.projectId, c.updatedAt);
+  }
+  const alerts: ForgetAlert[] = buildForgetAlerts({
+    today: d,
+    tasks: open.map((c) => ({ ...c, updatedAt: c.updatedAt })),
+    projects: activeProjects.map((p) => ({
+      id: p.id,
+      title: p.title,
+      nextAction: p.nextAction,
+      lastActivity:
+        (lastCardActivity.get(p.id) ?? "") > p.updatedAt ? lastCardActivity.get(p.id)! : p.updatedAt,
+    })),
+    inbox: inboxPending,
+    priorityIds,
+  });
 
   return {
     date: d,
     userName,
     energy,
+    doNow,
+    alerts,
     priorities,
-    priorityIds: priorityRows.map((p) => p.cardId),
+    priorityIds,
     eventsToday,
     dueToday,
     overdue,
@@ -108,7 +146,7 @@ export async function getTodayData() {
     blocked,
     waiting,
     deferred,
-    nextSteps: activeProjects.map((p) => ({
+    nextSteps: projectsWithNext.map((p) => ({
       projectId: p.id,
       projectTitle: p.title,
       icon: p.icon,

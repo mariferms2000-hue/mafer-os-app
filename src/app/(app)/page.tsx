@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { getTodayData } from "@/lib/queries/today";
 import { Priorities, EnergySelector } from "@/components/hoy/priorities";
+import { DoNow } from "@/components/hoy/do-now";
+import { ForgetAlerts } from "@/components/hoy/forget-alerts";
 import { TaskLine } from "@/components/hoy/task-line";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Sprig } from "@/components/ui/botanical";
@@ -74,6 +76,9 @@ export default async function HoyPage() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-5">
+          {/* Una sola respuesta a «¿qué hago ahora?», explicada */}
+          <DoNow items={data.doNow} />
+
           <Priorities priorities={data.priorities} candidates={data.candidates} />
 
           {/* Reuniones y fechas de hoy */}
@@ -189,6 +194,9 @@ export default async function HoyPage() {
         </div>
 
         <div className="flex flex-col gap-5">
+          {/* Antiolvido: lo que se estaba cayendo por los huecos */}
+          <ForgetAlerts alerts={data.alerts} />
+
           {/* Vencidas y próximas */}
           {(data.overdue.length > 0 || data.approaching.length > 0) && (
             <section aria-labelledby="fechas" className="card p-5">
