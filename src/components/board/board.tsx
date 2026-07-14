@@ -116,6 +116,7 @@ export function Board({ columns, cards }: { columns: BoardColumn[]; cards: Board
     const snapshot = items; // para rollback
     let next: ItemsMap;
     let orderedIds: string[];
+    let fromOrderedIds: string[] | undefined;
 
     if (fromCol === toCol) {
       const list = items[fromCol];
@@ -135,12 +136,13 @@ export function Board({ columns, cards }: { columns: BoardColumn[]; cards: Board
       toList.splice(insertAt, 0, { ...moving, columnId: toCol });
       next = { ...items, [fromCol]: fromList, [toCol]: toList };
       orderedIds = toList.map((c) => c.id);
+      fromOrderedIds = fromList.map((c) => c.id);
     }
 
     setItems(next);
     startTransition(async () => {
       try {
-        await moveCardAction({ cardId, toColumnId: toCol, orderedIds });
+        await moveCardAction({ cardId, toColumnId: toCol, orderedIds, fromOrderedIds });
       } catch (err) {
         if (process.env.NODE_ENV === "development") console.error("[board] moveCardAction falló:", err);
         setItems(snapshot); // rollback visual

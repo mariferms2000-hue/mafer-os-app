@@ -9,25 +9,41 @@ import { useToast } from "@/components/ui/toast";
 export function QuickCaptureBar() {
   const [pending, start] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const busy = useRef(false); // evita duplicados por doble Enter mientras guarda
   const toast = useToast();
 
   function submit(fd: FormData) {
     const content = String(fd.get("content") ?? "").trim();
     if (!content) return; // nunca guardar capturas vacías
+    if (busy.current) return;
+    busy.current = true;
     start(async () => {
-      const result = await captureAction(fd);
-      if (inputRef.current) {
-        inputRef.current.value = "";
-        inputRef.current.focus();
+      try {
+        const result = await captureAction(fd);
+        if (inputRef.current) {
+          inputRef.current.value = "";
+          inputRef.current.focus();
+        }
+        toast.show({
+          message: "Guardado en Inbox",
+          action: result ? { label: "Deshacer", onClick: () => undoCapture(result.id) } : undefined,
+          duration: 6000,
+        });
+      } catch {
+        // el texto sigue en el campo: nada se pierde
+        toast.show({ tone: "warn", message: "No se pudo guardar la captura. Inténtalo de nuevo." });
+      } finally {
+        busy.current = false;
       }
-      toast.show({
-        message: "Guardado en Inbox",
-        action: result
-          ? { label: "Deshacer", onClick: () => deleteInboxItem(result.id) }
-          : undefined,
-        duration: 6000,
-      });
     });
+  }
+
+  async function undoCapture(id: string) {
+    try {
+      await deleteInboxItem(id);
+    } catch {
+      toast.show({ tone: "warn", message: "No se pudo deshacer. La captura sigue en el Inbox." });
+    }
   }
 
   return (
@@ -69,6 +85,7 @@ export function NewCaptureButton() {
 export function NewCapturePanel({ onClose }: { onClose: () => void }) {
   const [more, setMore] = useState(false);
   const [pending, start] = useTransition();
+  const busy = useRef(false);
   const toast = useToast();
 
   return (
@@ -94,16 +111,34 @@ export function NewCapturePanel({ onClose }: { onClose: () => void }) {
           action={(fd) => {
             const content = String(fd.get("content") ?? "").trim();
             if (!content) return;
+            if (busy.current) return;
+            busy.current = true;
             start(async () => {
-              const result = await captureAction(fd);
-              toast.show({
-                message: "Guardado en Inbox",
-                action: result
-                  ? { label: "Deshacer", onClick: () => deleteInboxItem(result.id) }
-                  : undefined,
-                duration: 6000,
-              });
-              onClose();
+              try {
+                const result = await captureAction(fd);
+                toast.show({
+                  message: "Guardado en Inbox",
+                  action: result
+                    ? {
+                        label: "Deshacer",
+                        onClick: async () => {
+                          try {
+                            await deleteInboxItem(result.id);
+                          } catch {
+                            toast.show({ tone: "warn", message: "No se pudo deshacer. La captura sigue en el Inbox." });
+                          }
+                        },
+                      }
+                    : undefined,
+                  duration: 6000,
+                });
+                onClose();
+              } catch {
+                // el panel queda abierto con el texto intacto
+                toast.show({ tone: "warn", message: "No se pudo guardar la captura. Inténtalo de nuevo." });
+              } finally {
+                busy.current = false;
+              }
             });
           }}
           className="flex flex-col gap-4"

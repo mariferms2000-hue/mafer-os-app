@@ -99,6 +99,7 @@ export async function moveCardAction(input: {
   cardId: string;
   toColumnId: string;
   orderedIds: string[]; // ids en la columna destino, en orden final
+  fromOrderedIds?: string[]; // ids restantes en la columna origen (si cambió de columna)
 }) {
   await requireAuth();
   const card = await db.select().from(schema.cards).where(eq(schema.cards.id, input.cardId)).get();
@@ -120,6 +121,11 @@ export async function moveCardAction(input: {
   for (let i = 0; i < input.orderedIds.length; i++) {
     await db.update(schema.cards).set({ position: i }).where(eq(schema.cards.id, input.orderedIds[i]));
   }
+  if (input.fromOrderedIds) {
+    for (let i = 0; i < input.fromOrderedIds.length; i++) {
+      await db.update(schema.cards).set({ position: i }).where(eq(schema.cards.id, input.fromOrderedIds[i]));
+    }
+  }
   revalidateCardViews(card.projectId);
 }
 
@@ -129,6 +135,7 @@ export async function completeCardAction(id: string, complete: boolean) {
   if (!card) return;
 
   let columnId = card.columnId;
+  let position = card.position;
   if (card.boardId) {
     const targetKind = complete ? "terminado" : "proximo";
     const col = await db
@@ -136,11 +143,16 @@ export async function completeCardAction(id: string, complete: boolean) {
       .from(schema.columns)
       .where(and(eq(schema.columns.boardId, card.boardId), eq(schema.columns.kind, targetKind)))
       .get();
-    if (col) columnId = col.id;
+    if (col && col.id !== card.columnId) {
+      columnId = col.id;
+      // al final de la lista destino, sin chocar con posiciones existentes
+      const siblings = await db.select().from(schema.cards).where(eq(schema.cards.columnId, col.id));
+      position = siblings.length;
+    }
   }
   await db
     .update(schema.cards)
-    .set({ completedAt: complete ? now() : null, columnId, updatedAt: now() })
+    .set({ completedAt: complete ? now() : null, columnId, position, updatedAt: now() })
     .where(eq(schema.cards.id, id));
   revalidateCardViews(card.projectId);
 }

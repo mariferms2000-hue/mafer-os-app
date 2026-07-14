@@ -24,11 +24,25 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
 
   function toggle() {
     start(async () => {
-      await completeCardAction(card.id, !done);
+      try {
+        await completeCardAction(card.id, !done);
+      } catch {
+        toast.show({ tone: "warn", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
+        return;
+      }
       if (!done) {
         toast.show({
           message: "Tarea completada ✓",
-          action: { label: "Deshacer", onClick: () => completeCardAction(card.id, false) },
+          action: {
+            label: "Deshacer",
+            onClick: async () => {
+              try {
+                await completeCardAction(card.id, false);
+              } catch {
+                toast.show({ tone: "warn", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
+              }
+            },
+          },
           link: { label: "Ver en terminadas", href: "/tareas?f=terminadas" },
           duration: 8000,
         });

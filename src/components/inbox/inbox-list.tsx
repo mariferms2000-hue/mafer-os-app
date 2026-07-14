@@ -62,8 +62,14 @@ export function InboxList({ items, projects }: { items: Item[]; projects: Projec
 
 function InboxCard({ item, onProcess }: { item: Item; onProcess: () => void }) {
   const [menu, setMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
   const toast = useToast();
+
+  function toggleMenu() {
+    setMenu((m) => !m);
+    setConfirmDelete(false);
+  }
 
   return (
     <li className="card p-4 flex items-start gap-3" data-testid="inbox-item">
@@ -89,7 +95,8 @@ function InboxCard({ item, onProcess }: { item: Item; onProcess: () => void }) {
           type="button"
           aria-label={`Más opciones para «${item.content}»`}
           className="btn btn-ghost !p-2"
-          onClick={() => setMenu((m) => !m)}
+          onClick={toggleMenu}
+          data-testid="inbox-menu"
         >
           <MoreHorizontal size={16} aria-hidden />
         </button>
@@ -108,19 +115,42 @@ function InboxCard({ item, onProcess }: { item: Item; onProcess: () => void }) {
             >
               <Archive size={14} aria-hidden /> Archivar
             </button>
-            <button
-              type="button"
-              disabled={pending}
-              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-blocked hover:bg-blocked-soft"
-              onClick={() =>
-                start(async () => {
-                  await deleteInboxItem(item.id);
-                  toast.show({ tone: "info", message: "Captura eliminada." });
-                })
-              }
-            >
-              <Trash2 size={14} aria-hidden /> Eliminar
-            </button>
+            {confirmDelete ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+                <span className="text-xs text-stone">¿Eliminar?</span>
+                <button
+                  type="button"
+                  disabled={pending}
+                  className="btn btn-danger !py-1 !px-2 text-xs"
+                  data-testid="inbox-delete-confirm"
+                  onClick={() =>
+                    start(async () => {
+                      await deleteInboxItem(item.id);
+                      toast.show({ tone: "info", message: "Captura eliminada." });
+                    })
+                  }
+                >
+                  Sí, eliminar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost !py-1 !px-2 text-xs"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={pending}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-blocked hover:bg-blocked-soft"
+                data-testid="inbox-delete"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 size={14} aria-hidden /> Eliminar
+              </button>
+            )}
           </div>
         )}
       </div>
