@@ -21,7 +21,7 @@ async function login(page: Page) {
 
 test("nueva tarea desde la página Tareas (con opciones avanzadas)", async ({ page }) => {
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill("Tarea creada desde Tareas");
   await page.getByTestId("new-task-more").click();
@@ -39,7 +39,7 @@ test("nueva tarea desde la página Tareas (con opciones avanzadas)", async ({ pa
 
 test("completar muestra toast con Deshacer, y deshacer funciona", async ({ page }) => {
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await expect(page.getByTestId("task-groups").getByText("Tarea creada desde Tareas").first()).toBeVisible();
   await page.getByRole("button", { name: "Completar «Tarea creada desde Tareas»" }).first().click();
 
@@ -49,19 +49,19 @@ test("completar muestra toast con Deshacer, y deshacer funciona", async ({ page 
 
   // aparece en terminadas
   await page.getByRole("link", { name: "Ver en terminadas" }).click();
-  await expect(page).toHaveURL(/f=terminadas/);
+  await expect(page).toHaveURL(/v=terminadas/);
   await expect(page.getByTestId("task-groups").getByText("Tarea creada desde Tareas").first()).toBeVisible();
   await shot(page, "22-terminadas");
 
   // reabrir desde terminadas (equivalente a deshacer en cualquier momento)
   await page.getByRole("button", { name: "Reabrir «Tarea creada desde Tareas»" }).first().click();
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await expect(page.getByTestId("task-groups").getByText("Tarea creada desde Tareas").first()).toBeVisible();
 });
 
 test("deshacer inmediato desde el toast", async ({ page }) => {
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByRole("button", { name: "Completar «Tarea creada desde Tareas»" }).first().click();
   await expect(page.getByText("Tarea completada ✓")).toBeVisible();
   await page.getByRole("button", { name: "Deshacer" }).click();

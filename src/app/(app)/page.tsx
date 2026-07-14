@@ -134,7 +134,7 @@ export default async function HoyPage() {
               <h2 id="rapidas" className="text-lg text-forest-deep flex items-center gap-2">
                 <Timer size={18} className="text-olive" aria-hidden /> Menos de 30 minutos
               </h2>
-              <Link href="/tareas?f=rapidas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+              <Link href="/tareas?v=rapidas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
             </div>
             <p className="text-xs text-stone mb-2">
               {data.energy === "baja"
@@ -238,7 +238,7 @@ export default async function HoyPage() {
               <h2 id="bloqueado" className="text-lg text-forest-deep flex items-center gap-2">
                 <Ban size={18} className="text-blocked" aria-hidden /> Bloqueado
               </h2>
-              <Link href="/tareas?f=bloqueadas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+              <Link href="/tareas?v=bloqueadas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
             </div>
             {data.blocked.length === 0 ? (
               <p className="text-sm text-stone">Nada bloqueado. 🌿</p>
@@ -259,7 +259,7 @@ export default async function HoyPage() {
               <h2 id="esperando" className="text-lg text-forest-deep flex items-center gap-2">
                 <Hourglass size={18} className="text-waiting" aria-hidden /> Esperando
               </h2>
-              <Link href="/tareas?f=esperando" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+              <Link href="/tareas?v=esperando" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
             </div>
             {data.waiting.length === 0 ? (
               <p className="text-sm text-stone">No esperas nada de nadie por ahora.</p>

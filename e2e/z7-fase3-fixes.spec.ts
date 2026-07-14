@@ -23,7 +23,7 @@ async function login(page: Page) {
 }
 
 async function crearTarea(page: Page, titulo: string) {
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(titulo);
   await page.getByTestId("new-task-save").click();
@@ -87,7 +87,7 @@ test("tres espacios llenos: selector de reemplazo, nunca en silencio", async ({ 
   await expect(page.getByText("Añadida a tus prioridades de hoy ✓").first()).toBeVisible();
 
   // la cuarta desde su detalle → los tres están llenos → selector
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("task-open").filter({ hasText: cuarta }).first().click();
   await page.getByTestId("mark-priority").click();
   const dialog = page.getByTestId("priority-replace-dialog");
@@ -103,7 +103,7 @@ test("tres espacios llenos: selector de reemplazo, nunca en silencio", async ({ 
   await expect(page.locator("ol").getByText(tercera, { exact: true })).toHaveCount(0);
 
   // Deshacer del reemplazo restaura la anterior — lo probamos con el flujo inverso explícito
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("task-open").filter({ hasText: tercera }).first().click();
   await page.getByTestId("mark-priority").click();
   await expect(page.getByTestId("priority-replace-dialog")).toBeVisible();
@@ -159,7 +159,7 @@ test("toasts legibles en modo oscuro (éxito e información) y en claro", async 
   await page.getByTestId("theme-dark").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByRole("button", { name: `Completar «${titulo}»` }).first().click();
   const toastOscuro = page.locator('[role="status"]').first();
   await expect(toastOscuro).toBeVisible();
@@ -185,7 +185,7 @@ test("toasts legibles en modo oscuro (éxito e información) y en claro", async 
   await page.goto("/ajustes");
   await page.getByTestId("theme-light").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByRole("button", { name: `Completar «${titulo}»` }).first().click();
   const toastClaro = page.locator('[role="status"]').first();
   const cssClaro = await toastClaro.evaluate((el) => {
@@ -229,6 +229,6 @@ test("panel QA de alertas: los seis escenarios, orden, máximo cinco y limpieza 
   await expect(page.getByText("Datos QA eliminados. Tus datos reales quedaron intactos.").first()).toBeVisible();
   await page.goto("/");
   await expect(page.getByText("QA ALERTA")).toHaveCount(0);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await expect(page.getByTestId("task-groups").getByText(/QA ALERTA/)).toHaveCount(0);
 });

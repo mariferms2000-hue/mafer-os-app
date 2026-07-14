@@ -120,7 +120,7 @@ export default async function CalendarioPage({
       kind: "tarea" as const,
       type: "tarea",
       projectId: c.projectId,
-      href: c.projectId ? `/proyectos/${c.projectId}` : "/tareas?f=confecha",
+      href: c.projectId ? `/proyectos/${c.projectId}` : "/tareas?fecha=vencidas&v=todas",
     })),
   ];
   if (proyecto) occ = occ.filter((o) => o.projectId === proyecto);

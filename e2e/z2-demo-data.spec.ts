@@ -24,7 +24,7 @@ test("datos de demostración: sembrar, contar y eliminar sin tocar lo real", asy
   await expect(page.getByText(/elementos de ejemplo/)).toBeVisible();
 
   // lo real creado en tests anteriores existe antes…
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await expect(page.getByText("Tarea creada desde Tareas")).toBeVisible();
 
   // eliminar ejemplos con confirmación
@@ -39,7 +39,7 @@ test("datos de demostración: sembrar, contar y eliminar sin tocar lo real", asy
   await expect(page.getByText("Aprender Mafer OS")).toHaveCount(0);
 
   // …y lo real sigue intacto después
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await expect(page.getByText("Tarea creada desde Tareas")).toBeVisible();
   await page.goto("/proyectos");
   await expect(page.getByText("Proyecto de prueba E2E")).toBeVisible();

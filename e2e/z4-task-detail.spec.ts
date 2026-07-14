@@ -33,7 +33,7 @@ async function ensureProject(page: Page, title: string) {
 }
 
 async function createTask(page: Page, title: string, opts?: { date?: string }) {
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(title);
   if (opts?.date) {
@@ -111,7 +111,7 @@ test("abrir desde el tablero de un proyecto", async ({ page }, info) => {
 test("asignar una tarea sin proyecto a MACA Medical Journey y verla en su tablero", async ({ page }, info) => {
   const editada = t(info, "Tarea detalle editada");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await openFromList(page, editada);
   await expect(page.getByTestId("project-none")).toHaveAttribute("aria-checked", "true");
 
@@ -129,8 +129,8 @@ test("asignar una tarea sin proyecto a MACA Medical Journey y verla en su tabler
   await expect(page.getByTestId("column-backlog").getByText(editada, { exact: true })).toBeVisible();
   await shot(page, "05-tarea-en-proyecto");
 
-  // en Tareas ya no está en «Sin proyecto», y no se duplicó
-  await page.goto("/tareas");
+  // en Tareas ya no está en «Sin proyecto», y no se duplicó (agrupando por proyecto)
+  await page.goto("/tareas?v=todas&agrupar=proyecto");
   await expect(page.getByTestId("task-groups").getByText(editada, { exact: true })).toHaveCount(1);
   const grupoMaca = page.getByTestId("task-groups").locator("section", { hasText: "MACA Medical Journey" });
   await expect(grupoMaca.getByText(editada, { exact: true })).toBeVisible();
@@ -139,7 +139,7 @@ test("asignar una tarea sin proyecto a MACA Medical Journey y verla en su tabler
 test("cambiar la tarea de MACA a Proyecto Beta conservando sus datos", async ({ page }, info) => {
   const editada = t(info, "Tarea detalle editada");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await openFromList(page, editada);
   await page.getByRole("radio", { name: "Proyecto Beta" }).click();
   await expect(page.getByTestId("state-backlog")).toHaveAttribute("aria-checked", "true");
@@ -157,7 +157,7 @@ test("cambiar la tarea de MACA a Proyecto Beta conservando sus datos", async ({ 
   await expect(page.getByTestId("board").getByText(editada, { exact: true })).toHaveCount(0);
 
   // conservó la descripción
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await openFromList(page, editada);
   await expect(page.getByTestId("card-desc-input")).toHaveValue("Descripción escrita desde el detalle.");
   await page.getByTestId("card-cancel").click();
@@ -166,7 +166,7 @@ test("cambiar la tarea de MACA a Proyecto Beta conservando sus datos", async ({ 
 test("quitar la tarea del proyecto (Sin proyecto)", async ({ page }, info) => {
   const editada = t(info, "Tarea detalle editada");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas&agrupar=proyecto");
   await openFromList(page, editada);
   await page.getByTestId("project-none").click();
   await page.getByTestId("card-save").click();
@@ -202,7 +202,7 @@ test("cambiar el estado (lista) desde el detalle", async ({ page }, info) => {
 test("añadir, editar y quitar la fecha", async ({ page }, info) => {
   const editada = t(info, "Tarea detalle editada");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await openFromList(page, editada);
   await page.getByTestId("card-due-input").fill("2026-08-01");
   await page.getByTestId("card-save").click();
@@ -226,7 +226,7 @@ test("añadir, editar y quitar la fecha", async ({ page }, info) => {
 test("checklist: añadir, marcar, editar y persistir", async ({ page }, info) => {
   const editada = t(info, "Tarea detalle editada");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await openFromList(page, editada);
 
   await page.getByTestId("checklist-add-input").fill("Paso uno");
@@ -265,14 +265,14 @@ test("completar y reabrir desde el detalle", async ({ page }, info) => {
   await expect(page.getByText(/Terminada el \d{4}-\d{2}-\d{2}/)).toBeVisible();
   await page.getByTestId("card-complete").click(); // ahora dice «Reabrir»
   await expect(toast(page, "Tarea reabierta — volvió a Próximo.")).toBeVisible();
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await expect(page.getByTestId("task-groups").getByText(ciclo, { exact: true })).toBeVisible();
 });
 
 test("cancelar descarta los cambios", async ({ page }, info) => {
   const editada = t(info, "Tarea detalle editada");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await openFromList(page, editada);
   await page.getByTestId("card-title-input").fill("Título que no debe guardarse");
   await page.getByTestId("card-cancel").click();
@@ -284,7 +284,7 @@ test("cancelar descarta los cambios", async ({ page }, info) => {
 test("cerrar con cambios sin guardar muestra advertencia (sin alertas nativas)", async ({ page }, info) => {
   const editada = t(info, "Tarea detalle editada");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await openFromList(page, editada);
   await page.getByTestId("card-title-input").fill("Cambio sin guardar");
 
@@ -351,7 +351,7 @@ test("arrastrar una tarjeta no abre el detalle", async ({ page }, info) => {
 test("el círculo de completar no abre el modal", async ({ page }, info) => {
   const ciclo = t(info, "Tarea ciclo completo");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByRole("button", { name: `Completar «${ciclo}»` }).first().click();
   await expect(toast(page, "Tarea completada ✓")).toBeVisible();
   await expect(page.getByTestId("card-detail")).toHaveCount(0);
@@ -399,7 +399,7 @@ test("clic físico en el centro de la fila abre el detalle y la URL lleva ?abrir
 test("menú «⋯» de la fila ofrece Abrir tarea como respaldo", async ({ page }, info) => {
   const editada = t(info, "Tarea detalle editada");
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   const fila = page.locator("li", { has: page.getByTestId("task-open").filter({ hasText: editada }) }).first();
   await fila.getByTestId("task-menu").click();
   await fila.getByTestId("task-menu-open").click();

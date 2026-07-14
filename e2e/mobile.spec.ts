@@ -59,7 +59,7 @@ test("móvil: calendario legible", async ({ page }) => {
 
 test("móvil: abrir el detalle de una tarea, editar y guardar sin scroll horizontal", async ({ page }) => {
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   // toque en el centro del cuerpo de la fila, como con el dedo
   const fila = page.getByTestId("task-open").filter({ hasText: "Tarea detalle editada" }).first();
   await fila.scrollIntoViewIfNeeded();
@@ -102,13 +102,40 @@ test("móvil: Hoy responde en un vistazo — Haz esto ahora y antiolvido sin scr
   await page.getByTestId("card-cancel").click();
 });
 
+test("móvil: Tareas simple — vistas rápidas y Filtrar como bottom sheet", async ({ page }) => {
+  await login(page);
+  await page.goto("/tareas");
+  await expect(page.getByTestId("view-ahora")).toHaveAttribute("aria-pressed", "true");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  const qa = path.join(__dirname, "..", "docs", "qa", "phase-4a-tasks", "05-tareas-iphone.png");
+  fs.mkdirSync(path.dirname(qa), { recursive: true });
+  await page.screenshot({ path: qa, fullPage: false });
+
+  // Filtrar abre como bottom sheet y se puede aplicar con el dedo
+  await page.getByTestId("open-filters").click();
+  await expect(page.getByTestId("filters-panel")).toBeVisible();
+  await page.getByTestId("flt-en").selectOption("low");
+  await page.getByTestId("apply-filters").click();
+  await expect(page).toHaveURL(/en=low/);
+  await expect(page.getByTestId("open-filters")).toContainText("Filtrar (1)");
+  await page.getByTestId("clear-filters-inline").click();
+  await expect(page).not.toHaveURL(/en=/);
+
+  // cambiar de vista con el dedo
+  await page.getByTestId("view-todas").click();
+  await expect(page).toHaveURL(/v=todas/);
+});
+
 test("móvil: toast legible en modo oscuro y prioridad con feedback", async ({ page }) => {
   await login(page);
   await page.goto("/ajustes");
   await page.getByTestId("theme-dark").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByRole("button", { name: /^Completar «/ }).first().click();
   const toast = page.locator('[role="status"]').first();
   await expect(toast).toBeVisible();
@@ -128,7 +155,7 @@ test("móvil: toast legible en modo oscuro y prioridad con feedback", async ({ p
 test("móvil: crear con solo título y clasificar con chips al toque", async ({ page }, testInfo) => {
   const titulo = `Llamar farmacia móvil R${testInfo.retry}`;
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(titulo);
   await page.getByTestId("new-task-save").click();

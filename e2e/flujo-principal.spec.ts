@@ -64,7 +64,7 @@ test("captura al Inbox y conversión a tarea", async ({ page }, testInfo) => {
   await shot(page, "03b-inbox-procesar");
   await page.getByTestId("process-submit").click();
   await expect(pendiente).toHaveCount(0, { timeout: 20_000 });
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await expect(page.getByText(item)).toBeVisible();
 });
 

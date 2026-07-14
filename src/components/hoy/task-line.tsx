@@ -42,7 +42,7 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
               }
             },
           },
-          link: { label: "Ver en terminadas", href: "/tareas?f=terminadas" },
+          link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
           duration: 8000,
         });
       } else {

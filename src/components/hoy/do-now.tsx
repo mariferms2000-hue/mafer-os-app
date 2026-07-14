@@ -54,7 +54,7 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
             }
           },
         },
-        link: { label: "Ver en terminadas", href: "/tareas?f=terminadas" },
+        link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
         duration: 8000,
       });
       setIndex(0); // el servidor recalcula; volvemos a la mejor candidata

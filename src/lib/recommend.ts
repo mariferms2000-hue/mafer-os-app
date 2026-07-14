@@ -163,7 +163,7 @@ export function buildForgetAlerts(input: AlertInputs, limit = 5): ForgetAlert[] 
         vencidas.length === 1
           ? `«${vencidas[0].title}» venció el ${vencidas[0].dueDate}`
           : `${vencidas.length} tareas vencidas esperan una decisión`,
-      href: vencidas.length === 1 ? `/tareas?abrir=${vencidas[0].id}` : "/tareas?f=confecha",
+      href: vencidas.length === 1 ? `/tareas?abrir=${vencidas[0].id}` : "/tareas?fecha=vencidas&v=todas",
     });
   }
 

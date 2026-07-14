@@ -23,7 +23,7 @@ async function login(page: Page) {
 
 /** Crea una tarea solo con título; devuelve tras llegar al paso de clasificación. */
 async function crearHastaClasificar(page: Page, titulo: string) {
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(titulo);
   await page.getByTestId("new-task-save").click();
@@ -151,7 +151,7 @@ test("el detalle ofrece la sugerencia y «Usar sugerencia» la aplica sin guarda
 test("completar y reabrir no pierde duración ni energía", async ({ page }, info) => {
   const titulo = t(info, "Llamar al banco"); // creada antes: ten_to_30 + low
   await login(page);
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByRole("button", { name: `Completar «${titulo}»` }).first().click();
   await expect(page.getByText("Tarea completada ✓").first()).toBeVisible();
   await page.goto("/tareas?f=terminadas");
@@ -159,7 +159,7 @@ test("completar y reabrir no pierde duración ni energía", async ({ page }, inf
   await expect(page.getByTestId("dur-ten_to_30")).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("energy-low")).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("card-complete").click(); // Reabrir
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await abrirDetalle(page, titulo);
   await expect(page.getByTestId("dur-ten_to_30")).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("card-cancel").click();
@@ -181,7 +181,7 @@ test("conversión desde Inbox: clasificación opcional con sugerencia", async ({
   await page.getByTestId("classify-confirm").click();
   await expect(page.getByText("Clasificación guardada ✓")).toBeVisible();
 
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await abrirDetalle(page, texto);
   await expect(page.getByTestId("dur-under_10")).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("energy-low")).toHaveAttribute("aria-checked", "true");
@@ -205,23 +205,35 @@ test("«Menos de 30 minutos» incluye solo under_10 y ten_to_30", async ({ page 
   await expect(page.getByTestId("task-groups").getByText(t(info, "Llamar al banco"), { exact: true })).toBeVisible();
 });
 
-test("filtros avanzados: Sin duración, Sin energía y Sin estimar", async ({ page }, info) => {
+test("filtros: Sin duración, Sin energía (panel Filtrar) y vista Sin clasificar", async ({ page }, info) => {
   const sinNada = t(info, "Comprar pan"); // creada sin estimar
   const conTodo = t(info, "Llamar al banco"); // ten_to_30 + low
   await login(page);
-  await page.goto("/tareas");
-  await page.getByTestId("more-filters").click();
-  await page.getByTestId("filter-sin-duracion").click();
-  await expect(page).toHaveURL(/f=sin-duracion/);
+  await page.goto("/tareas?v=todas");
+
+  // Sin duración, desde el panel Filtrar
+  await page.getByTestId("open-filters").click();
+  await page.getByTestId("flt-dur").selectOption("sin");
+  await page.getByTestId("apply-filters").click();
+  await expect(page).toHaveURL(/dur=sin/);
   await expect(page.getByTestId("task-groups").getByText(sinNada, { exact: true })).toBeVisible();
   await expect(page.getByTestId("task-groups").getByText(conTodo, { exact: true })).toHaveCount(0);
   await shot(page, "03-filtros-avanzados");
 
-  await page.getByTestId("filter-sin-energia").click();
+  // Sin energía (reemplaza al anterior con Limpiar + nuevo filtro)
+  await page.getByTestId("open-filters").click();
+  await page.getByTestId("flt-dur").selectOption("");
+  await page.getByTestId("flt-en").selectOption("sin");
+  await page.getByTestId("apply-filters").click();
+  await expect(page).toHaveURL(/en=sin/);
   await expect(page.getByTestId("task-groups").getByText(sinNada, { exact: true })).toBeVisible();
   await expect(page.getByTestId("task-groups").getByText(conTodo, { exact: true })).toHaveCount(0);
 
-  await page.getByTestId("filter-sin-estimar").click();
+  // Sin estimar: vista dedicada en «Más vistas»
+  await page.getByTestId("clear-filters-inline").click();
+  await page.getByTestId("more-views").click();
+  await page.getByTestId("moreview-sin-clasificar").click();
+  await expect(page).toHaveURL(/v=sin-clasificar/);
   await expect(page.getByTestId("task-groups").getByText(sinNada, { exact: true })).toBeVisible();
   await expect(page.getByTestId("task-groups").getByText(conTodo, { exact: true })).toHaveCount(0);
 });

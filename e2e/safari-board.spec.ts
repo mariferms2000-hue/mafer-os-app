@@ -102,7 +102,7 @@ test("safari/webkit: chips de duración y energía en el detalle", async ({ page
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.waitForURL("/");
 
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(titulo);
   await page.getByTestId("new-task-save").click();
@@ -143,6 +143,31 @@ test("safari/webkit: «Haz esto ahora» y alertas antiolvido funcionan", async (
   await expect(page.getByTestId("card-detail")).toHaveCount(0);
 });
 
+test("safari/webkit: página Tareas simple — vistas, Filtrar y Agrupar", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+
+  await page.goto("/tareas");
+  await expect(page.getByTestId("view-ahora")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("task-groups").locator("section")).toHaveCount(0);
+
+  await page.getByTestId("open-filters").click();
+  await expect(page.getByTestId("filters-panel")).toBeVisible();
+  await page.getByTestId("cancel-filters").click();
+
+  await page.getByTestId("view-todas").click();
+  await expect(page).toHaveURL(/v=todas/);
+  await page.getByTestId("open-group").click();
+  await page.getByTestId("group-proyecto").click();
+  await expect(page).toHaveURL(/agrupar=proyecto/);
+  await expect(page.getByTestId("open-group")).toContainText("Por proyecto");
+  await page.getByTestId("open-group").click();
+  await page.getByTestId("group-ninguno").click();
+  await expect(page).not.toHaveURL(/agrupar=/);
+});
+
 test("safari/webkit: prioridad con feedback y toast legible en modo oscuro", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
@@ -159,7 +184,7 @@ test("safari/webkit: prioridad con feedback y toast legible en modo oscuro", asy
   await page.goto("/ajustes");
   await page.getByTestId("theme-dark").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByRole("button", { name: /^Completar «/ }).first().click();
   const toast = page.locator('[role="status"]').first();
   await expect(toast).toBeVisible();
@@ -182,7 +207,7 @@ test("safari/webkit: clic físico en una fila de Tareas abre el detalle y persis
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.waitForURL("/");
 
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(titulo);
   await page.getByTestId("new-task-save").click();

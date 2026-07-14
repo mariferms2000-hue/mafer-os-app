@@ -28,7 +28,7 @@ async function crearClasificada(
   titulo: string,
   opts?: { date?: string; dur?: string; energy?: string; skip?: boolean }
 ) {
-  await page.goto("/tareas");
+  await page.goto("/tareas?v=todas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(titulo);
   if (opts?.date) {
