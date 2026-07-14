@@ -84,6 +84,36 @@ test("móvil: abrir el detalle de una tarea, editar y guardar sin scroll horizon
   await expect(page.getByTestId("card-detail")).toHaveCount(0);
 });
 
+test("móvil: crear con solo título y clasificar con chips al toque", async ({ page }, testInfo) => {
+  const titulo = `Llamar farmacia móvil R${testInfo.retry}`;
+  await login(page);
+  await page.goto("/tareas");
+  await page.getByTestId("new-task").click();
+  await page.getByTestId("new-task-title").fill(titulo);
+  await page.getByTestId("new-task-save").click();
+
+  // clasificación opcional con sugerencia («llamar» → 10–30, baja)
+  await expect(page.getByTestId("classify-step")).toBeVisible();
+  await expect(page.getByTestId("classify-suggestion")).toContainText("«llamar»");
+  const qa = path.join(__dirname, "..", "docs", "qa", "phase-2", "04-movil-clasificacion.png");
+  fs.mkdirSync(path.dirname(qa), { recursive: true });
+  await page.screenshot({ path: qa, fullPage: false });
+
+  // sin scroll horizontal y chips tocables
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  await page.getByTestId("energy-medium").click(); // corrige la energía con el dedo
+  await page.getByTestId("classify-confirm").click();
+  await expect(page.getByText("Clasificación guardada ✓").first()).toBeVisible();
+
+  await page.getByTestId("task-open").filter({ hasText: titulo }).first().click();
+  await expect(page.getByTestId("dur-ten_to_30")).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("energy-medium")).toHaveAttribute("aria-checked", "true");
+  await page.getByTestId("card-cancel").click();
+});
+
 test("móvil: nueva captura desde el Inbox en segundos", async ({ page }, testInfo) => {
   const texto = `Captura móvil ${testInfo.retry}`;
   await login(page);

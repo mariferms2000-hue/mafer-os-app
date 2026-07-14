@@ -94,6 +94,38 @@ test("safari/webkit: abrir el detalle de una tarjeta, editar y guardar", async (
   await expect(page.getByText(editado, { exact: true })).toBeVisible();
 });
 
+test("safari/webkit: chips de duración y energía en el detalle", async ({ page }, testInfo) => {
+  const titulo = `Chips Safari R${testInfo.retry}`;
+
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+
+  await page.goto("/tareas");
+  await page.getByTestId("new-task").click();
+  await page.getByTestId("new-task-title").fill(titulo);
+  await page.getByTestId("new-task-save").click();
+  // clasificación opcional en WebKit
+  await expect(page.getByTestId("classify-step")).toBeVisible();
+  await page.getByTestId("dur-ten_to_30").click();
+  await page.getByTestId("energy-medium").click();
+  await page.getByTestId("classify-confirm").click();
+  await expect(page.getByText("Clasificación guardada ✓").first()).toBeVisible();
+
+  // editar los chips desde el detalle y persistir tras recargar
+  await page.getByTestId("task-open").filter({ hasText: titulo }).first().click();
+  await expect(page.getByTestId("dur-ten_to_30")).toHaveAttribute("aria-checked", "true");
+  await page.getByTestId("dur-over_60").click();
+  await page.getByTestId("energy-high").click();
+  await page.getByTestId("card-save").click();
+  await expect(page.getByText("Tarea actualizada ✓").first()).toBeVisible();
+  await page.reload();
+  await page.getByTestId("task-open").filter({ hasText: titulo }).first().click();
+  await expect(page.getByTestId("dur-over_60")).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("energy-high")).toHaveAttribute("aria-checked", "true");
+});
+
 test("safari/webkit: clic físico en una fila de Tareas abre el detalle y persiste", async ({ page }, testInfo) => {
   const titulo = `Clic real Safari R${testInfo.retry}`;
 
@@ -106,6 +138,8 @@ test("safari/webkit: clic físico en una fila de Tareas abre el detalle y persis
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(titulo);
   await page.getByTestId("new-task-save").click();
+  await expect(page.getByTestId("classify-step")).toBeVisible();
+  await page.getByTestId("classify-skip").click();
   await expect(page.getByTestId("task-groups").getByText(titulo, { exact: true })).toBeVisible();
 
   // clic con el mouse en el centro del cuerpo de la fila

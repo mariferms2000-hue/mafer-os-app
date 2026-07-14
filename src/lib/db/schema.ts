@@ -57,8 +57,8 @@ export const cards = sqliteTable("cards", {
   position: integer("position").notNull().default(0),
   type: text("type").notNull().default("tarea"), // tarea|idea|pregunta|decision|recurso|aprendizaje|seguimiento
   priority: text("priority").default("media"),
-  duration: text("duration"), // 5m|15m|30m|60m|deep
-  energy: text("energy"), // baja|media|alta
+  duration: text("duration"), // under_10|ten_to_30|thirty_to_60|over_60|null (sin estimar) — ver src/lib/estimates.ts
+  energy: text("energy"), // low|medium|high|null (sin estimar) — energía REQUERIDA por la tarea, no la del día
   dueDate: text("due_date"),
   startTime: text("start_time"), // HH:MM
   reminder: text("reminder"), // none | gcal-timed | gcal-allday

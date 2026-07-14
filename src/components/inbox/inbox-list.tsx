@@ -21,7 +21,7 @@ import {
   archiveInboxItem,
   deleteInboxItem,
 } from "@/lib/actions/inbox";
-import { openTaskUrl } from "@/components/tasks/task-detail";
+import { ClassifyStep } from "@/components/tasks/classify-step";
 import { useToast } from "@/components/ui/toast";
 import type { schema } from "@/lib/db";
 
@@ -42,6 +42,7 @@ const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
 
 export function InboxList({ items, projects }: { items: Item[]; projects: Project[] }) {
   const [openItem, setOpenItem] = useState<Item | null>(null);
+  const [classify, setClassify] = useState<{ cardId: string; title: string } | null>(null);
 
   return (
     <>
@@ -55,8 +56,35 @@ export function InboxList({ items, projects }: { items: Item[]; projects: Projec
           item={openItem}
           projects={projects}
           onClose={() => setOpenItem(null)}
-          onOpenTask={openTaskUrl}
+          onConverted={setClassify}
         />
+      )}
+      {classify && (
+        <div
+          className="fixed inset-0 z-[55] bg-charcoal/30 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
+          onClick={(e) => e.target === e.currentTarget && setClassify(null)}
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Clasificar la tarea"
+            className="card w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg text-forest-deep">Convertida en tarea ✓</h2>
+              <button type="button" onClick={() => setClassify(null)} aria-label="Cerrar" className="btn btn-ghost !p-2">
+                <X size={18} aria-hidden />
+              </button>
+            </div>
+            <ClassifyStep
+              cardId={classify.cardId}
+              title={classify.title}
+              onDone={() => setClassify(null)}
+              showOpenTask
+            />
+          </div>
+        </div>
       )}
     </>
   );
@@ -166,12 +194,12 @@ function ProcessPanel({
   item,
   projects,
   onClose,
-  onOpenTask,
+  onConverted,
 }: {
   item: Item;
   projects: Project[];
   onClose: () => void;
-  onOpenTask: (cardId: string) => void;
+  onConverted: (t: { cardId: string; title: string }) => void;
 }) {
   const [type, setType] = useState<string | null>(item.typeHint || null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -205,11 +233,8 @@ function ProcessPanel({
                 const res = await convertInboxItem(fd);
                 const [tipo, targetId] = res?.convertedTo.split(":") ?? [];
                 if (tipo === "tarea" && targetId) {
-                  toast.show({
-                    message: "Convertida en tarea ✓",
-                    action: { label: "Abrir tarea", onClick: () => onOpenTask(targetId) },
-                    duration: 8000,
-                  });
+                  // clasificación breve y opcional (sugerencia + confirmar / ahora no)
+                  onConverted({ cardId: targetId, title: String(fd.get("content") ?? item.content).trim() || item.content });
                 } else {
                   toast.show({
                     message: `Convertido en ${TYPE_LABEL[type].toLowerCase()} ✓`,
@@ -277,17 +302,6 @@ function ProcessPanel({
               <div>
                 <label className="label" htmlFor="pp-date">Fecha</label>
                 <input id="pp-date" name="date" type="date" className="input" defaultValue={item.date ?? ""} />
-              </div>
-              <div>
-                <label className="label" htmlFor="pp-duration">Duración</label>
-                <select id="pp-duration" name="duration" className="select" defaultValue="">
-                  <option value="">Sin estimar</option>
-                  <option value="5m">5 min</option>
-                  <option value="15m">15 min</option>
-                  <option value="30m">30 min</option>
-                  <option value="60m">1 hora</option>
-                  <option value="deep">Profundo</option>
-                </select>
               </div>
               <div className="col-span-2">
                 <label className="label" htmlFor="pp-next">Siguiente acción</label>

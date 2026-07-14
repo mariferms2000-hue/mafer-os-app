@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, isNull, ne } from "drizzle-orm";
 import { db, today, schema } from "@/lib/db";
 import { getSetting } from "@/lib/auth";
+import { QUICK_DURATIONS } from "@/lib/estimates";
 
 export type CardRow = typeof schema.cards.$inferSelect & {
   projectTitle?: string | null;
@@ -58,12 +59,13 @@ export async function getTodayData() {
   const d7 = in7.toISOString().slice(0, 10);
   const approaching = open.filter((c) => c.dueDate && c.dueDate > d && c.dueDate <= d7);
 
+  // «Menos de 30 minutos»: exclusivamente under_10 y ten_to_30
   const quick = open.filter(
-    (c) => ["5m", "15m", "30m"].includes(c.duration ?? "") && c.columnKind !== "despues"
+    (c) => QUICK_DURATIONS.includes(c.duration ?? "") && c.columnKind !== "despues"
   );
   const deepWork = open.filter(
     (c) =>
-      (c.duration === "deep" || c.duration === "60m" || c.energy === "alta" || c.priority === "alta") &&
+      (c.duration === "over_60" || c.energy === "high" || c.priority === "alta") &&
       c.columnKind !== "despues" &&
       c.columnKind !== "bloqueado" &&
       !c.waitingFor

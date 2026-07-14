@@ -94,14 +94,14 @@ test("añadir tarjeta, editar detalle y completar", async ({ page }) => {
 
   await page.getByTestId("column-proximo").getByText("Primera tarjeta").click();
   await expect(page.getByTestId("card-detail")).toBeVisible();
-  await page.getByLabel("Duración").selectOption("15m");
+  await page.getByTestId("dur-ten_to_30").click();
   await page.getByLabel("Bloqueada por…").fill("");
   await shot(page, "05-detalle-tarjeta");
   await page.getByTestId("card-save").click();
   await expect(page.getByTestId("card-detail")).not.toBeVisible();
 
   // el chip de duración aparece en la tarjeta
-  await expect(page.getByTestId("column-proximo").getByText("15′")).toBeVisible();
+  await expect(page.getByTestId("column-proximo").getByText("10–30′")).toBeVisible();
 
   // completar desde el detalle → pasa a Terminado
   await page.getByTestId("column-proximo").getByText("Primera tarjeta").click();

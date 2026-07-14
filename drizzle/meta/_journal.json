@@ -15,6 +15,13 @@
       "when": 1783766021394,
       "tag": "0001_agents-inventory",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784185200000,
+      "tag": "0002_estimates",
+      "breakpoints": true
     }
   ]
 }

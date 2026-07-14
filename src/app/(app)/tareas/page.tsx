@@ -4,7 +4,8 @@ import { CircleCheckBig, Search } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { TaskLine, DURATION_LABEL } from "@/components/hoy/task-line";
+import { TaskLine } from "@/components/hoy/task-line";
+import { QUICK_DURATIONS, durationLabel, energyLabel } from "@/lib/estimates";
 import { NewTaskButton } from "@/components/tasks/new-task";
 import { ArchivedLine } from "@/components/tasks/archived-line";
 import type { CardRow } from "@/lib/queries/today";
@@ -20,6 +21,13 @@ const FILTROS = [
   { key: "confecha", label: "Con fecha" },
   { key: "terminadas", label: "Terminadas" },
   { key: "archivadas", label: "Archivadas" },
+];
+
+/** Filtros avanzados: no saturan la vista principal, viven en «Más filtros». */
+const FILTROS_AVANZADOS = [
+  { key: "sin-duracion", label: "Sin duración" },
+  { key: "sin-energia", label: "Sin energía" },
+  { key: "sin-estimar", label: "Sin estimar" },
 ];
 
 const GRUPOS = [
@@ -69,7 +77,10 @@ export default async function TareasPage({
 
   const abiertas = (c: CardRow) => !c.completedAt && !c.archived;
   if (f === "abiertas") cards = cards.filter(abiertas);
-  else if (f === "rapidas") cards = cards.filter((c) => abiertas(c) && ["5m", "15m", "30m"].includes(c.duration ?? ""));
+  else if (f === "rapidas") cards = cards.filter((c) => abiertas(c) && QUICK_DURATIONS.includes(c.duration ?? ""));
+  else if (f === "sin-duracion") cards = cards.filter((c) => abiertas(c) && !c.duration);
+  else if (f === "sin-energia") cards = cards.filter((c) => abiertas(c) && !c.energy);
+  else if (f === "sin-estimar") cards = cards.filter((c) => abiertas(c) && !c.duration && !c.energy);
   else if (f === "bloqueadas") cards = cards.filter((c) => abiertas(c) && (c.blockedReason || c.columnKind === "bloqueado"));
   else if (f === "esperando") cards = cards.filter((c) => abiertas(c) && (c.waitingFor || c.columnKind === "esperando"));
   else if (f === "confecha") cards = cards.filter((c) => abiertas(c) && c.dueDate);
@@ -84,9 +95,12 @@ export default async function TareasPage({
   const keyOf = (c: CardRow): string => {
     if (agrupar === "estado") return KIND_LABEL[c.columnKind ?? ""] ?? "Sin lista";
     if (agrupar === "fecha") return c.dueDate ?? "Sin fecha";
-    if (agrupar === "duracion") return c.duration ? DURATION_LABEL[c.duration] ?? c.duration : "Sin estimar";
+    if (agrupar === "duracion") return durationLabel(c.duration) ?? "Sin estimar";
     if (agrupar === "prioridad") return c.priority ? `Prioridad ${c.priority}` : "Sin prioridad";
-    if (agrupar === "energia") return c.energy ? `Energía ${c.energy}` : "Sin energía";
+    if (agrupar === "energia") {
+      const e = energyLabel(c.energy);
+      return e ? `Energía ${e.toLowerCase()}` : "Sin energía";
+    }
     return c.projectTitle ?? "Sin proyecto";
   };
   const grouped = new Map<string, CardRow[]>();
@@ -150,6 +164,26 @@ export default async function TareasPage({
           </Link>
         ))}
       </div>
+
+      {/* Filtros avanzados: pendientes de clasificar, sin saturar la vista principal */}
+      <details className="-mt-3 mb-5" open={FILTROS_AVANZADOS.some((fl) => fl.key === f)}>
+        <summary className="text-xs text-stone cursor-pointer select-none inline-flex items-center gap-1" data-testid="more-filters">
+          Más filtros
+        </summary>
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          <span className="text-xs text-stone-soft">Pendientes de clasificar:</span>
+          {FILTROS_AVANZADOS.map((fl) => (
+            <Link
+              key={fl.key}
+              href={qs({ f: fl.key })}
+              className={`chip transition-colors ${f === fl.key ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+              data-testid={`filter-${fl.key}`}
+            >
+              {fl.label}
+            </Link>
+          ))}
+        </div>
+      </details>
 
       {cards.length === 0 ? (
         <EmptyState

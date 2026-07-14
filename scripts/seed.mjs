@@ -110,11 +110,11 @@ const onboarding = createProject({
   icon: "leaf",
   description: "Este proyecto te enseña el sistema usándolo. Borra lo que ya no necesites.",
 });
-addCard(onboarding, "proximo", "Configurar mi perfil y energía de hoy", { duration: "5m", energy: "baja", description: "En la página Hoy, elige tu energía. En Ajustes puedes cambiar tu nombre." });
-addCard(onboarding, "proximo", "Procesar los ejemplos del Inbox", { duration: "15m", energy: "baja", description: "Ve a Inbox y convierte (o borra) las capturas de ejemplo." });
-addCard(onboarding, "proximo", "Elegir mis 3 prioridades de hoy", { duration: "5m", energy: "baja" });
-addCard(onboarding, "proximo", "Crear mi primera tarea real", { duration: "5m", energy: "media", description: "En cualquier proyecto: botón «Añadir tarjeta»." });
-addCard(onboarding, "proximo", "Instalar Mafer OS en mi iPhone", { duration: "15m", description: "Guía completa en la Biblioteca de manuales del vault: «Instalar en iPhone»." });
+addCard(onboarding, "proximo", "Configurar mi perfil y energía de hoy", { duration: "under_10", energy: "low", description: "En la página Hoy, elige tu energía. En Ajustes puedes cambiar tu nombre." });
+addCard(onboarding, "proximo", "Procesar los ejemplos del Inbox", { duration: "ten_to_30", energy: "low", description: "Ve a Inbox y convierte (o borra) las capturas de ejemplo." });
+addCard(onboarding, "proximo", "Elegir mis 3 prioridades de hoy", { duration: "under_10", energy: "low" });
+addCard(onboarding, "proximo", "Crear mi primera tarea real", { duration: "under_10", energy: "medium", description: "En cualquier proyecto: botón «Añadir tarjeta»." });
+addCard(onboarding, "proximo", "Instalar Mafer OS en mi iPhone", { duration: "ten_to_30", description: "Guía completa en la Biblioteca de manuales del vault: «Instalar en iPhone»." });
 addCard(onboarding, "despues", "Conectar Google Calendar para recordatorios", { description: "Requiere un paso único en Google Cloud. Guía: «Calendario y recordatorios»." });
 addCard(onboarding, "despues", "Abrir mi vault de Obsidian y hacer mi primer respaldo", { description: "Vault: Escritorio → Mafer OS → mafer-os-vault. Respaldo: npm run backup (guía «Respaldos»)." });
 

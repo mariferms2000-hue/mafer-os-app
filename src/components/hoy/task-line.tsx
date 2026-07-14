@@ -5,16 +5,9 @@ import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass, MoreHo
 import Link from "next/link";
 import { completeCardAction } from "@/lib/actions/cards";
 import { openTaskUrl } from "@/components/tasks/task-detail";
+import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
-
-export const DURATION_LABEL: Record<string, string> = {
-  "5m": "5 min",
-  "15m": "15 min",
-  "30m": "30 min",
-  "60m": "1 hora",
-  deep: "Trabajo profundo",
-};
 
 /** Línea de tarea reutilizable: check + título + chips de contexto.
  *  El cuerpo abre el detalle editable (reflejado en la URL con ?abrir=<id>);
@@ -94,14 +87,14 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
               {card.projectTitle}
             </Link>
           )}
-          {card.duration && (
+          {durationLabel(card.duration) && (
             <span className="chip">
-              <Clock size={11} aria-hidden /> {DURATION_LABEL[card.duration] ?? card.duration}
+              <Clock size={11} aria-hidden /> {durationLabel(card.duration)}
             </span>
           )}
-          {card.energy && (
+          {energyLabel(card.energy) && (
             <span className="chip">
-              <Zap size={11} aria-hidden /> Energía {card.energy}
+              <Zap size={11} aria-hidden /> Energía {energyLabel(card.energy)?.toLowerCase()}
             </span>
           )}
           {card.dueDate && (

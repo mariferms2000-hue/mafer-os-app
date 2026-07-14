@@ -5,6 +5,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db, now, today, uid, schema } from "@/lib/db";
 import { requireAuth, setSetting } from "@/lib/auth";
 import { createCardInColumnKind, getOrCreateBoard } from "@/lib/db/helpers";
+import { normalizeDuration, normalizeEnergy } from "@/lib/estimates";
 import { syncCardToGoogle } from "@/lib/google/calendar";
 
 function revalidateCardViews(projectId?: string | null) {
@@ -14,10 +15,10 @@ function revalidateCardViews(projectId?: string | null) {
   if (projectId) revalidatePath(`/proyectos/${projectId}`);
 }
 
-export async function createCardAction(formData: FormData) {
+export async function createCardAction(formData: FormData): Promise<{ id: string } | undefined> {
   await requireAuth();
   const title = String(formData.get("title") ?? "").trim();
-  if (!title) return;
+  if (!title) return undefined;
   const projectId = (formData.get("projectId") as string) || null;
   const cardId = await createCardInColumnKind({
     title,
@@ -26,8 +27,8 @@ export async function createCardAction(formData: FormData) {
     columnKind: (formData.get("columnKind") as string) || "proximo",
     dueDate: (formData.get("dueDate") as string) || null,
     type: (formData.get("type") as string) || "tarea",
-    duration: (formData.get("duration") as string) || null,
-    energy: (formData.get("energy") as string) || null,
+    duration: normalizeDuration(formData.get("duration") as string),
+    energy: normalizeEnergy(formData.get("energy") as string),
     priority: (formData.get("priority") as string) || "media",
   });
   // Campos avanzados opcionales del formulario «Nueva tarea».
@@ -46,6 +47,21 @@ export async function createCardAction(formData: FormData) {
     await db.update(schema.cards).set(extras).where(eq(schema.cards.id, cardId));
   }
   revalidateCardViews(projectId);
+  return { id: cardId };
+}
+
+/** Guarda duración estimada y energía requerida (paso de clasificación).
+ *  Solo se llama cuando Mafer confirma o cambia — las sugerencias nunca se
+ *  guardan solas. null = «sin estimar». */
+export async function setTaskEstimatesAction(id: string, duration: string | null, energy: string | null) {
+  await requireAuth();
+  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  if (!card) return;
+  await db
+    .update(schema.cards)
+    .set({ duration: normalizeDuration(duration), energy: normalizeEnergy(energy), updatedAt: now() })
+    .where(eq(schema.cards.id, id));
+  revalidateCardViews(card.projectId);
 }
 
 /* ── Detalle editable de tarea ───────────────────────── */
@@ -187,8 +203,8 @@ export async function saveTaskAction(formData: FormData) {
       description: str("description"),
       type: str("type"),
       priority: str("priority"),
-      duration: nul("duration"),
-      energy: nul("energy"),
+      duration: formData.has("duration") ? normalizeDuration(String(formData.get("duration"))) : undefined,
+      energy: formData.has("energy") ? normalizeEnergy(String(formData.get("energy"))) : undefined,
       dueDate: nul("dueDate"),
       startTime: nul("startTime"),
       reminder: nul("reminder"),

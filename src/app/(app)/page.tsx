@@ -39,13 +39,14 @@ function saludo() {
 
 export default async function HoyPage() {
   const data = await getTodayData();
-  // La energía del día cambia las sugerencias automáticas (nunca tus 3 prioridades manuales):
-  // baja → solo tareas cortas y ligeras · media → todo lo corto · alta → además trabajo profundo.
+  // La energía del DÍA (baja|media|alta, en settings) cambia las sugerencias automáticas
+  // (nunca tus 3 prioridades manuales). La energía REQUERIDA de cada tarjeta usa
+  // low|medium|high y es independiente: aquí solo se cruzan para ordenar sugerencias.
   const quickFiltered =
     data.energy === "baja"
-      ? data.quick.filter((c) => !c.energy || c.energy === "baja")
+      ? data.quick.filter((c) => !c.energy || c.energy === "low")
       : data.energy === "alta"
-        ? data.quick.filter((c) => c.energy !== "baja").concat(data.quick.filter((c) => c.energy === "baja"))
+        ? data.quick.filter((c) => c.energy !== "low").concat(data.quick.filter((c) => c.energy === "low"))
         : data.quick;
   const showDeepWork = data.energy === "alta" && data.deepWork.length > 0;
 

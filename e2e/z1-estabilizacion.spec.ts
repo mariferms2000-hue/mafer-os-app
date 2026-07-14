@@ -24,11 +24,15 @@ test("nueva tarea desde la página Tareas (con opciones avanzadas)", async ({ pa
   await page.goto("/tareas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill("Tarea creada desde Tareas");
-  await page.getByLabel("Duración estimada").selectOption("deep");
-  await page.getByRole("button", { name: "Más opciones" }).click();
-  await page.getByLabel("Energía necesaria").selectOption("alta");
+  await page.getByTestId("new-task-more").click();
   await page.getByLabel("Etiquetas (separadas por coma)").fill("prueba, estabilización");
   await page.getByTestId("new-task-save").click();
+  // paso 2: clasificación opcional — duración larga y energía alta para el trabajo profundo
+  await expect(page.getByTestId("classify-step")).toBeVisible();
+  await page.getByTestId("dur-over_60").click();
+  await page.getByTestId("energy-high").click();
+  await page.getByTestId("classify-confirm").click();
+  await expect(page.getByText("Clasificación guardada ✓")).toBeVisible();
   await expect(page.getByTestId("task-groups").getByText("Tarea creada desde Tareas")).toBeVisible();
   await shot(page, "20-tareas-pagina");
 });

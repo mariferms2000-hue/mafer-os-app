@@ -1,5 +1,6 @@
 import "server-only";
 import { db, schema, today } from "@/lib/db";
+import { durationLabel, energyLabel } from "@/lib/estimates";
 
 export const SCHEMA_VERSION = 1;
 
@@ -72,7 +73,13 @@ export async function exportAllMarkdown(): Promise<Record<string, string>> {
       md += `### ${col}\n\n`;
       for (const c of list) {
         md += `- [${c.completedAt ? "x" : " "}] ${c.title}`;
-        const meta = [c.dueDate && `📅 ${c.dueDate}`, c.duration, c.blockedReason && `⛔ ${c.blockedReason}`, c.waitingFor && `⏳ ${c.waitingFor}`].filter(Boolean);
+        const meta = [
+          c.dueDate && `📅 ${c.dueDate}`,
+          durationLabel(c.duration) && `⏱ ${durationLabel(c.duration)}`,
+          energyLabel(c.energy) && `⚡ Energía ${energyLabel(c.energy)?.toLowerCase()}`,
+          c.blockedReason && `⛔ ${c.blockedReason}`,
+          c.waitingFor && `⏳ ${c.waitingFor}`,
+        ].filter(Boolean);
         if (meta.length) md += ` (${meta.join(" · ")})`;
         md += "\n";
       }

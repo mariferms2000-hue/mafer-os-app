@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { X, Trash2, Archive, CheckCircle2, Star, Plus, Link2, CalendarX2 } from "lucide-react";
+import { X, Trash2, Archive, CheckCircle2, Star, Plus, Link2, CalendarX2, Sparkles } from "lucide-react";
 import {
   saveTaskAction,
   deleteCardAction,
@@ -15,6 +15,8 @@ import {
   type TaskDetailData,
 } from "@/lib/actions/cards";
 import type { ChecklistItem } from "@/lib/db/schema";
+import { suggestEstimates, normalizeDuration, normalizeEnergy, DURATION_LABEL, ENERGY_LABEL } from "@/lib/estimates";
+import { DurationChips, EnergyChips } from "./estimate-chips";
 import { useToast } from "@/components/ui/toast";
 
 type ColumnOption = { id: string; title: string; kind: string };
@@ -90,6 +92,13 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
 
   const [dueDate, setDueDate] = useState(card.dueDate ?? "");
   const [startTime, setStartTime] = useState(card.startTime ?? "");
+  const [duration, setDuration] = useState<string | null>(normalizeDuration(card.duration));
+  const [energy, setEnergy] = useState<string | null>(normalizeEnergy(card.energy));
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
+  // sugerencia local (reglas por palabras clave); solo se ofrece si falta algo por estimar
+  const suggestion = suggestEstimates(card.title);
+  const showSuggestion =
+    !suggestionDismissed && suggestion !== null && (duration === null || energy === null);
   const [links, setLinks] = useState<{ label: string; url: string }[]>(card.links ?? []);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(card.checklist ?? []);
   const [newItem, setNewItem] = useState("");
@@ -231,6 +240,8 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
           <input type="hidden" name="id" value={card.id} />
           <input type="hidden" name="projectId" value={projectId ?? ""} />
           <input type="hidden" name="columnId" value={columnId ?? ""} />
+          <input type="hidden" name="duration" value={duration ?? ""} />
+          <input type="hidden" name="energy" value={energy ?? ""} />
           <input type="hidden" name="links" value={JSON.stringify(links)} />
 
           <div className="md:grid md:grid-cols-[1fr_252px] md:gap-6 flex flex-col gap-5">
@@ -442,6 +453,63 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                 )}
               </div>
 
+              {/* Sugerencia local: se ofrece, nunca se guarda sola */}
+              {showSuggestion && (
+                <div className="rounded-xl bg-sage-soft/60 border border-sage-soft px-3 py-2 text-sm" data-testid="detail-suggestion">
+                  <p>
+                    <Sparkles size={13} className="inline mr-1 text-olive" aria-hidden />
+                    <span className="chip chip-sage !text-[11px] mr-1.5">Sugerido</span>
+                    Duración <strong>{DURATION_LABEL[suggestion.duration]}</strong> · energía{" "}
+                    <strong>{ENERGY_LABEL[suggestion.energy].toLowerCase()}</strong>
+                    <span className="text-stone"> — porque el título contiene «{suggestion.matched}».</span>
+                  </p>
+                  <div className="flex gap-2 mt-1.5">
+                    <button
+                      type="button"
+                      className="btn btn-secondary !py-1 !px-2.5 text-xs"
+                      data-testid="detail-suggestion-use"
+                      onClick={() => {
+                        if (duration === null) setDuration(suggestion.duration);
+                        if (energy === null) setEnergy(suggestion.energy);
+                        setDirty(true);
+                        setSuggestionDismissed(true);
+                      }}
+                    >
+                      Usar sugerencia
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost !py-1 !px-2.5 text-xs"
+                      data-testid="detail-suggestion-skip"
+                      onClick={() => setSuggestionDismissed(true)}
+                    >
+                      Ahora no
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <p className="label">Duración estimada</p>
+                <DurationChips
+                  value={duration}
+                  onChange={(v) => {
+                    setDirty(true);
+                    setDuration(v);
+                  }}
+                />
+              </div>
+              <div>
+                <p className="label">Energía requerida</p>
+                <EnergyChips
+                  value={energy}
+                  onChange={(v) => {
+                    setDirty(true);
+                    setEnergy(v);
+                  }}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label" htmlFor="cd-priority">Prioridad</label>
@@ -461,26 +529,6 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                     <option value="recurso">Recurso</option>
                     <option value="aprendizaje">Aprendizaje</option>
                     <option value="seguimiento">Seguimiento</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label" htmlFor="cd-duration">Duración</label>
-                  <select id="cd-duration" name="duration" className="select" defaultValue={card.duration ?? ""}>
-                    <option value="">Sin estimar</option>
-                    <option value="5m">5 minutos</option>
-                    <option value="15m">15 minutos</option>
-                    <option value="30m">30 minutos</option>
-                    <option value="60m">1 hora</option>
-                    <option value="deep">Trabajo profundo</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label" htmlFor="cd-energy">Energía</label>
-                  <select id="cd-energy" name="energy" className="select" defaultValue={card.energy ?? ""}>
-                    <option value="">—</option>
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
                   </select>
                 </div>
               </div>

@@ -36,8 +36,14 @@ async function createTask(page: Page, title: string, opts?: { date?: string }) {
   await page.goto("/tareas");
   await page.getByTestId("new-task").click();
   await page.getByTestId("new-task-title").fill(title);
-  if (opts?.date) await page.getByLabel("Fecha (opcional)").fill(opts.date);
+  if (opts?.date) {
+    await page.getByTestId("new-task-more").click();
+    await page.getByLabel("Fecha (opcional)").fill(opts.date);
+  }
   await page.getByTestId("new-task-save").click();
+  // cerrar el paso de clasificación opcional (Fase 2) sin clasificar
+  await expect(page.getByTestId("classify-step")).toBeVisible();
+  await page.getByTestId("classify-skip").click();
   await expect(page.getByTestId("task-groups").getByText(title, { exact: true })).toBeVisible();
 }
 
@@ -422,8 +428,10 @@ test("convertir captura en tarea ofrece abrirla al momento", async ({ page }, in
   await item.getByTestId("inbox-process").click();
   await page.getByTestId("type-tarea").click();
   await page.getByTestId("process-submit").click();
-  await expect(toast(page, "Convertida en tarea ✓")).toBeVisible();
-  await page.getByRole("button", { name: "Abrir tarea" }).click();
+  // tras convertir aparece la clasificación opcional, con acceso directo a la tarea
+  await expect(page.getByTestId("classify-step")).toBeVisible();
+  await expect(page.getByText("Convertida en tarea ✓")).toBeVisible();
+  await page.getByTestId("classify-open-task").click();
   await expect(page.getByTestId("card-detail")).toBeVisible();
   await expect(page.getByTestId("card-title-input")).toHaveValue(texto);
 });

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, now, today, uid, schema } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { createCardInColumnKind, createDefaultBoard } from "@/lib/db/helpers";
+import { normalizeDuration } from "@/lib/estimates";
 
 export async function captureAction(formData: FormData): Promise<{ id: string } | undefined> {
   await requireAuth();
@@ -81,7 +82,7 @@ export async function convertInboxItem(formData: FormData): Promise<{ convertedT
       projectId: str("projectId") || null,
       columnKind: "proximo",
       dueDate: str("date") || item.date,
-      duration: str("duration") || null,
+      duration: normalizeDuration(str("duration")),
     });
     if (str("nextAction")) {
       await db.update(schema.cards).set({ nextAction: str("nextAction") }).where(eq(schema.cards.id, cardId));

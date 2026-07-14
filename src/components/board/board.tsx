@@ -27,6 +27,7 @@ import { Plus, Clock, Ban, Hourglass, CalendarClock, ListChecks } from "lucide-r
 import { moveCardAction, createCardInColumnAction } from "@/lib/actions/cards";
 import { useToast } from "@/components/ui/toast";
 import { openTaskUrl } from "@/components/tasks/task-detail";
+import { durationShort } from "@/lib/estimates";
 import type { ChecklistItem } from "@/lib/db/schema";
 
 export type BoardColumn = { id: string; title: string; kind: string };
@@ -342,8 +343,8 @@ function CardFace({ card }: { card: BoardCard }) {
       {(card.duration || card.dueDate || card.blockedReason || card.waitingFor || checklist.length > 0 || card.priority === "alta") && (
         <div className="flex flex-wrap gap-1 mt-2">
           {card.priority === "alta" && <span className="chip chip-sage">Alta</span>}
-          {card.duration && (
-            <span className="chip"><Clock size={10} aria-hidden />{card.duration === "deep" ? "Profundo" : card.duration.replace("m", "′")}</span>
+          {durationShort(card.duration) && (
+            <span className="chip"><Clock size={10} aria-hidden />{durationShort(card.duration)}</span>
           )}
           {card.dueDate && (
             <span className="chip"><CalendarClock size={10} aria-hidden />{card.dueDate.slice(5)}</span>
