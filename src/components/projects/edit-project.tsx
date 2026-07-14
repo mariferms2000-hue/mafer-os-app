@@ -59,8 +59,9 @@ export function EditProjectButton({ project }: { project: Project }) {
                 <textarea id="ep-objective" name="objective" className="textarea" rows={2} defaultValue={project.objective ?? ""} />
               </div>
               <div>
-                <label className="label" htmlFor="ep-next">Próxima acción concreta</label>
-                <input id="ep-next" name="nextAction" className="input" defaultValue={project.nextAction ?? ""} placeholder="El siguiente paso visible de este proyecto" data-testid="project-next-action" />
+                <label className="label" htmlFor="ep-resume">Contexto para retomar</label>
+                <textarea id="ep-resume" name="resumeNote" className="textarea" rows={2} defaultValue={project.resumeNote ?? ""} placeholder="Notas en tus palabras para retomar sin reconstruir todo" data-testid="project-resume-note" />
+                <p className="text-xs text-stone-soft mt-1">La siguiente acción se gestiona desde la página del proyecto (es una tarea real).</p>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>

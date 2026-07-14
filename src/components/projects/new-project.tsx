@@ -39,6 +39,10 @@ export function NewProjectButton({ autoOpen = false }: { autoOpen?: boolean }) {
                 <label className="label" htmlFor="np-objective">Objetivo (¿cómo se ve terminado?)</label>
                 <textarea id="np-objective" name="objective" className="textarea" rows={2} />
               </div>
+              <div>
+                <label className="label" htmlFor="np-next">Siguiente acción (opcional — se crea como tarea real)</label>
+                <input id="np-next" name="nextActionTitle" className="input" placeholder="El primer paso físico y visible" data-testid="new-project-next" />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label" htmlFor="np-area">Área</label>
@@ -50,17 +54,29 @@ export function NewProjectButton({ autoOpen = false }: { autoOpen?: boolean }) {
                   </select>
                 </div>
                 <div>
+                  <label className="label" htmlFor="np-status">Estado</label>
+                  <select id="np-status" name="status" className="select" defaultValue="activo">
+                    <option value="activo">Activo</option>
+                    <option value="pausado">Pausado</option>
+                    <option value="esperando">Esperando</option>
+                  </select>
+                </div>
+                <div>
                   <label className="label" htmlFor="np-date">Fecha objetivo</label>
                   <input id="np-date" name="targetDate" type="date" className="input" />
                 </div>
+                <div>
+                  <label className="label" htmlFor="np-icon">Ícono</label>
+                  <select id="np-icon" name="icon" className="select">
+                    {PROJECT_ICON_OPTIONS.map((i) => (
+                      <option key={i} value={i}>{i}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div>
-                <label className="label" htmlFor="np-icon">Ícono</label>
-                <select id="np-icon" name="icon" className="select">
-                  {PROJECT_ICON_OPTIONS.map((i) => (
-                    <option key={i} value={i}>{i}</option>
-                  ))}
-                </select>
+                <label className="label" htmlFor="np-resume">Contexto para retomar (opcional)</label>
+                <textarea id="np-resume" name="resumeNote" className="textarea" rows={2} placeholder="Notas en tus palabras para tu yo del futuro" />
               </div>
               <button type="submit" className="btn btn-primary" data-testid="new-project-save">
                 Crear proyecto

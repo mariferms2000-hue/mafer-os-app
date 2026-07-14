@@ -29,7 +29,7 @@ test("safari/webkit: estrés de drag & drop sin crash", async ({ page }) => {
 
   for (let i = 1; i <= 4; i++) {
     const name = `Safari ${i}`;
-    if (await page.getByText(name, { exact: true }).isVisible().catch(() => false)) continue;
+    if (await page.getByTestId("board").getByText(name, { exact: true }).isVisible().catch(() => false)) continue;
     await page.getByTestId("quickadd-backlog").click();
     await page.getByTestId("quickadd-input-backlog").fill(name);
     await page.keyboard.press("Enter");
@@ -39,7 +39,7 @@ test("safari/webkit: estrés de drag & drop sin crash", async ({ page }) => {
   const cols = ["proximo", "proceso", "esperando", "backlog"];
   for (let round = 0; round < 3; round++) {
     for (let i = 1; i <= 4; i++) {
-      const card = page.getByText(`Safari ${i}`, { exact: true }).first();
+      const card = page.getByTestId("board").getByText(`Safari ${i}`, { exact: true }).first();
       const target = page.getByTestId(`column-${cols[(i + round) % cols.length]}`);
       const from = await card.boundingBox();
       const to = await target.boundingBox();
@@ -60,7 +60,7 @@ test("safari/webkit: estrés de drag & drop sin crash", async ({ page }) => {
   // persistencia tras recarga: las 4 tarjetas siguen existiendo
   await page.reload();
   for (let i = 1; i <= 4; i++) {
-    await expect(page.getByText(`Safari ${i}`, { exact: true })).toBeVisible();
+    await expect(page.getByTestId("board").getByText(`Safari ${i}`, { exact: true }).first()).toBeVisible();
   }
   // El registro del service worker sobre http puede fallar en WebKit de pruebas; no es un error de la app.
   const relevantes = pageErrors.filter((e) => !e.includes("sw.js"));
@@ -91,7 +91,7 @@ test("safari/webkit: abrir el detalle de una tarjeta, editar y guardar", async (
   await page.getByTestId("card-save").click();
   await expect(page.getByText("Tarea actualizada ✓").first()).toBeVisible();
   await expect(page.getByTestId("card-detail")).toHaveCount(0);
-  await expect(page.getByText(editado, { exact: true })).toBeVisible();
+  await expect(page.getByTestId("board").getByText(editado, { exact: true })).toBeVisible();
 });
 
 test("safari/webkit: chips de duración y energía en el detalle", async ({ page }, testInfo) => {
@@ -141,6 +141,33 @@ test("safari/webkit: «Haz esto ahora» y alertas antiolvido funcionan", async (
   await expect(page.getByTestId("card-detail")).toBeVisible();
   await page.getByTestId("card-cancel").click();
   await expect(page.getByTestId("card-detail")).toHaveCount(0);
+});
+
+test("safari/webkit: siguiente acción y Retomar proyecto", async ({ page }, testInfo) => {
+  const proyecto = `Proyecto Safari 4B R${testInfo.retry}`;
+  const paso = `Paso Safari 4B R${testInfo.retry}`;
+
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+
+  await page.goto("/proyectos");
+  await page.getByTestId("new-project").first().click();
+  await page.getByTestId("new-project-title").fill(proyecto);
+  await page.getByTestId("new-project-next").fill(paso);
+  await page.getByTestId("new-project-save").click();
+  await page.waitForURL(/\/proyectos\/.+/);
+
+  await expect(page.getByTestId("next-action-title")).toContainText(paso);
+  await page.getByTestId("next-action-change").click();
+  await expect(page.getByTestId("next-action-picker")).toBeVisible();
+  await page.mouse.click(10, 10);
+  await expect(page.getByTestId("next-action-picker")).toHaveCount(0);
+
+  await page.goto(`${page.url().split("?")[0]}?retomar=1`);
+  await expect(page.getByTestId("resume-panel")).toBeVisible();
+  await expect(page.getByTestId("resume-cta")).toContainText("Continuar con:");
 });
 
 test("safari/webkit: página Tareas simple — vistas, Filtrar y Agrupar", async ({ page }) => {

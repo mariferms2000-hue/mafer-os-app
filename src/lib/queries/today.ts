@@ -4,6 +4,7 @@ import { db, today, schema } from "@/lib/db";
 import { getSetting } from "@/lib/auth";
 import { QUICK_DURATIONS } from "@/lib/estimates";
 import { recommendNow, buildForgetAlerts, type ForgetAlert } from "@/lib/recommend";
+import { getProjectsOverview } from "@/lib/queries/projects";
 
 export type CardRow = typeof schema.cards.$inferSelect & {
   projectTitle?: string | null;
@@ -77,11 +78,10 @@ export async function getTodayData() {
   );
   const deferred = open.filter((c) => c.columnKind === "despues" || c.priority === "baja");
 
-  const activeProjects = await db
-    .select()
-    .from(schema.projects)
-    .where(and(eq(schema.projects.archived, false), eq(schema.projects.status, "activo")));
-  const projectsWithNext = activeProjects.filter((p) => (p.nextAction ?? "").trim() !== "");
+  // Resumen de proyectos (la siguiente acción ahora es una tarea real vinculada)
+  const overview = await getProjectsOverview();
+  const proyectosActivos = overview.filter((o) => o.project.status === "activo" && !o.project.archived);
+  const projectsWithNext = proyectosActivos.filter((o) => o.hasNextAction);
 
   const energy = (await getSetting(`energy:${d}`)) ?? "";
   const userName = (await getSetting("user_name")) ?? "Mafer";
@@ -105,25 +105,15 @@ export async function getTodayData() {
     .map((r) => ({ card: openById.get(r.id), reasons: r.reasons }))
     .filter((r): r is { card: CardRow; reasons: string[] } => Boolean(r.card));
 
-  // Alertas antiolvido: última actividad de cada proyecto = su updatedAt o el de su tarjeta más reciente
-  const allCards = await db
-    .select({ projectId: schema.cards.projectId, updatedAt: schema.cards.updatedAt })
-    .from(schema.cards);
-  const lastCardActivity = new Map<string, string>();
-  for (const c of allCards) {
-    if (!c.projectId) continue;
-    const prev = lastCardActivity.get(c.projectId);
-    if (!prev || c.updatedAt > prev) lastCardActivity.set(c.projectId, c.updatedAt);
-  }
+  // Alertas antiolvido: la «siguiente acción» cuenta solo si es una tarea viva o texto heredado
   const alerts: ForgetAlert[] = buildForgetAlerts({
     today: d,
     tasks: open.map((c) => ({ ...c, updatedAt: c.updatedAt })),
-    projects: activeProjects.map((p) => ({
-      id: p.id,
-      title: p.title,
-      nextAction: p.nextAction,
-      lastActivity:
-        (lastCardActivity.get(p.id) ?? "") > p.updatedAt ? lastCardActivity.get(p.id)! : p.updatedAt,
+    projects: proyectosActivos.map((o) => ({
+      id: o.project.id,
+      title: o.project.title,
+      nextAction: o.hasNextAction ? "definida" : "",
+      lastActivity: o.lastActivity,
     })),
     inbox: inboxPending,
     priorityIds,
@@ -146,11 +136,11 @@ export async function getTodayData() {
     blocked,
     waiting,
     deferred,
-    nextSteps: projectsWithNext.map((p) => ({
-      projectId: p.id,
-      projectTitle: p.title,
-      icon: p.icon,
-      nextAction: p.nextAction ?? "",
+    nextSteps: projectsWithNext.map((o) => ({
+      projectId: o.project.id,
+      projectTitle: o.project.title,
+      icon: o.project.icon,
+      nextAction: o.nextActionCard && !o.nextActionCompleted ? o.nextActionCard.title : o.nextActionText,
     })),
     // candidatas a prioridad: abiertas, sin las pospuestas ni las bloqueadas
     candidates: open

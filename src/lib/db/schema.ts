@@ -17,7 +17,9 @@ export const projects = sqliteTable("projects", {
   status: text("status").notNull().default("activo"), // activo | pausado | esperando | terminado | archivado
   priority: text("priority").default("media"), // baja | media | alta
   health: text("health").default("bien"), // bien | atencion | riesgo
-  nextAction: text("next_action").default(""),
+  nextAction: text("next_action").default(""), // texto heredado; si hay tarjeta vinculada, manda la tarjeta
+  nextActionCardId: text("next_action_card_id"), // la siguiente acción como TAREA REAL (sin FK: se valida en código)
+  resumeNote: text("resume_note").default(""), // «Contexto para retomar» editado a mano
   startDate: text("start_date"),
   targetDate: text("target_date"),
   color: text("color").default("sage"),

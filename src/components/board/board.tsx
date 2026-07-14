@@ -69,7 +69,16 @@ type ItemsMap = Record<string, BoardCard[]>;
  * - El movimiento se calcula y aplica únicamente en onDragEnd.
  * - Persistencia con snapshot + rollback + aviso si el guardado falla.
  */
-export function Board({ columns, cards }: { columns: BoardColumn[]; cards: BoardCard[] }) {
+export function Board({
+  columns,
+  cards,
+  nextActionCardId = null,
+}: {
+  columns: BoardColumn[];
+  cards: BoardCard[];
+  /** Tarjeta marcada discretamente como la siguiente acción del proyecto. */
+  nextActionCardId?: string | null;
+}) {
   const [items, setItems] = useState<ItemsMap>({});
   const [active, setActive] = useState<BoardCard | null>(null);
   const [targetCol, setTargetCol] = useState<string | null>(null);
@@ -194,6 +203,7 @@ export function Board({ columns, cards }: { columns: BoardColumn[]; cards: Board
               cards={items[col.id] ?? []}
               highlight={targetCol === col.id}
               activeId={active?.id ?? null}
+              nextActionCardId={nextActionCardId}
               onOpen={(c) => {
                 if (!justDragged.current) openTaskUrl(c.id);
               }}
@@ -218,12 +228,14 @@ function Column({
   highlight,
   activeId,
   onOpen,
+  nextActionCardId,
 }: {
   column: BoardColumn;
   cards: BoardCard[];
   highlight: boolean;
   activeId: string | null;
   onOpen: (c: BoardCard) => void;
+  nextActionCardId: string | null;
 }) {
   const { setNodeRef } = useDroppable({ id: column.id });
   const [adding, setAdding] = useState(false);
@@ -244,7 +256,7 @@ function Column({
       <div ref={setNodeRef} className="flex-1 overflow-y-auto px-2 pb-1 flex flex-col gap-2 min-h-[48px]">
         <SortableContext items={cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           {cards.map((card) => (
-            <SortableCard key={card.id} card={card} dimmed={card.id === activeId} onOpen={onOpen} />
+            <SortableCard key={card.id} card={card} dimmed={card.id === activeId} onOpen={onOpen} isNext={card.id === nextActionCardId} />
           ))}
         </SortableContext>
       </div>
@@ -293,10 +305,12 @@ function SortableCard({
   card,
   dimmed,
   onOpen,
+  isNext,
 }: {
   card: BoardCard;
   dimmed: boolean;
   onOpen: (c: BoardCard) => void;
+  isNext: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
@@ -316,7 +330,7 @@ function SortableCard({
         data-testid={`card-${card.id}`}
         aria-label={`Abrir tarjeta «${card.title}»`}
       >
-        <CardFace card={card} />
+        <CardFace card={card} isNext={isNext} />
       </button>
     </div>
   );
@@ -331,7 +345,7 @@ const TYPE_EMOJI: Record<string, string> = {
   seguimiento: "🤝",
 };
 
-function CardFace({ card }: { card: BoardCard }) {
+function CardFace({ card, isNext = false }: { card: BoardCard; isNext?: boolean }) {
   const checklist = card.checklist ?? [];
   const doneCount = checklist.filter((i) => i.done).length;
   return (
@@ -340,8 +354,9 @@ function CardFace({ card }: { card: BoardCard }) {
         {TYPE_EMOJI[card.type] && <span className="mr-1" aria-hidden>{TYPE_EMOJI[card.type]}</span>}
         {card.title}
       </p>
-      {(card.duration || card.dueDate || card.blockedReason || card.waitingFor || checklist.length > 0 || card.priority === "alta") && (
+      {(isNext || card.duration || card.dueDate || card.blockedReason || card.waitingFor || checklist.length > 0 || card.priority === "alta") && (
         <div className="flex flex-wrap gap-1 mt-2">
+          {isNext && <span className="chip chip-sage" data-testid="board-next-chip">→ Siguiente acción</span>}
           {card.priority === "alta" && <span className="chip chip-sage">Alta</span>}
           {durationShort(card.duration) && (
             <span className="chip"><Clock size={10} aria-hidden />{durationShort(card.duration)}</span>

@@ -1,31 +1,20 @@
 import Link from "next/link";
-import { eq } from "drizzle-orm";
-import { SquareKanban, Ban, ListTodo, ArrowRight, CalendarClock } from "lucide-react";
-import { db, schema } from "@/lib/db";
+import { SquareKanban, Ban, Hourglass, ListTodo, ArrowRight, CalendarClock, CircleAlert } from "lucide-react";
+import { today } from "@/lib/db";
+import { getProjectsOverview, type ProjectOverview } from "@/lib/queries/projects";
+import { humanDate, type ProjectIssueKind } from "@/lib/project-health";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NewProjectButton } from "@/components/projects/new-project";
 import { ProjectIcon } from "@/components/projects/project-icon";
+import { ProjectsFilter } from "@/components/projects/projects-filter";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proyectos" };
 
-const FILTROS = [
-  { key: "activos", label: "Activos" },
-  { key: "pausados", label: "Pausados" },
-  { key: "esperando", label: "Esperando" },
-  { key: "terminados", label: "Terminados" },
-  { key: "archivados", label: "Archivados" },
-  { key: "todos", label: "Todos" },
-];
-
-const AREAS = [
-  { key: "", label: "Todas las áreas" },
-  { key: "personal", label: "Personal" },
-  { key: "profesional", label: "Profesional" },
-  { key: "aprendizaje", label: "Aprendizaje" },
-  { key: "familia", label: "Familia y colaboración" },
-];
+const URGENCIA: ProjectIssueKind[] = ["tarea-vencida", "bloqueado", "esperando-mucho", "sin-accion", "inactivo"];
+const urgencia = (o: ProjectOverview) =>
+  o.issues.length ? URGENCIA.indexOf(o.issues[0].kind) : URGENCIA.length;
 
 export default async function ProyectosPage({
   searchParams,
@@ -33,71 +22,37 @@ export default async function ProyectosPage({
   searchParams: Promise<{ f?: string; area?: string; nuevo?: string }>;
 }) {
   const { f = "activos", area = "", nuevo } = await searchParams;
-  const all = await db.select().from(schema.projects);
-  const allCards = await db
-    .select({
-      id: schema.cards.id,
-      projectId: schema.cards.projectId,
-      blocked: schema.cards.blockedReason,
-      completedAt: schema.cards.completedAt,
-    })
-    .from(schema.cards)
-    .where(eq(schema.cards.archived, false));
+  const d = today();
+  const overview = await getProjectsOverview();
 
-  const counts = new Map<string, { open: number; blocked: number; done: number; total: number }>();
-  for (const c of allCards) {
-    if (!c.projectId) continue;
-    const e = counts.get(c.projectId) ?? { open: 0, blocked: 0, done: 0, total: 0 };
-    e.total++;
-    if (c.completedAt) e.done++;
-    else {
-      e.open++;
-      if (c.blocked) e.blocked++;
-    }
-    counts.set(c.projectId, e);
-  }
+  const activos = overview.filter((o) => o.project.status === "activo" && !o.project.archived);
+  const atencionCount = activos.filter((o) => o.issues.length > 0).length;
 
-  let projects = all;
-  if (f === "activos") projects = all.filter((p) => p.status === "activo" && !p.archived);
-  else if (f === "pausados") projects = all.filter((p) => p.status === "pausado" && !p.archived);
-  else if (f === "esperando") projects = all.filter((p) => p.status === "esperando" && !p.archived);
-  else if (f === "terminados") projects = all.filter((p) => p.status === "terminado" && !p.archived);
-  else if (f === "archivados") projects = all.filter((p) => p.archived);
-  if (area) projects = projects.filter((p) => p.area === area);
+  let list = overview;
+  if (f === "activos") list = activos;
+  else if (f === "atencion") list = activos.filter((o) => o.issues.length > 0).sort((a, b) => urgencia(a) - urgencia(b));
+  else if (f === "pausados") list = overview.filter((o) => o.project.status === "pausado" && !o.project.archived);
+  else if (f === "esperando") list = overview.filter((o) => o.project.status === "esperando" && !o.project.archived);
+  else if (f === "terminados") list = overview.filter((o) => o.project.status === "terminado" && !o.project.archived);
+  else if (f === "archivados") list = overview.filter((o) => o.project.archived);
+  else list = overview.filter((o) => !o.project.archived); // todos
+  if (area) list = list.filter((o) => o.project.area === area);
 
   return (
     <div>
       <PageHeader
         icon={SquareKanban}
         title="Proyectos"
-        intro="Tu portafolio completo: qué está vivo, qué espera y cuál es el siguiente paso de cada cosa."
+        intro="Qué necesita atención, cuál es el siguiente paso y dónde te quedaste — sin reconstruir nada de memoria."
       >
         <NewProjectButton autoOpen={nuevo === "1"} />
       </PageHeader>
 
-      <div className="flex flex-wrap items-center gap-1.5 mb-5">
-        {FILTROS.map((fl) => (
-          <Link
-            key={fl.key}
-            href={`/proyectos?f=${fl.key}${area ? `&area=${area}` : ""}`}
-            className={`chip transition-colors ${f === fl.key ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
-          >
-            {fl.label}
-          </Link>
-        ))}
-        <span className="mx-1 text-sand-deep" aria-hidden>·</span>
-        {AREAS.map((a) => (
-          <Link
-            key={a.key}
-            href={`/proyectos?f=${f}${a.key ? `&area=${a.key}` : ""}`}
-            className={`chip transition-colors ${area === a.key ? "!bg-olive !text-cream !border-olive" : "hover:bg-sand"}`}
-          >
-            {a.label}
-          </Link>
-        ))}
-      </div>
+      <ProjectsFilter f={f} area={area} atencion={atencionCount} />
 
-      {projects.length === 0 ? (
+      {f === "atencion" && list.length === 0 ? (
+        <EmptyState icon={SquareKanban} title="Nada necesita atención 🌿" hint="Todos tus proyectos activos tienen siguiente acción, sin bloqueos ni tareas vencidas." />
+      ) : list.length === 0 ? (
         <EmptyState
           icon={SquareKanban}
           title={f === "activos" ? "Aún no hay proyectos activos" : "Nada con este filtro"}
@@ -107,16 +62,17 @@ export default async function ProyectosPage({
         </EmptyState>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((p) => {
-            const c = counts.get(p.id) ?? { open: 0, blocked: 0, done: 0, total: 0 };
-            const pct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
+          {list.map((o) => {
+            const p = o.project;
+            const alerts = o.issues.slice(0, 2); // máximo dos, la más urgente primero
             return (
               <li key={p.id}>
                 <Link
                   href={`/proyectos/${p.id}`}
-                  className="card p-5 flex flex-col gap-3 hover:shadow-lift transition-shadow h-full"
+                  className="card p-5 flex flex-col gap-2.5 hover:shadow-lift transition-shadow h-full"
                   data-testid={`project-card-${p.id}`}
                 >
+                  {/* 1. Nombre */}
                   <div className="flex items-center gap-3">
                     <ProjectIcon name={p.icon ?? "folder"} className="h-10 w-10" />
                     <div className="min-w-0">
@@ -124,39 +80,70 @@ export default async function ProyectosPage({
                       <p className="text-xs text-stone capitalize">{p.area}</p>
                     </div>
                   </div>
-                  {p.objective && <p className="text-sm text-stone line-clamp-2">{p.objective}</p>}
-                  {p.nextAction && (
+
+                  {/* 2. Siguiente acción concreta */}
+                  {o.nextActionCard && !o.nextActionCompleted ? (
                     <p className="text-sm flex items-start gap-1.5 text-ink-green">
-                      <ArrowRight size={14} className="mt-0.5 shrink-0" aria-hidden />
-                      <span className="line-clamp-2">{p.nextAction}</span>
+                      <ArrowRight size={14} className="mt-0.5 shrink-0 text-olive" aria-hidden />
+                      <span className="line-clamp-2 font-medium">{o.nextActionCard.title}</span>
+                    </p>
+                  ) : o.nextActionText ? (
+                    <p className="text-sm flex items-start gap-1.5 text-ink-green">
+                      <ArrowRight size={14} className="mt-0.5 shrink-0 text-olive" aria-hidden />
+                      <span className="line-clamp-2">{o.nextActionText}</span>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-stone-soft flex items-center gap-1.5" data-testid="card-no-next">
+                      <CircleAlert size={14} aria-hidden /> Falta definir la siguiente acción.
                     </p>
                   )}
-                  {c.total > 0 && (
-                    <div className="mt-auto flex items-center gap-2.5 pt-1">
+
+                  {/* 3-5. Estado, abiertas, bloqueo/espera */}
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`chip ${p.status === "activo" ? "chip-sage" : ""} capitalize`}>{p.status}</span>
+                    <span className="chip"><ListTodo size={11} aria-hidden /> {o.openCount} abiertas</span>
+                    {o.blockedCount > 0 && (
+                      <span className="chip chip-blocked"><Ban size={11} aria-hidden /> {o.blockedCount}</span>
+                    )}
+                    {o.waitingCount > 0 && (
+                      <span className="chip chip-waiting"><Hourglass size={11} aria-hidden /> {o.waitingCount}</span>
+                    )}
+                    {/* 6. Fecha relevante más próxima */}
+                    {o.nextDate && <span className="chip"><CalendarClock size={11} aria-hidden /> {o.nextDate}</span>}
+                  </div>
+
+                  {/* Progreso honesto: tareas, no proyecto */}
+                  {o.totalCount > 0 && (
+                    <div className="flex items-center gap-2.5">
                       <div
                         className="progress-track flex-1"
                         role="progressbar"
-                        aria-valuenow={pct}
+                        aria-valuenow={o.doneCount}
                         aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label={`Avance de ${p.title}`}
+                        aria-valuemax={o.totalCount}
+                        aria-label={`Tareas completadas de ${p.title}`}
                       >
-                        <div className="progress-fill" style={{ width: `${pct}%` }} />
+                        <div className="progress-fill" style={{ width: `${Math.round((o.doneCount / o.totalCount) * 100)}%` }} />
                       </div>
-                      <span className="text-xs text-stone tabular-nums shrink-0">{pct}%</span>
+                      <span className="text-xs text-stone tabular-nums shrink-0" data-testid="task-progress">
+                        {o.doneCount}/{o.totalCount} tareas
+                      </span>
                     </div>
                   )}
-                  <div className={`flex flex-wrap gap-1.5 pt-1 ${c.total > 0 ? "" : "mt-auto"}`}>
-                    <span className={`chip ${p.status === "activo" ? "chip-sage" : ""} capitalize`}>{p.status}</span>
-                    {p.health && p.health !== "bien" && (
-                      <span className={`chip ${p.health === "riesgo" ? "chip-blocked" : "chip-waiting"}`}>
-                        {p.health === "riesgo" ? "En riesgo" : "Atención"}
-                      </span>
+
+                  {/* 7. Última actividad + máx. 2 alertas (la más urgente con más jerarquía) */}
+                  <div className="mt-auto pt-1 flex flex-col gap-1.5">
+                    <p className="text-xs text-stone-soft">Actividad: {humanDate(o.lastActivity, d)}</p>
+                    {alerts.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5" data-testid="card-alerts">
+                        {alerts.map((a, i) => (
+                          <span key={a.kind} className={`chip ${i === 0 ? "chip-blocked" : "chip-waiting"}`}>
+                            <CircleAlert size={11} aria-hidden /> {a.label}
+                          </span>
+                        ))}
+                      </div>
                     )}
-                    <span className="chip"><ListTodo size={11} aria-hidden /> {c.open} abiertas</span>
-                    {c.blocked > 0 && <span className="chip chip-blocked"><Ban size={11} aria-hidden /> {c.blocked}</span>}
-                    {p.targetDate && <span className="chip"><CalendarClock size={11} aria-hidden /> {p.targetDate}</span>}
-                    {p.isStarter && <span className="chip">Ejemplo</span>}
+                    {p.isStarter && <span className="chip self-start">Ejemplo</span>}
                   </div>
                 </Link>
               </li>
@@ -164,7 +151,6 @@ export default async function ProyectosPage({
           })}
         </ul>
       )}
-
     </div>
   );
 }

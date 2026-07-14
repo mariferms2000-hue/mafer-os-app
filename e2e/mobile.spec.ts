@@ -102,6 +102,24 @@ test("móvil: Hoy responde en un vistazo — Haz esto ahora y antiolvido sin scr
   await page.getByTestId("card-cancel").click();
 });
 
+test("móvil: Proyectos legible — tarjeta, siguiente acción y Retomar", async ({ page }) => {
+  await login(page);
+  await page.goto("/proyectos");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+
+  await page.locator("ul.grid > li a").first().click();
+  await page.waitForURL(/\/proyectos\/.+/);
+  await expect(page.getByTestId("next-action-block")).toBeVisible();
+  await page.goto(`${page.url().split("?")[0]}?retomar=1`);
+  await expect(page.getByTestId("resume-panel")).toBeVisible();
+  const qa = path.join(__dirname, "..", "docs", "qa", "phase-4b-projects", "07-proyecto-iphone.png");
+  fs.mkdirSync(path.dirname(qa), { recursive: true });
+  await page.screenshot({ path: qa, fullPage: false });
+});
+
 test("móvil: Tareas simple — vistas rápidas y Filtrar como bottom sheet", async ({ page }) => {
   await login(page);
   await page.goto("/tareas");

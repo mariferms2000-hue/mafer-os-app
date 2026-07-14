@@ -42,10 +42,14 @@ export function QuickViews({ base }: { base: ToolbarState }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    try {
-      const raw = JSON.parse(localStorage.getItem(FAV_KEY) ?? "[]");
-      if (Array.isArray(raw)) setFavs(raw.filter((k) => MORE_VIEWS.some((v) => v.key === k)).slice(0, 2));
-    } catch {}
+    // diferido: localStorage solo existe en el cliente y evitamos renders en cascada
+    const timer = setTimeout(() => {
+      try {
+        const raw = JSON.parse(localStorage.getItem(FAV_KEY) ?? "[]");
+        if (Array.isArray(raw)) setFavs(raw.filter((k) => MORE_VIEWS.some((v) => v.key === k)).slice(0, 2));
+      } catch {}
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
