@@ -245,6 +245,20 @@ export const events = sqliteTable("events", {
   createdAt: text("created_at").notNull(),
 });
 
+/** Sesiones de revisión (diaria/semanal): progreso guardado e historial simple. */
+export const reviews = sqliteTable("reviews", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(), // diaria | semanal
+  date: text("date").notNull(), // YYYY-MM-DD de inicio
+  startedAt: text("started_at").notNull(),
+  finishedAt: text("finished_at"), // null = en curso / incompleta
+  completed: integer("completed", { mode: "boolean" }).default(false),
+  step: integer("step").notNull().default(1),
+  processed: integer("processed").notNull().default(0),
+  summary: text("summary").default(""),
+  meta: text("meta", { mode: "json" }).$type<{ inboxStart?: number }>().default({}),
+});
+
 export const recentViews = sqliteTable("recent_views", {
   id: text("id").primaryKey(), // `${type}:${entityId}`
   entityType: text("entity_type").notNull(),

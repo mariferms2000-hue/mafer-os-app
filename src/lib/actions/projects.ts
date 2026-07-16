@@ -125,6 +125,13 @@ export async function updateProjectAction(formData: FormData) {
   revalidatePath("/");
 }
 
+/** Cambio rápido de estado (revisión semanal: pausar / mantener activo). */
+export async function setProjectStatusAction(id: string, status: string) {
+  await requireAuth();
+  await db.update(schema.projects).set({ status, updatedAt: now() }).where(eq(schema.projects.id, id));
+  revalidateProject(id);
+}
+
 export async function archiveProjectAction(id: string, archived: boolean) {
   await requireAuth();
   await db

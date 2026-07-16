@@ -337,6 +337,34 @@ export async function completeCardAction(
   return { freedPriorityAt };
 }
 
+/** Reprograma la fecha límite (o la quita con null). */
+export async function rescheduleCardAction(id: string, dueDate: string | null) {
+  await requireAuth();
+  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  if (!card) return;
+  await db.update(schema.cards).set({ dueDate, updatedAt: now() }).where(eq(schema.cards.id, id));
+  revalidateCardViews(card.projectId);
+}
+
+/** Mueve la tarjeta a la lista de su tablero con ese kind (p. ej. «despues»). */
+export async function moveCardToKindAction(id: string, kind: string) {
+  await requireAuth();
+  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  if (!card?.boardId) return;
+  const col = await db
+    .select()
+    .from(schema.columns)
+    .where(and(eq(schema.columns.boardId, card.boardId), eq(schema.columns.kind, kind)))
+    .get();
+  if (!col || col.id === card.columnId) return;
+  const siblings = await db.select({ id: schema.cards.id }).from(schema.cards).where(eq(schema.cards.columnId, col.id));
+  await db
+    .update(schema.cards)
+    .set({ columnId: col.id, position: siblings.length, updatedAt: now() })
+    .where(eq(schema.cards.id, id));
+  revalidateCardViews(card.projectId);
+}
+
 export async function archiveCardAction(id: string, archived: boolean) {
   await requireAuth();
   const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();

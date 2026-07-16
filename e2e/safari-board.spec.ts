@@ -170,6 +170,23 @@ test("safari/webkit: siguiente acción y Retomar proyecto", async ({ page }, tes
   await expect(page.getByTestId("resume-cta")).toContainText("Continuar con:");
 });
 
+test("safari/webkit: revisión diaria — empezar, avanzar y salir guardando", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+
+  await page.goto("/revisiones");
+  await expect(page.getByTestId("center-diaria")).toBeVisible();
+  await page.getByTestId("center-diaria").getByTestId("start-diaria").click();
+  await expect(page.getByTestId("review-step-label")).toContainText("Paso 1 de 5");
+  await page.getByTestId("review-next").click();
+  await expect(page.getByTestId("review-step-label")).toContainText("Paso 2 de 5");
+  await page.getByTestId("review-exit").click();
+  await page.waitForURL("/");
+  await expect(page.getByTestId("review-nudge").getByTestId("nudge-cta")).toContainText("Continuar");
+});
+
 test("safari/webkit: página Tareas simple — vistas, Filtrar y Agrupar", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);

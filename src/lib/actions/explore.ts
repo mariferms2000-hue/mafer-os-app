@@ -72,6 +72,22 @@ export async function graduateIdeaAction(id: string, target: "proyecto" | "learn
   redirect(dest);
 }
 
+/** «Mantener incubando»: marca la idea como revisada hoy (bump de updatedAt). */
+export async function touchIdeaAction(id: string) {
+  await requireAuth();
+  await db.update(schema.ideas).set({ updatedAt: now() }).where(eq(schema.ideas.id, id));
+  revalidatePath("/explorar");
+  revalidatePath("/revisiones/semanal");
+}
+
+/** Cambio rápido de estado de un tema Learn Fast (revisión semanal). */
+export async function setLearningStatusAction(id: string, status: string) {
+  await requireAuth();
+  await db.update(schema.learningTopics).set({ status, updatedAt: now() }).where(eq(schema.learningTopics.id, id));
+  revalidatePath("/explorar/learn-fast");
+  revalidatePath("/revisiones/semanal");
+}
+
 export async function deleteIdeaAction(id: string) {
   await requireAuth();
   await db.delete(schema.ideas).where(eq(schema.ideas.id, id));

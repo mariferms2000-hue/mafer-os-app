@@ -102,6 +102,26 @@ test("móvil: Hoy responde en un vistazo — Haz esto ahora y antiolvido sin scr
   await page.getByTestId("card-cancel").click();
 });
 
+test("móvil: continuar la revisión desde Hoy con el dedo", async ({ page }) => {
+  await login(page);
+  const nudge = page.getByTestId("review-nudge");
+  await expect(nudge).toBeVisible();
+  await expect(nudge.getByTestId("nudge-cta")).toContainText("Continuar"); // la dejó abierta la prueba de Safari
+  await nudge.getByTestId("nudge-cta").click();
+  await expect(page.getByTestId("review-step-label")).toContainText("Paso 2 de 5");
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  const qa = path.join(__dirname, "..", "docs", "qa", "phase-5a-reviews", "09-movil.png");
+  fs.mkdirSync(path.dirname(qa), { recursive: true });
+  await page.screenshot({ path: qa, fullPage: false });
+  // dar por terminada para dejar todo limpio
+  await page.goto("/revisiones");
+  await page.getByTestId("finish-early-diaria").click();
+  await expect(page.getByText("Tu revisión quedó guardada.").first()).toBeVisible();
+});
+
 test("móvil: Proyectos legible — tarjeta, siguiente acción y Retomar", async ({ page }) => {
   await login(page);
   await page.goto("/proyectos");

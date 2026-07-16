@@ -15,6 +15,7 @@ import { getTodayData } from "@/lib/queries/today";
 import { Priorities, EnergySelector } from "@/components/hoy/priorities";
 import { DoNow } from "@/components/hoy/do-now";
 import { ForgetAlerts } from "@/components/hoy/forget-alerts";
+import { ReviewNudge } from "@/components/hoy/review-nudge";
 import { TaskLine } from "@/components/hoy/task-line";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Sprig } from "@/components/ui/botanical";
@@ -194,6 +195,9 @@ export default async function HoyPage() {
         </div>
 
         <div className="flex flex-col gap-5">
+          {/* Revisiones: acceso compacto con un solo aviso */}
+          <ReviewNudge />
+
           {/* Antiolvido: lo que se estaba cayendo por los huecos */}
           <ForgetAlerts alerts={data.alerts} />
 

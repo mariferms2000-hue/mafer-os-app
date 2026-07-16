@@ -16,6 +16,7 @@ import { PasswordForm } from "@/components/settings/password-form";
 import { disconnectGoogleAction } from "@/lib/actions/google";
 import { ThemeSelector } from "@/components/shell/theme";
 import { BackupButtons, DemoDataControls } from "@/components/settings/maintenance";
+import { WeeklyReviewDay } from "@/components/settings/weekly-review-day";
 import { AlertQaPanel } from "@/components/settings/alert-qa";
 import { getDemoCounts, qaToolsEnabled, alertQaCount } from "@/lib/actions/maintenance";
 
@@ -40,6 +41,7 @@ export default async function AjustesPage() {
   const demoCounts = await getDemoCounts();
   const qaTools = await qaToolsEnabled();
   const qaCount = qaTools ? await alertQaCount() : 0;
+  const weeklyDay = (await getSetting("review:weekly-day")) || "";
   const lastBackup = (await getSetting("last_backup_at")) || null;
   const lastSync = (await getSetting("last_obsidian_sync_at")) || null;
 
@@ -59,6 +61,12 @@ export default async function AjustesPage() {
         </form>
         <h3 className="text-sm font-semibold text-ink-green mb-2">Cambiar contraseña</h3>
         <PasswordForm />
+      </section>
+
+      {/* Revisiones */}
+      <section className="card p-5 mb-5">
+        <h2 className="text-lg text-forest-deep mb-2">Revisiones</h2>
+        <WeeklyReviewDay current={weeklyDay} />
       </section>
 
       {/* Apariencia */}
