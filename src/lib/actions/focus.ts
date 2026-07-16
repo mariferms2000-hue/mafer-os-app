@@ -168,6 +168,53 @@ export async function focusTransitionAction(
   };
 }
 
+/** Lectura para el overlay (7C): estado completo en una llamada. */
+export async function getFocusOverviewAction() {
+  await requireAuth();
+  const { getFocusOverview } = await import("@/lib/queries/focus");
+  return getFocusOverview();
+}
+
+/** Recuperación explícita al abrir el overlay: si el tiempo transcurrió con el
+ *  navegador cerrado, persiste el estado honesto (sin aplicar ninguna acción).
+ *  No cambia nada si la sesión sigue vigente. */
+export async function recoverFocusAction(
+  id: string
+): Promise<{ phase: string; finished: boolean; outcome?: string; creditedMinutes?: number; plantCompleted?: boolean }> {
+  await requireAuth();
+  const row = await db.select().from(schema.focusSessions).where(eq(schema.focusSessions.id, id)).get();
+  if (!row) throw new Error("Sesión no encontrada.");
+  if (row.finishedAt) return { phase: row.phase, finished: true, outcome: row.outcome ?? undefined };
+
+  const nowIso = now();
+  const result = recover(toState(row), nowIso);
+  let plantCompleted = false;
+  if (result.finished) {
+    plantCompleted = (await creditPlant(result.finished.creditedMinutes)).plantCompleted;
+  }
+  const s = result.state;
+  await db
+    .update(schema.focusSessions)
+    .set({
+      phase: s.phase,
+      phaseStartedAt: s.phaseStartedAt,
+      elapsedFocusSeconds: s.elapsedFocusSeconds,
+      elapsedBreakSeconds: s.elapsedBreakSeconds,
+      ...(result.finished
+        ? { finishedAt: nowIso, outcome: result.finished.outcome, creditedMinutes: result.finished.creditedMinutes }
+        : {}),
+    })
+    .where(eq(schema.focusSessions.id, id));
+  if (result.finished) revalidateFocus();
+  return {
+    phase: s.phase,
+    finished: Boolean(result.finished),
+    outcome: result.finished?.outcome,
+    creditedMinutes: result.finished?.creditedMinutes,
+    plantCompleted,
+  };
+}
+
 /** Descarta la sesión abierta (recuperación tras un cierre raro). Queda
  *  registrada con outcome «descartada» y 0 minutos abonados — nada desaparece
  *  sin registro, pero el jardín solo crece con enfoque confirmado. */

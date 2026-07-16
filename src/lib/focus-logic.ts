@@ -241,6 +241,14 @@ export function transition(s: FocusState, action: FocusAction, nowIso: string): 
   throw new Error(`Acción «${action}» inválida en fase «${s.phase}»`);
 }
 
+/** Formatea segundos como reloj m:ss / mm:ss (presentación del contador). */
+export function formatClock(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${String(r).padStart(2, "0")}`;
+}
+
 /** Recuperación al reabrir (refresh, Safari cerrado, pestaña congelada):
  *  reconstruye el estado honesto desde los timestamps. Nunca acredita más
  *  tiempo del planeado. Las fases pausadas se conservan tal cual — pausar

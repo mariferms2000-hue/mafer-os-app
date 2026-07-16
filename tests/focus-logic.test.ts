@@ -16,6 +16,7 @@ import {
   focusRemainingSeconds,
   breakRemainingSeconds,
   creditedMinutes,
+  formatClock,
   type FocusState,
 } from "../src/lib/focus-logic";
 
@@ -233,6 +234,21 @@ describe("crecimiento de la planta", () => {
   it("los minutos negativos o fraccionales no corrompen la planta", () => {
     expect(applyMinutesToPlant(50, -10).accumulated).toBe(50);
     expect(applyMinutesToPlant(50, 9.9).accumulated).toBe(59);
+  });
+});
+
+describe("formatClock (presentación del contador)", () => {
+  it("formatea m:ss con cero a la izquierda en segundos", () => {
+    expect(formatClock(0)).toBe("0:00");
+    expect(formatClock(59)).toBe("0:59");
+    expect(formatClock(60)).toBe("1:00");
+    expect(formatClock(25 * 60)).toBe("25:00");
+    expect(formatClock(90 * 60)).toBe("90:00");
+    expect(formatClock(754)).toBe("12:34");
+  });
+
+  it("nunca muestra tiempo negativo", () => {
+    expect(formatClock(-30)).toBe("0:00");
   });
 });
 

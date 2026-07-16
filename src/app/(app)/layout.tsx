@@ -4,6 +4,7 @@ import { CaptureFab } from "@/components/shell/capture";
 import { GlobalShortcuts } from "@/components/shell/shortcuts";
 import { PwaSetup } from "@/components/shell/sw-register";
 import { TaskDetailFromUrl } from "@/components/tasks/task-detail";
+import { FocusOverlayFromUrl } from "@/components/focus/focus-overlay";
 import { ToastProvider } from "@/components/ui/toast";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
@@ -28,6 +29,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <GlobalShortcuts />
         <Suspense fallback={null}>
           <TaskDetailFromUrl />
+        </Suspense>
+        <Suspense fallback={null}>
+          <FocusOverlayFromUrl />
         </Suspense>
         <PwaSetup />
       </div>
