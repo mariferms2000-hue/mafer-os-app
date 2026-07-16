@@ -1,22 +1,23 @@
 @import "tailwindcss";
 
 /* ─── Mafer OS · tokens de diseño ───────────────────────────────
-   Paleta cálida y orgánica: crema, arena, salvia, oliva, bosque.
-   Los verdes "ink" están verificados para contraste AA sobre crema. */
+   Paleta cálida y orgánica: marfil, arena, salvia, oliva, bosque.
+   Fase 6C: marfil limpio menos amarillo, tarjetas casi blancas y
+   separación por hairlines visibles — los verdes "ink" verificados AA. */
 @theme {
-  --color-cream: #faf7f1;
-  --color-paper: #fdfcf8;
-  --color-beige: #f1eadd;
-  --color-sand: #e5dac6;
-  --color-sand-deep: #d4c5a9;
+  --color-cream: #f7f4ee;
+  --color-paper: #fffefb;
+  --color-beige: #f0ebe0;
+  --color-sand: #ddd4c1;
+  --color-sand-deep: #c5bba4;
   --color-sage-soft: #dde5d6;
   --color-sage: #a9bca0;
   --color-sage-deep: #7c9473;
   --color-olive: #6d7a54;
   --color-forest: #45573f;
   --color-forest-deep: #324230;
-  --color-stone: #7c766a;
-  --color-stone-soft: #a39d90;
+  --color-stone: #6e675a;
+  --color-stone-soft: #97907e;
   --color-charcoal: #2e2b25;
   --color-ink-green: #4a5c42;
 
@@ -34,19 +35,19 @@
   --radius-soft: 14px;
   --radius-card: 20px;
 
-  --shadow-soft: 0 1px 2px rgb(46 43 37 / 0.03), 0 6px 20px rgb(46 43 37 / 0.04);
-  --shadow-lift: 0 2px 6px rgb(46 43 37 / 0.07), 0 12px 32px rgb(46 43 37 / 0.09);
+  --shadow-soft: 0 1px 2px rgb(46 43 37 / 0.04), 0 8px 22px rgb(46 43 37 / 0.06);
+  --shadow-lift: 0 2px 8px rgb(46 43 37 / 0.08), 0 14px 36px rgb(46 43 37 / 0.10);
 
-  --color-card-border: #ece3d3;
+  --color-card-border: #e5ddcb;
 
-  /* ── Capa semántica (Fase 6A) — claro conserva la apariencia actual ── */
-  --color-sidebar: #f8f4ec;            /* fondo de la navegación lateral */
-  --color-raised: #fdfcf8;             /* superficie nivel 3 (modales, foco) */
-  --color-surface-hover: #f1eadd;      /* hover de superficies interactivas */
-  --color-input-bg: #fdfcf8;           /* campos de texto */
-  --color-code-bg: #f1eadd;            /* bloques de comando/código */
-  --color-overlay: rgb(46 43 37 / 0.30);
-  --color-border-strong: #d4c5a9;
+  /* ── Capa semántica (6A) · valores claros refinados en 6C ── */
+  --color-sidebar: #f1ede3;            /* fondo de la navegación lateral */
+  --color-raised: #fffefc;             /* superficie nivel 3 (modales, foco) */
+  --color-surface-hover: #f0ebe0;      /* hover de superficies interactivas */
+  --color-input-bg: #fffefb;           /* campos de texto */
+  --color-code-bg: #f0efe8;            /* superficie técnica: marfil-gris frío */
+  --color-overlay: rgb(46 43 37 / 0.32);
+  --color-border-strong: #c5bba4;
   --color-border-focus: #7c9473;
   --color-link: #45573f;
   --color-btn-primary-bg: #45573f;
@@ -54,11 +55,16 @@
   --color-btn-primary-hover: #324230;
   --color-chip-on-bg: #45573f;         /* chip/filtro activo */
   --color-chip-on-fg: #faf7f1;
-  --color-chip-on-alt-bg: #6d7a54;
+  --color-chip-on-alt-bg: #5d6a45;
   --color-chip-on-alt-fg: #faf7f1;
   --color-selection-bg: #a9bca0;
   --color-selection-fg: #324230;
-  --shadow-glow: var(--shadow-lift);   /* en claro no hay glow: misma sombra */
+  /* Marco vivo en claro: anillo salvia nítido + segundo anillo + halo sutil */
+  --shadow-glow:
+    0 0 0 1.5px rgb(124 148 115 / 0.65),
+    0 0 0 4px rgb(124 148 115 / 0.12),
+    0 0 24px rgb(124 148 115 / 0.20),
+    0 10px 30px rgb(69 87 63 / 0.12);
 
   /* Toasts: superficie propia con tokens por tono (nunca colores sueltos) */
   --color-toast-bg: #2e2b25;
@@ -365,6 +371,8 @@ input[type="date"], input[type="time"] {
   letter-spacing: 0.04em;
 }
 
+/* Chips: metadatos como texto tenue con hairline (dieta 6B/6C, ambos temas);
+   los chips de estado conservan su tinte suave. */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -373,8 +381,8 @@ input[type="date"], input[type="time"] {
   padding: 0.15rem 0.6rem;
   font-size: 0.72rem;
   font-weight: 500;
-  background: var(--color-beige);
-  color: var(--color-ink-green);
+  background: transparent;
+  color: var(--color-stone);
   border: 1px solid var(--color-sand);
   white-space: nowrap;
 }

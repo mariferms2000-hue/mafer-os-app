@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "El sistema operativo personal de Mafer",
     start_url: "/",
     display: "standalone",
-    background_color: "#faf7f1",
-    theme_color: "#faf7f1",
+    background_color: "#f7f4ee",
+    theme_color: "#f7f4ee",
     lang: "es",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

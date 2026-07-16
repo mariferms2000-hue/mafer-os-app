@@ -10,7 +10,7 @@ export default function GlobalError({
 }) {
   return (
     <html lang="es">
-      <body style={{ fontFamily: "system-ui", background: "#faf7f1", color: "#2e2b25", display: "grid", placeItems: "center", minHeight: "100dvh", margin: 0, textAlign: "center", padding: 24 }}>
+      <body style={{ fontFamily: "system-ui", background: "#f7f4ee", color: "#2e2b25", display: "grid", placeItems: "center", minHeight: "100dvh", margin: 0, textAlign: "center", padding: 24 }}>
         <div>
           <h1 style={{ color: "#324230" }}>🌿 Algo salió mal</h1>
           <p style={{ color: "#7c766a", maxWidth: "38ch" }}>

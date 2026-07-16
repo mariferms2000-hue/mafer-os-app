@@ -7,9 +7,8 @@ import path from "node:path";
  *
  *  Umbrales: texto principal ≥ 7 (AAA), secundario ≥ 4.5 (AA), tenue ≥ 3,
  *  pares de acción (botón primario, chip activo, toast) ≥ 4.5.
- *  Nota: en modo claro `stone` (4.4) y el chip alterno oliva (4.2) conservan la
- *  apariencia aprobada — su refinamiento es parte de la Fase 6B; aquí se fija
- *  un piso para que no empeoren. En oscuro todo cumple AA/AAA estrictos.
+ *  Fase 6C: el modo claro alcanzó los mismos pisos AA que el oscuro
+ *  (stone, stone-soft y el chip alterno oliva ya cumplen estrictos).
  */
 
 const css = readFileSync(path.join(process.cwd(), "src/app/globals.css"), "utf8");
@@ -67,16 +66,16 @@ const PAIRS: [string, string, number, number][] = [
   ["--color-charcoal", "--color-cream", 7, 7],
   ["--color-charcoal", "--color-paper", 7, 7],
   ["--color-charcoal", "--color-raised", 7, 7],
-  ["--color-stone", "--color-paper", 4.2, 4.5],
-  ["--color-stone", "--color-raised", 4.2, 4.5],
-  ["--color-stone-soft", "--color-paper", 2.5, 3],
+  ["--color-stone", "--color-paper", 4.5, 4.5],
+  ["--color-stone", "--color-raised", 4.5, 4.5],
+  ["--color-stone-soft", "--color-paper", 3, 3],
   ["--color-ink-green", "--color-paper", 4.5, 4.5],
   ["--color-forest-deep", "--color-cream", 4.5, 4.5],
   ["--color-link", "--color-paper", 4.5, 4.5],
   // Acción primaria y chips activos
   ["--color-btn-primary-fg", "--color-btn-primary-bg", 4.5, 4.5],
   ["--color-chip-on-fg", "--color-chip-on-bg", 4.5, 4.5],
-  ["--color-chip-on-alt-fg", "--color-chip-on-alt-bg", 4, 4.5],
+  ["--color-chip-on-alt-fg", "--color-chip-on-alt-bg", 4.5, 4.5],
   // Toast (los 4 tonos + texto secundario)
   ["--color-toast-fg", "--color-toast-bg", 4.5, 4.5],
   ["--color-toast-muted", "--color-toast-bg", 4.5, 4.5],
@@ -86,7 +85,7 @@ const PAIRS: [string, string, number, number][] = [
   ["--color-toast-info", "--color-toast-bg", 3, 3],
   // Selección de texto e iconografía interactiva
   ["--color-selection-fg", "--color-selection-bg", 4.5, 4.5],
-  ["--color-sage-deep", "--color-paper", 2.5, 3],
+  ["--color-sage-deep", "--color-paper", 3, 3],
 ];
 
 describe("contraste de tokens (claro)", () => {

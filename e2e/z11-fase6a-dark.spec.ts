@@ -13,7 +13,7 @@ const DARK_RAISED = "rgb(28, 35, 24)"; // --color-raised oscuro #1c2318
 const DARK_SIDEBAR = "rgb(10, 12, 8)"; // --color-sidebar oscuro #0a0c08
 const CHIP_ON_BG = "rgb(147, 175, 128)"; // --color-chip-on-bg oscuro #93af80
 const CHIP_ON_FG = "rgb(19, 26, 14)"; // --color-chip-on-fg oscuro #131a0e
-const LIGHT_BG = "rgb(250, 247, 241)"; // --color-cream claro #faf7f1
+const LIGHT_BG = "rgb(247, 244, 238)"; // --color-cream claro #f7f4ee (Fase 6C: marfil limpio)
 
 test.describe.configure({ mode: "serial" });
 
@@ -195,8 +195,9 @@ test("modo claro intacto (comparación) e iPad en oscuro (capturas)", async ({ p
   await login(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   expect(await bodyBg(page)).toBe(LIGHT_BG);
-  const chip = page.locator(".card").first();
-  expect(await chip.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(253, 252, 248)");
+  // tarjeta normal (el primer .card de Hoy es el hero, que vive en el nivel elevado)
+  const chip = page.locator(".card:not(.card-raised)").first();
+  expect(await chip.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(255, 254, 251)");
   await shot(page, "09-hoy-claro-comparacion");
 
   // iPad (1024×1366) en oscuro
