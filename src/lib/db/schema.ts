@@ -259,6 +259,39 @@ export const reviews = sqliteTable("reviews", {
   meta: text("meta", { mode: "json" }).$type<{ inboxStart?: number }>().default({}),
 });
 
+/** Focus Garden (Fase 7B): sesiones de enfoque vinculadas (opcionalmente) a una
+ *  tarea real. La fuente de verdad del tiempo son los timestamps persistidos
+ *  (phase_started_at + segundos consolidados), nunca un contador en memoria.
+ *  finished_at null = sesión abierta/recuperable (mismo patrón que reviews). */
+export const focusSessions = sqliteTable("focus_sessions", {
+  id: text("id").primaryKey(),
+  cardId: text("card_id"), // referencia blanda a cards (como next_action_card_id)
+  preset: text("preset").notNull(), // arranque|ligero|pomodoro|profundo|personalizado
+  plannedFocusMin: integer("planned_focus_min").notNull(),
+  plannedBreakMin: integer("planned_break_min").notNull().default(0),
+  phase: text("phase").notNull(), // enfoque|pausado|enfoque-listo|descanso|descanso-pausado
+  phaseStartedAt: text("phase_started_at").notNull(), // inicio ISO de la fase actual
+  elapsedFocusSeconds: integer("elapsed_focus_seconds").notNull().default(0), // consolidado en cada transición
+  elapsedBreakSeconds: integer("elapsed_break_seconds").notNull().default(0),
+  date: text("date").notNull(), // YYYY-MM-DD (para el acumulado diario)
+  startedAt: text("started_at").notNull(),
+  finishedAt: text("finished_at"), // null = abierta/recuperable
+  outcome: text("outcome"), // completa|terminada-antes|descartada
+  creditedMinutes: integer("credited_minutes").notNull().default(0), // minutos abonados a la planta al cerrar
+  createdAt: text("created_at").notNull(),
+});
+
+/** La planta actual y el jardín: progreso acumulativo por planta, sin reloj,
+ *  sin decaimiento. La etapa se DERIVA de accumulated_minutes (focus-logic.ts).
+ *  completed_at null = planta actual; al completarse pasa al jardín y nace otra. */
+export const focusPlants = sqliteTable("focus_plants", {
+  id: text("id").primaryKey(),
+  species: text("species").notNull().default("brote-comun"), // única especie en v1
+  accumulatedMinutes: integer("accumulated_minutes").notNull().default(0),
+  startedAt: text("started_at").notNull(),
+  completedAt: text("completed_at"),
+});
+
 export const recentViews = sqliteTable("recent_views", {
   id: text("id").primaryKey(), // `${type}:${entityId}`
   entityType: text("entity_type").notNull(),
