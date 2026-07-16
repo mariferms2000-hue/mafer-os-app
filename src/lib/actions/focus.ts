@@ -175,6 +175,13 @@ export async function getFocusOverviewAction() {
   return getFocusOverview();
 }
 
+/** Lectura para elegir tarea (7D): sugerencia de Hoy + prioridades + preselección. */
+export async function getFocusPickerAction(preselectId?: string | null) {
+  await requireAuth();
+  const { getFocusPicker } = await import("@/lib/queries/focus");
+  return getFocusPicker(preselectId);
+}
+
 /** Recuperación explícita al abrir el overlay: si el tiempo transcurrió con el
  *  navegador cerrado, persiste el estado honesto (sin aplicar ninguna acción).
  *  No cambia nada si la sesión sigue vigente. */

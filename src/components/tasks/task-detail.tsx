@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { X, Trash2, Archive, CheckCircle2, Plus, Link2, CalendarX2, Sparkles } from "lucide-react";
+import { X, Trash2, Archive, CheckCircle2, Plus, Link2, CalendarX2, Sparkles, Sprout } from "lucide-react";
+import { openFocusUrl } from "@/components/focus/focus-overlay";
 import {
   saveTaskAction,
   deleteCardAction,
@@ -219,6 +220,16 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
               <CheckCircle2 size={14} aria-hidden /> {done ? "Reabrir" : "Completar"}
             </button>
             {!done && <MarkPriorityButton cardId={card.id} />}
+            {!done && (
+              <button
+                type="button"
+                className="btn btn-secondary !py-1.5 !px-3 text-xs"
+                onClick={() => openFocusUrl(card.id)}
+                data-testid="card-focus"
+              >
+                <Sprout size={14} aria-hidden /> Enfocar esta tarea
+              </button>
+            )}
             {done && card.completedAt && (
               <span className="chip chip-done">✓ Terminada el {card.completedAt.slice(0, 10)}</span>
             )}

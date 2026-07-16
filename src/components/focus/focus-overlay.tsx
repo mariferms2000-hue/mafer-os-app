@@ -5,12 +5,16 @@ import { useSearchParams } from "next/navigation";
 import { X, Play, Pause, CheckCircle2, SkipForward, Leaf, Sprout, ChevronDown } from "lucide-react";
 import {
   getFocusOverviewAction,
+  getFocusPickerAction,
   startFocusAction,
   focusTransitionAction,
   recoverFocusAction,
   discardFocusAction,
 } from "@/lib/actions/focus";
-import type { FocusOverview } from "@/lib/queries/focus";
+import { completeCardAction } from "@/lib/actions/cards";
+import { openTaskUrl } from "@/components/tasks/task-detail";
+import { useToast } from "@/components/ui/toast";
+import type { FocusOverview, FocusPickerOption } from "@/lib/queries/focus";
 import {
   PRESETS,
   CUSTOM_FOCUS_MIN,
@@ -42,7 +46,14 @@ type ClosedInfo = {
   outcome: string;
   creditedMinutes: number;
   plantCompleted: boolean;
+  cardId: string | null;
   cardTitle: string | null;
+};
+
+type Picker = {
+  suggested: FocusPickerOption | null;
+  priorities: FocusPickerOption[];
+  preselect: FocusPickerOption | null;
 };
 
 const STAGE_LABEL: Record<StageKey, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.label])) as Record<
@@ -77,16 +88,20 @@ function toState(s: Session): FocusState {
   };
 }
 
-/** Abre el overlay reflejándolo en la URL (?focus=1), como el detalle de tarea. */
-export function openFocusUrl() {
+/** Abre el overlay reflejándolo en la URL (?focus=1), como el detalle de tarea.
+ *  Con `cardId`, la tarea llega preseleccionada (?ftarea=<id>). */
+export function openFocusUrl(cardId?: string) {
   const url = new URL(window.location.href);
   url.searchParams.set("focus", "1");
+  if (cardId) url.searchParams.set("ftarea", cardId);
+  else url.searchParams.delete("ftarea");
   window.history.pushState(null, "", url.toString());
 }
 
 function closeFocusUrl() {
   const url = new URL(window.location.href);
   url.searchParams.delete("focus");
+  url.searchParams.delete("ftarea");
   window.history.replaceState(null, "", url.toString());
 }
 
@@ -94,12 +109,14 @@ function closeFocusUrl() {
 export function FocusOverlayFromUrl() {
   const searchParams = useSearchParams();
   if (searchParams.get("focus") !== "1") return null;
-  return <FocusOverlay onClose={closeFocusUrl} />;
+  return <FocusOverlay onClose={closeFocusUrl} preselectCardId={searchParams.get("ftarea")} />;
 }
 
-export function FocusOverlay({ onClose }: { onClose: () => void }) {
+export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void; preselectCardId?: string | null }) {
   const [overview, setOverview] = useState<FocusOverview | null>(null);
   const [closed, setClosed] = useState<ClosedInfo | null>(null);
+  const [picker, setPicker] = useState<Picker | null>(null);
+  const [selectedTask, setSelectedTask] = useState<FocusPickerOption | null>(null);
   const [preset, setPreset] = useState<PresetKey>("pomodoro");
   const [customMin, setCustomMin] = useState(25);
   const [customBreak, setCustomBreak] = useState(true);
@@ -132,6 +149,7 @@ export function FocusOverlay({ onClose }: { onClose: () => void }) {
             outcome: r.outcome ?? "completa",
             creditedMinutes: r.creditedMinutes ?? 0,
             plantCompleted: Boolean(r.plantCompleted),
+            cardId: o.openSession.cardId,
             cardTitle: o.openSession.cardTitle,
           });
           setAnnouncement("Tu sesión anterior terminó mientras la app estaba cerrada.");
@@ -141,10 +159,16 @@ export function FocusOverlay({ onClose }: { onClose: () => void }) {
       } else {
         setOverview(o);
       }
+      // opciones para elegir tarea (sugerencia de Hoy + prioridades + preselección)
+      const p = await getFocusPickerAction(preselectCardId ?? null);
+      if (!alive) return;
+      setPicker(p);
+      if (p.preselect) setSelectedTask(p.preselect);
     })();
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // El intervalo SOLO pinta: recalcula desde timestamps y dispara la
@@ -216,6 +240,7 @@ export function FocusOverlay({ onClose }: { onClose: () => void }) {
         outcome: r.outcome ?? "completa",
         creditedMinutes: r.creditedMinutes ?? 0,
         plantCompleted: Boolean(r.plantCompleted),
+        cardId: session.cardId,
         cardTitle: session.cardTitle,
       });
       setAnnouncement(
@@ -247,6 +272,7 @@ export function FocusOverlay({ onClose }: { onClose: () => void }) {
     start(async () => {
       await startFocusAction({
         preset,
+        cardId: selectedTask?.id ?? null,
         customFocusMin: preset === "personalizado" ? clampCustomFocus(customMin) : undefined,
         customWithBreak: preset === "personalizado" ? customBreak : undefined,
       });
@@ -261,7 +287,13 @@ export function FocusOverlay({ onClose }: { onClose: () => void }) {
     start(async () => {
       await discardFocusAction(session.id);
       setConfirmDiscard(false);
-      setClosed({ outcome: "descartada", creditedMinutes: 0, plantCompleted: false, cardTitle: session.cardTitle });
+      setClosed({
+        outcome: "descartada",
+        creditedMinutes: 0,
+        plantCompleted: false,
+        cardId: session.cardId,
+        cardTitle: session.cardTitle,
+      });
       setAnnouncement("Sesión descartada. Quedó en el registro, sin minutos abonados.");
       await refresh();
     });
@@ -323,10 +355,14 @@ export function FocusOverlay({ onClose }: { onClose: () => void }) {
               confirmDiscard={confirmDiscard}
               setConfirmDiscard={setConfirmDiscard}
               discard={discard}
+              wantedTask={preselectCardId && preselectCardId !== session.cardId ? (picker?.preselect ?? null) : null}
             />
           ) : (
             <ReadyView
               overview={overview}
+              picker={picker}
+              selectedTask={selectedTask}
+              setSelectedTask={setSelectedTask}
               preset={preset}
               setPreset={setPreset}
               customMin={customMin}
@@ -347,6 +383,9 @@ export function FocusOverlay({ onClose }: { onClose: () => void }) {
 
 function ReadyView({
   overview,
+  picker,
+  selectedTask,
+  setSelectedTask,
   preset,
   setPreset,
   customMin,
@@ -357,6 +396,9 @@ function ReadyView({
   begin,
 }: {
   overview: FocusOverview;
+  picker: Picker | null;
+  selectedTask: FocusPickerOption | null;
+  setSelectedTask: (t: FocusPickerOption | null) => void;
   preset: PresetKey;
   setPreset: (p: PresetKey) => void;
   customMin: number;
@@ -366,10 +408,17 @@ function ReadyView({
   pending: boolean;
   begin: () => void;
 }) {
+  const [picking, setPicking] = useState(false);
   const plant = overview.plant;
   const stage = plant ? plant.stage : "semilla";
   const acc = plant ? plant.accumulatedMinutes : 0;
   const next = plant ? plant.next : nextStageInfo(0);
+
+  // opciones únicas y escaneables: sugerencia de Hoy → prioridades → libre
+  const options: FocusPickerOption[] = [];
+  if (picker?.preselect && !options.some((o) => o.id === picker.preselect!.id)) options.push(picker.preselect);
+  if (picker?.suggested && !options.some((o) => o.id === picker.suggested!.id)) options.push(picker.suggested);
+  for (const p of picker?.priorities ?? []) if (!options.some((o) => o.id === p.id)) options.push(p);
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
@@ -385,9 +434,70 @@ function ReadyView({
         </p>
       </div>
 
-      <span className="chip" data-testid="focus-task">
-        <Leaf size={11} aria-hidden /> Enfoque libre
-      </span>
+      <div className="flex flex-col items-center gap-2 w-full max-w-md">
+        <span className="chip !max-w-full" data-testid="focus-task">
+          <Leaf size={11} className="shrink-0" aria-hidden />
+          <span className="truncate">{selectedTask ? selectedTask.title : "Enfoque libre"}</span>
+        </span>
+        {options.length > 0 && (
+          <button
+            type="button"
+            className="text-xs text-stone-soft underline underline-offset-4 hover:text-stone"
+            onClick={() => setPicking(!picking)}
+            aria-expanded={picking}
+            data-testid="focus-change-task"
+          >
+            {selectedTask ? "Cambiar tarea" : "Vincular una tarea"}
+          </button>
+        )}
+        {picking && (
+          <ul className="w-full flex flex-col gap-1 text-left" data-testid="focus-task-options">
+            {options.map((o, i) => (
+              <li key={o.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTask(o);
+                    setPicking(false);
+                  }}
+                  aria-pressed={selectedTask?.id === o.id}
+                  className={`w-full text-left text-sm rounded-lg px-3 py-2 border ${
+                    selectedTask?.id === o.id
+                      ? "border-border-focus bg-sage-soft/40"
+                      : "border-card-border hover:bg-surface-hover"
+                  }`}
+                  data-testid={`focus-pick-${i}`}
+                >
+                  <span className="block truncate">{o.title}</span>
+                  <span className="block text-[11px] text-stone-soft">
+                    {picker?.suggested?.id === o.id
+                      ? "Sugerida por «Haz esto ahora»"
+                      : picker?.priorities.some((p) => p.id === o.id)
+                        ? "Prioridad de hoy"
+                        : "Tarea elegida"}
+                  </span>
+                </button>
+              </li>
+            ))}
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTask(null);
+                  setPicking(false);
+                }}
+                aria-pressed={!selectedTask}
+                className={`w-full text-left text-sm rounded-lg px-3 py-2 border ${
+                  !selectedTask ? "border-border-focus bg-sage-soft/40" : "border-card-border hover:bg-surface-hover"
+                }`}
+                data-testid="focus-pick-libre"
+              >
+                Enfoque libre
+              </button>
+            </li>
+          </ul>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-2.5 w-full max-w-md" role="group" aria-label="Duración de la sesión">
         {(Object.keys(PRESETS) as (keyof typeof PRESETS)[]).map((k) => {
@@ -482,6 +592,7 @@ function ActiveView({
   confirmDiscard,
   setConfirmDiscard,
   discard,
+  wantedTask,
 }: {
   session: Session;
   overview: FocusOverview;
@@ -491,6 +602,8 @@ function ActiveView({
   confirmDiscard: boolean;
   setConfirmDiscard: (b: boolean) => void;
   discard: () => void;
+  /** Se llegó queriendo enfocar OTRA tarea: avisar sin sustituir nada en silencio. */
+  wantedTask: FocusPickerOption | null;
 }) {
   const s = toState(session);
   const plant = overview.plant;
@@ -539,6 +652,14 @@ function ActiveView({
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
+      {wantedTask && (
+        <p
+          className="text-xs text-stone rounded-lg border border-waiting-soft bg-waiting-soft/40 px-3 py-2 max-w-sm"
+          data-testid="focus-conflict"
+        >
+          Ya hay una sesión en curso. Para enfocar «{wantedTask.title}», primero termina o descarta esta.
+        </p>
+      )}
       <p
         className={`font-semibold tabular-nums leading-none tracking-tight ${
           isBreak ? "text-6xl md:text-7xl text-stone" : "text-7xl md:text-[84px] text-charcoal"
@@ -656,11 +777,47 @@ function ClosedView({
   onAnother: () => void;
   onBack: () => void;
 }) {
+  const [taskDecision, setTaskDecision] = useState<"pendiente" | "sigue" | "terminada">("pendiente");
+  const [pendingTask, startTask] = useTransition();
+  const toast = useToast();
   const plant = overview.plant;
   const stage = plant ? plant.stage : "semilla";
   const next = plant ? plant.next : nextStageInfo(0);
   const early = info.outcome === "terminada-antes";
   const discarded = info.outcome === "descartada";
+  // decisión explícita sobre la tarea: solo cuando hubo tarea y la sesión contó
+  const askTask = Boolean(info.cardId) && !discarded && taskDecision === "pendiente";
+
+  function completeTask() {
+    if (!info.cardId) return;
+    startTask(async () => {
+      let freedAt: number | null = null;
+      try {
+        const res = await completeCardAction(info.cardId!, true);
+        freedAt = res.freedPriorityAt;
+      } catch {
+        toast.show({ tone: "error", message: "No se pudo completar. Inténtalo desde la tarea." });
+        return;
+      }
+      setTaskDecision("terminada");
+      toast.show({
+        message: "Tarea completada ✓",
+        action: {
+          label: "Deshacer",
+          onClick: async () => {
+            try {
+              await completeCardAction(info.cardId!, false, freedAt);
+              setTaskDecision("pendiente");
+            } catch {
+              toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
+            }
+          },
+        },
+        link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
+        duration: 8000,
+      });
+    });
+  }
 
   return (
     <div className="flex flex-col items-center gap-5" data-testid="focus-summary">
@@ -700,8 +857,55 @@ function ClosedView({
         </p>
       </div>
 
+      {/* Decisión explícita sobre la tarea — nunca se completa sola */}
+      {askTask && (
+        <div className="flex flex-col items-center gap-2" data-testid="focus-task-decision">
+          <p className="text-xs text-stone">¿Y «{info.cardTitle}»?</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              className="btn btn-primary !py-1.5 !px-4 text-sm"
+              onClick={() => setTaskDecision("sigue")}
+              data-testid="focus-task-continue"
+            >
+              Sigue en curso
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary !py-1.5 !px-3 text-sm"
+              onClick={completeTask}
+              disabled={pendingTask}
+              data-testid="focus-task-complete"
+            >
+              <CheckCircle2 size={14} aria-hidden /> La terminé
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost !py-1.5 !px-3 text-sm"
+              onClick={() => {
+                onBack();
+                openTaskUrl(info.cardId!);
+              }}
+              data-testid="focus-task-open"
+            >
+              Abrir tarea
+            </button>
+          </div>
+        </div>
+      )}
+      {taskDecision !== "pendiente" && (
+        <p className="text-xs text-stone" data-testid="focus-task-decided">
+          {taskDecision === "sigue" ? "La tarea sigue en curso ✓" : "Tarea completada ✓"}
+        </p>
+      )}
+
       <div className="flex flex-wrap justify-center gap-2">
-        <button type="button" className="btn btn-primary !px-7" onClick={onAnother} data-testid="focus-another">
+        <button
+          type="button"
+          className={`btn ${askTask ? "btn-secondary" : "btn-primary"} !px-7`}
+          onClick={onAnother}
+          data-testid="focus-another"
+        >
           Otra sesión
         </button>
         <button type="button" className="btn btn-ghost" onClick={onBack} data-testid="focus-back-app">

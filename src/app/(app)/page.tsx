@@ -12,6 +12,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { getTodayData } from "@/lib/queries/today";
+import { getFocusOverview } from "@/lib/queries/focus";
+import { FocusModule } from "@/components/hoy/focus-module";
 import { Priorities, EnergySelector } from "@/components/hoy/priorities";
 import { DoNow } from "@/components/hoy/do-now";
 import { Rhythm } from "@/components/hoy/rhythm";
@@ -43,6 +45,7 @@ function saludo() {
 
 export default async function HoyPage() {
   const data = await getTodayData();
+  const focus = await getFocusOverview();
   // La energía del DÍA (baja|media|alta, en settings) cambia las sugerencias automáticas
   // (nunca tus 3 prioridades manuales). La energía REQUERIDA de cada tarjeta usa
   // low|medium|high y es independiente: aquí solo se cruzan para ordenar sugerencias.
@@ -79,7 +82,7 @@ export default async function HoyPage() {
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-5">
           {/* Una sola respuesta a «¿qué hago ahora?», explicada */}
-          <DoNow items={data.doNow} />
+          <DoNow items={data.doNow} focusActive={Boolean(focus.openSession)} />
 
           {/* Microvisualización honesta del día: elegir → enfocarse → cerrar */}
           <Rhythm priorities={data.priorities} doNowReady={data.doNow.length > 0} />
@@ -199,6 +202,9 @@ export default async function HoyPage() {
         </div>
 
         <div className="flex flex-col gap-5">
+          {/* Jardín de enfoque: acceso principal, arriba de Revisiones (7A) */}
+          <FocusModule overview={focus} />
+
           {/* Revisiones: acceso compacto con un solo aviso */}
           <ReviewNudge />
 

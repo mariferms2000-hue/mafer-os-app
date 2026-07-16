@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, PencilLine, Shuffle, Target } from "lucide-react";
+import { CheckCircle2, PencilLine, Shuffle, Target, Sprout } from "lucide-react";
 import { completeCardAction } from "@/lib/actions/cards";
 import { openTaskUrl } from "@/components/tasks/task-detail";
+import { openFocusUrl } from "@/components/focus/focus-overlay";
 import { MarkPriorityButton } from "@/components/tasks/priority-button";
 import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
@@ -12,7 +13,7 @@ import type { CardRow } from "@/lib/queries/today";
 /** «Haz esto ahora»: UNA sola recomendación clara y explicada, para saber qué
  *  hacer en menos de diez segundos. «Otra sugerencia» rota entre las 3 mejores
  *  candidatas sin recargar. */
-export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[] }) {
+export function DoNow({ items, focusActive = false }: { items: { card: CardRow; reasons: string[] }[]; focusActive?: boolean }) {
   const [index, setIndex] = useState(0);
   const [pending, start] = useTransition();
   const toast = useToast();
@@ -118,6 +119,14 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
           data-testid="do-now-complete"
         >
           <CheckCircle2 size={15} aria-hidden /> {pending ? "Guardando…" : "La terminé"}
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary !py-2"
+          onClick={() => (focusActive ? openFocusUrl() : openFocusUrl(card.id))}
+          data-testid="do-now-focus"
+        >
+          <Sprout size={15} aria-hidden /> {focusActive ? "Volver al enfoque" : "Enfocarme"}
         </button>
         <button
           type="button"
