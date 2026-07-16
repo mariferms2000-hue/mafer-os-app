@@ -85,12 +85,26 @@ const STAGE_ART: Record<StageKey, () => React.ReactNode> = {
   "planta-completa": PlantaCompleta,
 };
 
+/** Encuadre por etapa: las etapas tempranas ocupan solo la base del dibujo,
+ *  así que se acercan (escala alrededor de su centro) para que la planta sea
+ *  protagonista a cualquier tamaño. El crecimiento «aleja la cámara». */
+const STAGE_VIEW: Record<StageKey, { k: number; cx: number; cy: number }> = {
+  semilla: { k: 1.8, cx: 48, cy: 72 },
+  brote: { k: 1.6, cx: 48, cy: 67 },
+  hojas: { k: 1.25, cx: 48, cy: 59 },
+  "planta-joven": { k: 1.08, cx: 48, cy: 52 },
+  "planta-completa": { k: 1, cx: 48, cy: 48 },
+};
+
 export function FocusPlant({ stage, className }: { stage: StageKey; className?: string }) {
   const Art = STAGE_ART[stage] ?? Semilla;
+  const v = STAGE_VIEW[stage] ?? STAGE_VIEW.semilla;
+  const tx = 48 - v.cx * v.k;
+  const ty = 46 - v.cy * v.k;
   return (
     <svg viewBox="0 0 96 88" fill="none" className={className} aria-hidden="true" data-stage={stage}>
       {/* key fuerza el remount al cambiar de etapa → transición de opacidad breve */}
-      <g key={stage} className="transition-opacity duration-500 starting:opacity-0">
+      <g key={stage} className="transition-opacity duration-500 starting:opacity-0" transform={`translate(${tx} ${ty}) scale(${v.k})`}>
         <Art />
       </g>
     </svg>

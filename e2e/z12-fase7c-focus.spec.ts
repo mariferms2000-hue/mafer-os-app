@@ -52,7 +52,7 @@ test("abrir con ?focus=1: estado listo, cerrar y volver a abrir sin perder nada"
   await page.goto("/?focus=1");
   const overlay = page.getByTestId("focus-overlay");
   await expect(overlay).toBeVisible();
-  await expect(overlay).toContainText("Focus Garden");
+  await expect(overlay).toContainText("Jardín de enfoque");
   await expect(page.getByTestId("focus-task")).toContainText("Enfoque libre");
   await expect(page.getByTestId("focus-preset-pomodoro")).toBeVisible();
   await expect(overlay.locator("[data-stage='semilla']")).toBeVisible();
@@ -254,6 +254,8 @@ test("capturas: oscuro (listo, enfoque, pausado, completado)", async ({ page }) 
   await shot(page, "04-completado-oscuro");
   await page.getByTestId("focus-skip-break").click();
   await expect(page.getByTestId("focus-summary")).toBeVisible();
+  await page.waitForTimeout(300);
+  await shot(page, "07-cierre-oscuro");
   await page.getByTestId("focus-back-app").click();
 });
 
