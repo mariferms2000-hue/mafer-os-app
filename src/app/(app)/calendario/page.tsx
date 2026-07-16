@@ -250,13 +250,13 @@ export default async function CalendarioPage({
           <div className="overflow-x-auto">
             <div className="grid grid-cols-7 gap-1.5 min-w-[640px]">
               {DIAS_CORTOS.map((d) => (
-                <div key={d} className="text-center text-xs font-semibold text-stone py-1">{d}</div>
+                <div key={d} className="text-center text-[10.5px] font-semibold uppercase tracking-[0.1em] text-stone-soft py-1">{d}</div>
               ))}
               {cells.map((date, i) => (
                 <div
                   key={i}
                   className={`min-h-28 rounded-xl border p-1.5 ${
-                    date === hoy ? "border-forest bg-sage-soft/60" : "border-beige bg-paper"
+                    date === hoy ? "glow-focus bg-sage-soft/30" : "border-card-border/70"
                   } ${date ? "" : "opacity-0"}`}
                 >
                   {date && (
@@ -305,7 +305,7 @@ export default async function CalendarioPage({
           <div className="overflow-x-auto">
             <div className="grid grid-cols-7 gap-1.5 min-w-[760px]">
               {weekDays.map((d) => (
-                <div key={d} className={`rounded-xl border p-2 min-h-48 ${d === hoy ? "border-forest bg-sage-soft/50" : "border-beige bg-paper"}`}>
+                <div key={d} className={`rounded-xl border p-2 min-h-48 ${d === hoy ? "glow-focus bg-sage-soft/30" : "border-card-border/70"}`}>
                   <Link
                     href={keep({ vista: "dia", fecha: d })}
                     className={`block text-center text-xs mb-2 rounded hover:bg-sand ${d === hoy ? "font-bold text-forest" : "text-stone"}`}
@@ -343,7 +343,7 @@ export default async function CalendarioPage({
             {Array.from({ length: 30 }, (_, i) => addDays(hoy, i))
               .filter((d) => (byDate.get(d) ?? []).length > 0)
               .map((d) => (
-                <div key={d} className={`rounded-xl border p-3 ${d === hoy ? "border-forest" : "border-beige"}`}>
+                <div key={d} className={`rounded-xl border p-3 ${d === hoy ? "glow-focus" : "border-card-border/70"}`}>
                   <p className="text-sm font-semibold text-ink-green capitalize mb-1">
                     {fechaLegible(d, { weekday: "long", day: "numeric", month: "long" })}
                     {d === hoy && <span className="chip chip-sage ml-2">Hoy</span>}
@@ -364,7 +364,7 @@ export default async function CalendarioPage({
 
       {/* Estado de Google Calendar */}
       <section className="card p-5 mt-6">
-        <h2 className="text-lg text-forest-deep mb-1">Recordatorios en tu teléfono</h2>
+        <h2 className="section-eyebrow mb-1.5">Recordatorios en tu teléfono</h2>
         {!gstatus.configured ? (
           <p className="text-sm text-stone">
             Falta un paso único de configuración de Google (guía en{" "}
@@ -423,14 +423,14 @@ function DayView({
           </div>
         </div>
       )}
-      <div className="rounded-xl border border-beige overflow-hidden">
+      <div className="rounded-xl border border-card-border/70 overflow-hidden">
         {hours.map((h) => {
           const isNow = nowHour === h;
           const list = byHour.get(h) ?? [];
           return (
             <div
               key={h}
-              className={`flex gap-3 border-b border-beige last:border-b-0 px-3 ${
+              className={`flex gap-3 border-b border-card-border/70 last:border-b-0 px-3 ${
                 isNow ? "bg-sage-soft/50" : ""
               } ${list.length ? "py-2" : "py-1.5"}`}
             >

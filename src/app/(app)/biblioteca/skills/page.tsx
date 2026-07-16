@@ -37,11 +37,11 @@ export default async function SkillsPage() {
 
       {inventoryAt && (
         <p className="text-xs text-stone-soft mb-4">
-          Último inventario: {inventoryAt.slice(0, 10)} · para actualizar: <code className="bg-beige px-1 rounded">npm run inventory</code>
+          Último inventario: {inventoryAt.slice(0, 10)} · para actualizar: <code className="bg-code-bg border border-card-border px-1 rounded">npm run inventory</code>
         </p>
       )}
 
-      <h2 className="text-lg text-forest-deep mb-3">Tus skills instaladas ({skills.length})</h2>
+      <h2 className="section-eyebrow mb-3">Tus skills instaladas ({skills.length})</h2>
       <ul className="flex flex-col gap-3 mb-8">
         {skills.map((s) => (
           <li key={s.id} className="card p-4" data-testid={`skill-${s.name}`}>
@@ -72,7 +72,7 @@ export default async function SkillsPage() {
         )}
       </ul>
 
-      <h2 className="text-lg text-forest-deep mb-3">Para no confundirse</h2>
+      <h2 className="section-eyebrow mb-3">Para no confundirse</h2>
       <ul className="grid gap-3 md:grid-cols-2">
         {GLOSARIO.map(({ icon: Icon, term, def }) => (
           <li key={term} className="card p-4 flex gap-3">

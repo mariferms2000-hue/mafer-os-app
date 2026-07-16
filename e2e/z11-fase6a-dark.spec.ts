@@ -7,10 +7,10 @@ const PASSWORD = "prueba-mafer-123";
 
 // Valores esperados de los tokens oscuros (globals.css) — si cambian los tokens,
 // cambia aquí también (y en tests/contrast.test.ts, que valida los ratios WCAG).
-const DARK_BG = "rgb(16, 21, 14)"; // --color-cream oscuro #10150e
-const DARK_SURFACE = "rgb(26, 33, 23)"; // --color-paper oscuro #1a2117
-const DARK_RAISED = "rgb(33, 42, 30)"; // --color-raised oscuro #212a1e
-const DARK_SIDEBAR = "rgb(13, 18, 12)"; // --color-sidebar oscuro #0d120c
+const DARK_BG = "rgb(13, 16, 12)"; // --color-cream oscuro #0d100c (Fase 6B: carbón)
+const DARK_SURFACE = "rgb(21, 26, 19)"; // --color-paper oscuro #151a13
+const DARK_RAISED = "rgb(28, 35, 24)"; // --color-raised oscuro #1c2318
+const DARK_SIDEBAR = "rgb(10, 12, 8)"; // --color-sidebar oscuro #0a0c08
 const CHIP_ON_BG = "rgb(147, 175, 128)"; // --color-chip-on-bg oscuro #93af80
 const CHIP_ON_FG = "rgb(19, 26, 14)"; // --color-chip-on-fg oscuro #131a0e
 const LIGHT_BG = "rgb(250, 247, 241)"; // --color-cream claro #faf7f1
@@ -91,7 +91,7 @@ test("tres niveles de profundidad: fondo, tarjeta y modal elevado son distintos"
   // El velo detrás oscurece (no es un velo lechoso claro)
   const overlay = page.locator(".overlay-screen").first();
   const overlayBg = await overlay.evaluate((el) => getComputedStyle(el).backgroundColor);
-  expect(overlayBg).toContain("rgba(5, 8, 4");
+  expect(overlayBg).toContain("rgba(4, 6, 3");
 });
 
 test("sidebar oscura con superficie propia e ítem activo distinguible", async ({ page }) => {
@@ -141,7 +141,7 @@ test("abrir directamente en oscuro: sin flash blanco y meta theme-color coherent
   const meta = await page.evaluate(
     () => document.querySelector('meta[name="theme-color"]')?.getAttribute("content") ?? null
   );
-  expect(meta).toBe("#10150e");
+  expect(meta).toBe("#0d100c"); // Fase 6B: carbón casi negro
   await page.waitForLoadState("load");
   expect(await bodyBg(page)).toBe(DARK_BG);
 });

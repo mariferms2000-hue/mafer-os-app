@@ -238,7 +238,7 @@ test("safari/webkit: prioridad con feedback y toast legible en modo oscuro", asy
     const s = getComputedStyle(el);
     return { bg: s.backgroundColor, fg: s.color };
   });
-  expect(css.bg).toBe("rgb(36, 48, 31)");
+  expect(css.bg).toBe("rgb(30, 38, 25)"); // #1e2619 carbón elevado (Fase 6B)
   expect(css.fg).toBe("rgb(242, 236, 220)");
   await toast.getByRole("button", { name: "Deshacer" }).click();
   await page.goto("/ajustes");
@@ -253,9 +253,9 @@ test("safari/webkit: modo oscuro — niveles de profundidad y chip activo legibl
   await page.waitForURL("/");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(16, 21, 14)");
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(13, 16, 12)");
   const card = page.locator(".card:not(.card-raised)").first();
-  expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(26, 33, 23)");
+  expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(21, 26, 19)");
 
   await page.goto("/tareas");
   const activo = page.getByTestId("view-ahora");

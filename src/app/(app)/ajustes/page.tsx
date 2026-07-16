@@ -51,7 +51,7 @@ export default async function AjustesPage() {
 
       {/* Perfil */}
       <section className="card p-5 mb-5">
-        <h2 className="text-lg text-forest-deep mb-3">Perfil</h2>
+        <h2 className="section-eyebrow mb-3">Perfil</h2>
         <form action={updateNameAction} className="flex gap-2 items-end mb-5">
           <div className="flex-1">
             <label className="label" htmlFor="set-name">Tu nombre (para el saludo)</label>
@@ -65,14 +65,14 @@ export default async function AjustesPage() {
 
       {/* Revisiones */}
       <section className="card p-5 mb-5">
-        <h2 className="text-lg text-forest-deep mb-2">Revisiones</h2>
+        <h2 className="section-eyebrow mb-2">Revisiones</h2>
         <WeeklyReviewDay current={weeklyDay} />
       </section>
 
       {/* Apariencia */}
       <section className="card p-5 mb-5">
-        <h2 className="text-lg text-forest-deep mb-1 flex items-center gap-2">
-          <Palette size={18} className="text-olive" aria-hidden /> Apariencia
+        <h2 className="section-eyebrow mb-1 flex items-center gap-2">
+          <Palette size={13} className="text-sage-deep" aria-hidden /> Apariencia
         </h2>
         <p className="text-sm text-stone mb-3">
           «Automático» sigue la preferencia de tu Mac o iPhone: claro de día, oscuro de noche.
@@ -82,8 +82,8 @@ export default async function AjustesPage() {
 
       {/* Google Calendar */}
       <section className="card p-5 mb-5">
-        <h2 className="text-lg text-forest-deep mb-2 flex items-center gap-2">
-          <CalendarDays size={18} className="text-olive" aria-hidden /> Google Calendar
+        <h2 className="section-eyebrow mb-2 flex items-center gap-2">
+          <CalendarDays size={13} className="text-sage-deep" aria-hidden /> Google Calendar
         </h2>
         {!g.configured ? (
           <div className="text-sm text-stone flex flex-col gap-2">
@@ -117,8 +117,8 @@ export default async function AjustesPage() {
 
       {/* Respaldos y exportación */}
       <section className="card p-5 mb-5">
-        <h2 className="text-lg text-forest-deep mb-2 flex items-center gap-2">
-          <HardDriveDownload size={18} className="text-olive" aria-hidden /> Respaldos y exportación
+        <h2 className="section-eyebrow mb-2 flex items-center gap-2">
+          <HardDriveDownload size={13} className="text-sage-deep" aria-hidden /> Respaldos y exportación
         </h2>
         <ul className="text-sm text-stone mb-4 flex flex-col gap-1">
           <li><strong className="text-charcoal">Descargar JSON:</strong> copia completa para restauración técnica.</li>
@@ -144,16 +144,16 @@ export default async function AjustesPage() {
 
       {/* Datos de demostración */}
       <section className="card p-5 mb-5">
-        <h2 className="text-lg text-forest-deep mb-2 flex items-center gap-2">
-          <FlaskConical size={18} className="text-olive" aria-hidden /> Datos de demostración
+        <h2 className="section-eyebrow mb-2 flex items-center gap-2">
+          <FlaskConical size={13} className="text-sage-deep" aria-hidden /> Datos de demostración
         </h2>
         <DemoDataControls counts={demoCounts} />
       </section>
 
       {/* Instalación */}
       <section className="card p-5">
-        <h2 className="text-lg text-forest-deep mb-2 flex items-center gap-2">
-          <Smartphone size={18} className="text-olive" aria-hidden /> Instalación en dispositivos
+        <h2 className="section-eyebrow mb-2 flex items-center gap-2">
+          <Smartphone size={13} className="text-sage-deep" aria-hidden /> Instalación en dispositivos
         </h2>
         <ol className="list-decimal ml-5 text-sm text-stone flex flex-col gap-1">
           <li>Abre Mafer OS en <strong>Safari</strong> en tu iPhone (misma red Wi-Fi que tu Mac).</li>

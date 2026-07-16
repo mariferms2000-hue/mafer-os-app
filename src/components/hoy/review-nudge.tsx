@@ -57,8 +57,8 @@ export async function ReviewNudge() {
   return (
     <section aria-labelledby="revisiones-hoy" className="card p-4" data-testid="review-nudge">
       <div className="flex items-center justify-between mb-1">
-        <h2 id="revisiones-hoy" className="text-base text-forest-deep flex items-center gap-2">
-          <RotateCcw size={15} className="text-olive" aria-hidden /> Revisiones
+        <h2 id="revisiones-hoy" className="section-eyebrow flex items-center gap-1.5">
+          <RotateCcw size={13} className="text-sage-deep" aria-hidden /> Revisiones
         </h2>
         <Link href="/revisiones" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">
           Ver todo

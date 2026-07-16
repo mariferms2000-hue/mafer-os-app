@@ -16,6 +16,8 @@ import {
   FileCheck,
   Code,
   ChevronDown,
+  TriangleAlert,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
 import { db, schema } from "@/lib/db";
@@ -101,29 +103,39 @@ export default async function BibliotecaPage() {
       />
       <BibliotecaTabs />
 
-      <h2 className="text-lg text-forest-deep mb-3">Tus flujos</h2>
-      <div className="grid gap-4 lg:grid-cols-3 mb-8">
+      <h2 className="section-eyebrow mb-3">Tus flujos</h2>
+      <div className="grid gap-5 md:grid-cols-2 mb-8">
         {FLUJOS.map((f) => (
-          <section key={f.title} className="card p-5 flex flex-col" data-testid="flow-card">
-            <h3 className="text-base font-body font-semibold">{f.title}</h3>
-            <p className="text-xs text-stone mb-3">{f.context}</p>
-            <ol className="flex flex-col gap-2.5 flex-1">
+          <section key={f.title} className="card p-6 flex flex-col" data-testid="flow-card">
+            <h3 className="text-[15px] font-body font-semibold">{f.title}</h3>
+            <p className="intro-italic text-[13px] mb-4">{f.context}</p>
+            <ol className="flex flex-col gap-3.5 flex-1">
               {f.steps.map((s, i) => (
-                <li key={i} className="flex gap-2.5 text-sm">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sage-soft text-forest text-xs font-semibold mt-0.5">
+                <li key={i} className="relative flex gap-3 text-sm">
+                  {i < f.steps.length - 1 && (
+                    <span className="absolute left-[11px] top-7 bottom-[-14px] w-px bg-card-border" aria-hidden />
+                  )}
+                  <span className="flex h-[23px] w-[23px] shrink-0 items-center justify-center rounded-full border border-sage-deep/50 text-sage-deep text-[11px] font-semibold mt-0.5 bg-cream">
                     {i + 1}
                   </span>
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="font-medium">{s.what}</span>
-                    <code className="block text-xs text-ink-green bg-beige/70 rounded px-1.5 py-0.5 mt-0.5 whitespace-pre-wrap break-words">{s.how}</code>
-                    {"detail" in s && s.detail && <span className="block text-xs text-stone mt-0.5">{s.detail}</span>}
+                    <code className="block text-xs text-ink-green bg-code-bg border border-card-border rounded-lg px-2.5 py-1.5 mt-1.5 whitespace-pre-wrap break-words leading-relaxed">
+                      {s.how}
+                    </code>
+                    {"detail" in s && s.detail && <span className="block text-xs text-stone mt-1">{s.detail}</span>}
                   </span>
                 </li>
               ))}
             </ol>
-            <p className="text-xs text-waiting mt-3">⚠ {f.error}</p>
-            <Link href={f.link.href} className="text-xs text-forest underline underline-offset-4 mt-2 hover:text-forest-deep">
-              {f.link.label} →
+            <p className="mt-5 flex items-start gap-2 rounded-lg border border-waiting-soft bg-waiting-soft/40 px-3 py-2 text-xs text-waiting leading-relaxed">
+              <TriangleAlert size={13} className="mt-0.5 shrink-0" aria-hidden /> {f.error}
+            </p>
+            <Link
+              href={f.link.href}
+              className="mt-3 inline-flex items-center gap-1 self-start text-xs font-medium text-forest hover:text-forest-deep"
+            >
+              {f.link.label} <ArrowRight size={12} aria-hidden />
             </Link>
           </section>
         ))}
@@ -134,10 +146,10 @@ export default async function BibliotecaPage() {
       </div>
 
       <details className="group">
-        <summary className="flex items-center gap-2 cursor-pointer list-none text-lg text-forest-deep font-display mb-3">
+        <summary className="flex items-center gap-2 cursor-pointer list-none section-eyebrow mb-3">
           Referencia de herramientas
-          <ChevronDown size={16} className="text-stone transition-transform group-open:rotate-180" aria-hidden />
-          <span className="text-xs font-body text-stone-soft font-normal">(cuál brilla para qué)</span>
+          <ChevronDown size={14} className="text-stone transition-transform group-open:rotate-180" aria-hidden />
+          <span className="text-xs normal-case tracking-normal text-stone-soft font-normal">(cuál brilla para qué)</span>
         </summary>
         <ul className="grid gap-4 md:grid-cols-2">
           {tools.map((t) => {

@@ -55,6 +55,7 @@ export default async function ProyectosPage({
       ) : list.length === 0 ? (
         <EmptyState
           icon={SquareKanban}
+          variant="semilla"
           title={f === "activos" ? "Aún no hay proyectos activos" : "Nada con este filtro"}
           hint="Un proyecto es algo con un resultado deseado y más de un paso. Lo demás puede vivir tranquilamente en la Incubadora."
         >
@@ -69,7 +70,7 @@ export default async function ProyectosPage({
               <li key={p.id}>
                 <Link
                   href={`/proyectos/${p.id}`}
-                  className="card p-5 flex flex-col gap-2.5 hover:shadow-lift transition-shadow h-full"
+                  className="card p-5 flex flex-col gap-3 hover:shadow-lift transition-shadow h-full"
                   data-testid={`project-card-${p.id}`}
                 >
                   {/* 1. Nombre */}
@@ -81,36 +82,58 @@ export default async function ProyectosPage({
                     </div>
                   </div>
 
-                  {/* 2. Siguiente acción concreta */}
-                  {o.nextActionCard && !o.nextActionCompleted ? (
-                    <p className="text-sm flex items-start gap-1.5 text-ink-green">
-                      <ArrowRight size={14} className="mt-0.5 shrink-0 text-olive" aria-hidden />
-                      <span className="line-clamp-2 font-medium">{o.nextActionCard.title}</span>
-                    </p>
-                  ) : o.nextActionText ? (
-                    <p className="text-sm flex items-start gap-1.5 text-ink-green">
-                      <ArrowRight size={14} className="mt-0.5 shrink-0 text-olive" aria-hidden />
-                      <span className="line-clamp-2">{o.nextActionText}</span>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-stone-soft flex items-center gap-1.5" data-testid="card-no-next">
-                      <CircleAlert size={14} aria-hidden /> Falta definir la siguiente acción.
-                    </p>
-                  )}
-
-                  {/* 3-5. Estado, abiertas, bloqueo/espera */}
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className={`chip ${p.status === "activo" ? "chip-sage" : ""} capitalize`}>{p.status}</span>
-                    <span className="chip"><ListTodo size={11} aria-hidden /> {o.openCount} abiertas</span>
-                    {o.blockedCount > 0 && (
-                      <span className="chip chip-blocked"><Ban size={11} aria-hidden /> {o.blockedCount}</span>
+                  {/* 2-6. Ruta visual del proyecto: estado → siguiente acción → fecha (datos reales) */}
+                  <ul className="flex flex-col">
+                    <li className="relative pl-6 pb-2.5">
+                      <span className="absolute left-[6px] top-[16px] bottom-0 w-px bg-sand" aria-hidden />
+                      <span
+                        className={`absolute left-0 top-[3px] h-3.5 w-3.5 rounded-full border-2 ${
+                          p.status === "activo"
+                            ? "border-sage-deep bg-sage-soft"
+                            : p.status === "esperando"
+                              ? "border-waiting bg-waiting-soft"
+                              : p.status === "terminado"
+                                ? "border-done bg-done-soft"
+                                : "border-stone-soft bg-transparent"
+                        }`}
+                        aria-hidden
+                      />
+                      <p className="text-xs text-stone leading-relaxed">
+                        <span className="capitalize font-medium text-charcoal">{p.status}</span>
+                        {" · "}
+                        <ListTodo size={11} className="inline -mt-0.5" aria-hidden /> {o.openCount} abiertas
+                        {o.blockedCount > 0 && (
+                          <span className="text-blocked"> · <Ban size={11} className="inline -mt-0.5" aria-hidden /> {o.blockedCount} bloqueada{o.blockedCount > 1 ? "s" : ""}</span>
+                        )}
+                        {o.waitingCount > 0 && (
+                          <span className="text-waiting"> · <Hourglass size={11} className="inline -mt-0.5" aria-hidden /> {o.waitingCount} esperando</span>
+                        )}
+                      </p>
+                    </li>
+                    <li className={`relative pl-6 ${o.nextDate ? "pb-2.5" : ""}`}>
+                      {o.nextDate && <span className="absolute left-[6px] top-[16px] bottom-0 w-px bg-sand" aria-hidden />}
+                      <span className="absolute left-0 top-[2px] flex h-3.5 w-3.5 items-center justify-center text-sage-deep" aria-hidden>
+                        <ArrowRight size={13} />
+                      </span>
+                      {o.nextActionCard && !o.nextActionCompleted ? (
+                        <p className="text-sm text-ink-green font-medium line-clamp-2 leading-snug">{o.nextActionCard.title}</p>
+                      ) : o.nextActionText ? (
+                        <p className="text-sm text-ink-green line-clamp-2 leading-snug">{o.nextActionText}</p>
+                      ) : (
+                        <p className="text-sm text-stone-soft flex items-center gap-1.5" data-testid="card-no-next">
+                          <CircleAlert size={14} aria-hidden /> Falta definir la siguiente acción.
+                        </p>
+                      )}
+                    </li>
+                    {o.nextDate && (
+                      <li className="relative pl-6">
+                        <span className="absolute left-0 top-[2px] flex h-3.5 w-3.5 items-center justify-center text-stone-soft" aria-hidden>
+                          <CalendarClock size={12} />
+                        </span>
+                        <p className="text-xs text-stone">{o.nextDate}</p>
+                      </li>
                     )}
-                    {o.waitingCount > 0 && (
-                      <span className="chip chip-waiting"><Hourglass size={11} aria-hidden /> {o.waitingCount}</span>
-                    )}
-                    {/* 6. Fecha relevante más próxima */}
-                    {o.nextDate && <span className="chip"><CalendarClock size={11} aria-hidden /> {o.nextDate}</span>}
-                  </div>
+                  </ul>
 
                   {/* Progreso honesto: tareas, no proyecto */}
                   {o.totalCount > 0 && (

@@ -20,7 +20,7 @@ export function applyTheme(pref: ThemePref) {
   html.setAttribute("data-theme-pref", pref);
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", resolved === "dark" ? "#10150e" : "#faf7f1");
+    ?.setAttribute("content", resolved === "dark" ? "#0d100c" : "#faf7f1");
   window.dispatchEvent(new Event("mafer-theme-change"));
 }
 

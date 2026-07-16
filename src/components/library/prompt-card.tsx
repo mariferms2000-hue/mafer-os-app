@@ -44,7 +44,7 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
         {prompt.isStarter && <span className="chip">Ejemplo</span>}
       </div>
       {prompt.purpose && <p className="text-sm text-stone mb-2">{prompt.purpose}</p>}
-      <pre className="bg-beige/70 border border-sand rounded-xl p-3 text-xs whitespace-pre-wrap max-h-44 overflow-y-auto font-mono">
+      <pre className="bg-code-bg border border-card-border rounded-xl p-3 text-xs whitespace-pre-wrap max-h-44 overflow-y-auto font-mono">
         {prompt.body}
       </pre>
       {(prompt.requiredFiles || prompt.expectedOutput) && (

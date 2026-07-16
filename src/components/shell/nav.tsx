@@ -107,8 +107,8 @@ function SidebarInner() {
           );
         })}
       </nav>
-      <div className="mt-auto flex flex-col items-center gap-1 px-2 pb-5 text-sage-deep/70">
-        <SidebarPlant className="h-16 w-16" />
+      <div className="mt-auto flex flex-col items-center gap-1 px-2 pb-5 text-sage-deep/55">
+        <SidebarPlant className="h-[4.6rem] w-16" />
         <p className="intro-italic text-[13px] text-center leading-snug !text-stone-soft">
           Pequeños pasos, con calma,
           <br />

@@ -16,8 +16,8 @@ export function AlertQaPanel({ initialCount }: { initialCount: number }) {
 
   return (
     <section className="card p-5 mb-5 border-dashed" data-testid="alert-qa-panel">
-      <h2 className="text-lg text-forest-deep mb-1 flex items-center gap-2">
-        <FlaskConical size={18} className="text-olive" aria-hidden /> Pruebas de alertas antiolvido
+      <h2 className="section-eyebrow mb-1 flex items-center gap-2">
+        <FlaskConical size={13} className="text-sage-deep" aria-hidden /> Pruebas de alertas antiolvido
       </h2>
       <p className="text-sm text-stone mb-3">
         Solo en desarrollo. Crea datos temporales con prefijo <strong>«QA ALERTA»</strong> que simulan los

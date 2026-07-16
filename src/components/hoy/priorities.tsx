@@ -48,8 +48,8 @@ export function Priorities({
     <section aria-labelledby="prioridades">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h2 id="prioridades" className="text-lg text-forest-deep flex items-center gap-2">
-            <Star size={17} className="text-olive" aria-hidden /> Tus 3 prioridades
+          <h2 id="prioridades" className="section-eyebrow flex items-center gap-1.5">
+            <Star size={13} className="text-sage-deep" aria-hidden /> Tus 3 prioridades
           </h2>
           <p className="intro-italic text-[13px] mt-0.5">Tu foco de hoy — máximo tres, a propósito.</p>
         </div>

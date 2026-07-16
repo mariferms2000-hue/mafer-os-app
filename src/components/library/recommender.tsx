@@ -104,8 +104,8 @@ export function Recommender() {
 
   return (
     <section className="card p-5" aria-labelledby="recomendador">
-      <h2 id="recomendador" className="text-lg text-forest-deep flex items-center gap-2 mb-1">
-        <Wand2 size={18} className="text-olive" aria-hidden /> ¿Qué herramienta uso?
+      <h2 id="recomendador" className="section-eyebrow flex items-center gap-2 mb-1">
+        <Wand2 size={13} className="text-sage-deep" aria-hidden /> ¿Qué herramienta uso?
       </h2>
       <p className="text-sm text-stone mb-3">
         Describe lo que necesitas hacer y te sugiero el camino. Son reglas transparentes, no magia.

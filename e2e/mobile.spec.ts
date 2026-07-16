@@ -181,7 +181,7 @@ test("móvil: toast legible en modo oscuro y prioridad con feedback", async ({ p
     const s = getComputedStyle(el);
     return { bg: s.backgroundColor, fg: s.color };
   });
-  expect(css.bg).toBe("rgb(36, 48, 31)");
+  expect(css.bg).toBe("rgb(30, 38, 25)"); // #1e2619 carbón elevado (Fase 6B)
   expect(css.fg).toBe("rgb(242, 236, 220)");
   await expect(toast.getByRole("button", { name: "Deshacer" })).toBeVisible();
   await toast.getByRole("button", { name: "Deshacer" }).click();
@@ -194,17 +194,17 @@ test("móvil: modo oscuro completo — fondo, sidebar inferior y niveles (captur
   await page.addInitScript(() => localStorage.setItem("mafer-theme", "dark"));
   await login(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(16, 21, 14)");
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(13, 16, 12)");
 
   // la barra inferior usa la superficie propia de navegación
   const nav = page.locator("nav.sidebar-surface");
   await expect(nav).toBeVisible();
-  expect(await nav.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(13, 18, 12)");
+  expect(await nav.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(10, 12, 8)");
 
   // «Haz esto ahora» destaca en el nivel elevado
   const doNow = page.getByTestId("do-now");
   await expect(doNow).toBeVisible();
-  expect(await doNow.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(33, 42, 30)");
+  expect(await doNow.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(28, 35, 24)");
 
   const qa = path.join(__dirname, "..", "docs", "qa", "phase-6a-dark-system", "11-iphone-oscuro.png");
   fs.mkdirSync(path.dirname(qa), { recursive: true });

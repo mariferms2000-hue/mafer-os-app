@@ -1,15 +1,27 @@
 import type { LucideIcon } from "lucide-react";
-import { SprigWide } from "./botanical";
+import { Seed, Sprig, SprigWide } from "./botanical";
+
+/** Variante botánica discreta del estado vacío: semilla (nada aún),
+ *  brote (algo empieza) o rama (reposo). Monocroma y de baja opacidad. */
+export type EmptyVariant = "semilla" | "brote" | "rama";
+
+const BOTANICAL: Record<EmptyVariant, React.ReactNode> = {
+  semilla: <Seed className="h-10 w-10 text-sage-deep/45 mt-2" />,
+  brote: <Sprig className="h-10 w-10 text-sage-deep/45 mt-2" />,
+  rama: <SprigWide className="h-7 w-16 text-sage-deep/45 mt-2" />,
+};
 
 export function EmptyState({
   icon: Icon,
   title,
   hint,
+  variant = "rama",
   children,
 }: {
   icon?: LucideIcon;
   title: string;
   hint?: string;
+  variant?: EmptyVariant;
   children?: React.ReactNode;
 }) {
   return (
@@ -22,7 +34,7 @@ export function EmptyState({
       <p className="font-medium text-charcoal">{title}</p>
       {hint && <p className="text-sm text-stone max-w-sm">{hint}</p>}
       {children && <div className="mt-2">{children}</div>}
-      <SprigWide className="h-7 w-16 text-sage-deep/50 mt-2" />
+      {BOTANICAL[variant]}
     </div>
   );
 }

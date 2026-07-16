@@ -14,6 +14,7 @@ import {
 import { getTodayData } from "@/lib/queries/today";
 import { Priorities, EnergySelector } from "@/components/hoy/priorities";
 import { DoNow } from "@/components/hoy/do-now";
+import { Rhythm } from "@/components/hoy/rhythm";
 import { ForgetAlerts } from "@/components/hoy/forget-alerts";
 import { ReviewNudge } from "@/components/hoy/review-nudge";
 import { TaskLine } from "@/components/hoy/task-line";
@@ -80,13 +81,16 @@ export default async function HoyPage() {
           {/* Una sola respuesta a «¿qué hago ahora?», explicada */}
           <DoNow items={data.doNow} />
 
+          {/* Microvisualización honesta del día: elegir → enfocarse → cerrar */}
+          <Rhythm priorities={data.priorities} doNowReady={data.doNow.length > 0} />
+
           <Priorities priorities={data.priorities} candidates={data.candidates} />
 
           {/* Reuniones y fechas de hoy */}
           <section aria-labelledby="agenda-hoy" className="card p-5">
             <div className="flex items-center justify-between mb-2">
-              <h2 id="agenda-hoy" className="text-lg text-forest-deep flex items-center gap-2">
-                <CalendarDays size={18} className="text-olive" aria-hidden /> Agenda de hoy
+              <h2 id="agenda-hoy" className="section-eyebrow flex items-center gap-1.5">
+                <CalendarDays size={13} className="text-sage-deep" aria-hidden /> Agenda de hoy
               </h2>
               <Link href="/calendario?vista=dia" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
             </div>
@@ -113,8 +117,8 @@ export default async function HoyPage() {
           {/* Con energía alta, el trabajo profundo va primero */}
           {showDeepWork && (
             <section aria-labelledby="profundo" className="card p-5 !border-sage-deep">
-              <h2 id="profundo" className="text-lg text-forest-deep flex items-center gap-2 mb-1">
-                <Sun size={18} className="text-olive" aria-hidden /> Aprovecha tu energía alta
+              <h2 id="profundo" className="section-eyebrow flex items-center gap-1.5 mb-1">
+                <Sun size={13} className="text-sage-deep" aria-hidden /> Aprovecha tu energía alta
               </h2>
               <p className="text-xs text-stone mb-2">
                 Trabajo profundo, decisiones y tareas importantes — el mejor uso de un día con pila.
@@ -132,8 +136,8 @@ export default async function HoyPage() {
           {/* Menos de 30 minutos */}
           <section aria-labelledby="rapidas" className="card p-5">
             <div className="flex items-center justify-between mb-1">
-              <h2 id="rapidas" className="text-lg text-forest-deep flex items-center gap-2">
-                <Timer size={18} className="text-olive" aria-hidden /> Menos de 30 minutos
+              <h2 id="rapidas" className="section-eyebrow flex items-center gap-1.5">
+                <Timer size={13} className="text-sage-deep" aria-hidden /> Menos de 30 minutos
               </h2>
               <Link href="/tareas?v=rapidas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
             </div>
@@ -162,8 +166,8 @@ export default async function HoyPage() {
           {/* Próximos pasos concretos */}
           <section aria-labelledby="siguientes" className="card p-5">
             <div className="flex items-center justify-between mb-2">
-              <h2 id="siguientes" className="text-lg text-forest-deep flex items-center gap-2">
-                <ArrowRight size={18} className="text-olive" aria-hidden /> Siguiente paso por proyecto
+              <h2 id="siguientes" className="section-eyebrow flex items-center gap-1.5">
+                <ArrowRight size={13} className="text-sage-deep" aria-hidden /> Siguiente paso por proyecto
               </h2>
               <Link href="/proyectos" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
             </div>
@@ -204,8 +208,8 @@ export default async function HoyPage() {
           {/* Vencidas y próximas */}
           {(data.overdue.length > 0 || data.approaching.length > 0) && (
             <section aria-labelledby="fechas" className="card p-5">
-              <h2 id="fechas" className="text-lg text-forest-deep flex items-center gap-2 mb-2">
-                <Sun size={18} className="text-olive" aria-hidden /> Fechas que respiran cerca
+              <h2 id="fechas" className="section-eyebrow flex items-center gap-1.5 mb-2">
+                <Sun size={13} className="text-sage-deep" aria-hidden /> Fechas que respiran cerca
               </h2>
               {data.overdue.length > 0 && (
                 <>
@@ -239,8 +243,8 @@ export default async function HoyPage() {
           {/* Bloqueado */}
           <section aria-labelledby="bloqueado" className="card p-5">
             <div className="flex items-center justify-between mb-2">
-              <h2 id="bloqueado" className="text-lg text-forest-deep flex items-center gap-2">
-                <Ban size={18} className="text-blocked" aria-hidden /> Bloqueado
+              <h2 id="bloqueado" className="section-eyebrow flex items-center gap-1.5">
+                <Ban size={13} className="text-blocked" aria-hidden /> Bloqueado
               </h2>
               <Link href="/tareas?v=bloqueadas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
             </div>
@@ -260,8 +264,8 @@ export default async function HoyPage() {
           {/* Esperando */}
           <section aria-labelledby="esperando" className="card p-5">
             <div className="flex items-center justify-between mb-2">
-              <h2 id="esperando" className="text-lg text-forest-deep flex items-center gap-2">
-                <Hourglass size={18} className="text-waiting" aria-hidden /> Esperando
+              <h2 id="esperando" className="section-eyebrow flex items-center gap-1.5">
+                <Hourglass size={13} className="text-waiting" aria-hidden /> Esperando
               </h2>
               <Link href="/tareas?v=esperando" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
             </div>
@@ -280,8 +284,8 @@ export default async function HoyPage() {
 
           {/* Para después */}
           <section aria-labelledby="despues" className="card p-5">
-            <h2 id="despues" className="text-lg text-forest-deep flex items-center gap-2 mb-2">
-              <Moon size={18} className="text-stone" aria-hidden /> Para después
+            <h2 id="despues" className="section-eyebrow flex items-center gap-1.5 mb-2">
+              <Moon size={13} className="text-stone" aria-hidden /> Para después
             </h2>
             {data.deferred.length === 0 ? (
               <p className="text-sm text-stone">Nada pospuesto conscientemente.</p>
@@ -316,6 +320,7 @@ export default async function HoyPage() {
       {data.candidates.length === 0 && data.priorities.length === 0 && (
         <EmptyState
           icon={Sparkles}
+          variant="brote"
           title="Tu sistema está listo y esperándote"
           hint="Empieza capturando lo que tengas en la cabeza con el botón + (abajo a la derecha), o crea tu primer proyecto."
         >

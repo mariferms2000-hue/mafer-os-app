@@ -29,17 +29,17 @@ export default async function AgentesPage() {
 
       {inventoryAt && (
         <p className="text-xs text-stone-soft mb-4">
-          Último inventario: {inventoryAt.slice(0, 10)} · para actualizar: <code className="bg-beige px-1 rounded">npm run inventory</code>
+          Último inventario: {inventoryAt.slice(0, 10)} · para actualizar: <code className="bg-code-bg border border-card-border px-1 rounded">npm run inventory</code>
         </p>
       )}
 
-      <h2 className="text-lg text-forest-deep mb-3">Sistema MACA — cómo se conecta</h2>
+      <h2 className="section-eyebrow mb-3">Sistema MACA — cómo se conecta</h2>
       <AgentDiagram agents={macaAgents} />
 
       {globalAgents.length > 0 && (
         <>
-          <h2 className="text-lg text-forest-deep mt-8 mb-3 flex items-center gap-2">
-            <Globe size={17} className="text-olive" aria-hidden /> Agentes transversales (todos tus proyectos)
+          <h2 className="section-eyebrow mt-8 mb-3 flex items-center gap-2">
+            <Globe size={13} className="text-sage-deep" aria-hidden /> Agentes transversales (todos tus proyectos)
           </h2>
           <ul className="grid gap-4 md:grid-cols-2">
             {globalAgents.map((a) => (
@@ -60,7 +60,7 @@ export default async function AgentesPage() {
         </>
       )}
 
-      <h2 className="text-lg text-forest-deep mt-8 mb-3">Comandos de flujo</h2>
+      <h2 className="section-eyebrow mt-8 mb-3">Comandos de flujo</h2>
       <p className="text-sm text-stone mb-3">
         Un <strong>comando</strong> es un atajo que escribes en Claude Code (empieza con «/») y activa a uno o varios agentes.
       </p>

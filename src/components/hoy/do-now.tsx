@@ -19,9 +19,9 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
 
   if (items.length === 0) {
     return (
-      <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-5 !border-sage-deep border-2" data-testid="do-now">
-        <h2 id="haz-ahora" className="text-lg text-forest-deep flex items-center gap-2 mb-1">
-          <Target size={18} className="text-olive" aria-hidden /> Haz esto ahora
+      <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-6 text-center" data-testid="do-now">
+        <h2 id="haz-ahora" className="section-eyebrow !text-sage-deep flex items-center justify-center gap-1.5 mb-2">
+          <Target size={13} aria-hidden /> Haz esto ahora
         </h2>
         <p className="text-sm text-stone">
           No hay nada urgente pendiente. Elige una prioridad de hoy, procesa el Inbox o descansa sin culpa. 🌿
@@ -62,15 +62,15 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
   }
 
   return (
-    <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-5 !border-sage-deep border-2" data-testid="do-now">
-      <div className="flex items-center justify-between mb-2">
-        <h2 id="haz-ahora" className="text-lg text-forest-deep flex items-center gap-2">
-          <Target size={18} className="text-olive" aria-hidden /> Haz esto ahora
+    <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-6 md:p-7 text-center" data-testid="do-now">
+      <div className="relative flex flex-col sm:flex-row items-center justify-center gap-1 mb-3">
+        <h2 id="haz-ahora" className="section-eyebrow !text-sage-deep flex items-center gap-1.5">
+          <Target size={13} aria-hidden /> Haz esto ahora
         </h2>
         {items.length > 1 && (
           <button
             type="button"
-            className="btn btn-ghost !py-1 !px-2 text-xs"
+            className="btn btn-ghost !py-1 !px-2 text-xs sm:absolute sm:right-0 sm:top-1/2 sm:-translate-y-1/2"
             onClick={() => setIndex((i) => i + 1)}
             data-testid="do-now-other"
           >
@@ -81,31 +81,38 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
 
       <button
         type="button"
-        className="text-left w-full group"
+        className="w-full group"
         onClick={() => openTaskUrl(card.id)}
         data-testid="do-now-title"
         aria-label={`Abrir «${card.title}»`}
       >
-        <p className="text-xl md:text-2xl font-medium leading-snug text-charcoal group-hover:text-forest transition-colors">
+        <p className="font-display text-2xl md:text-[30px] font-medium leading-snug text-charcoal group-hover:text-forest transition-colors text-balance">
           {card.title}
         </p>
       </button>
 
-      <div className="flex flex-wrap gap-1.5 mt-2">
+      {/* separador editorial fino, como respiración */}
+      <div className="flex items-center justify-center gap-3 my-3.5" aria-hidden>
+        <span className="h-px w-16 md:w-24 bg-sand" />
+        <span className="h-1.5 w-1.5 rotate-45 bg-sage-deep/60" />
+        <span className="h-px w-16 md:w-24 bg-sand" />
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-1.5">
         {card.projectTitle && <span className="chip">{card.projectTitle}</span>}
         {durationLabel(card.duration) && <span className="chip">{durationLabel(card.duration)}</span>}
         {energyLabel(card.energy) && <span className="chip">Energía {energyLabel(card.energy)?.toLowerCase()}</span>}
         {card.dueDate && <span className="chip">📅 {card.dueDate}</span>}
       </div>
 
-      <p className="text-sm text-stone mt-2" data-testid="do-now-reasons">
+      <p className="text-sm text-stone mt-2.5" data-testid="do-now-reasons">
         <span className="font-medium text-ink-green">Porque</span> {reasons.join(" · ")}.
       </p>
 
-      <div className="flex flex-wrap gap-2 mt-3">
+      <div className="flex flex-wrap justify-center gap-2 mt-4">
         <button
           type="button"
-          className="btn btn-primary !py-2"
+          className="btn btn-primary !py-2 !px-5"
           disabled={pending}
           onClick={complete}
           data-testid="do-now-complete"
@@ -114,13 +121,13 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
         </button>
         <button
           type="button"
-          className="btn btn-secondary !py-2"
+          className="btn btn-ghost !py-2"
           onClick={() => openTaskUrl(card.id)}
           data-testid="do-now-open"
         >
           <PencilLine size={15} aria-hidden /> Abrir tarea
         </button>
-        <MarkPriorityButton cardId={card.id} className="btn btn-secondary !py-2 text-sm" />
+        <MarkPriorityButton cardId={card.id} className="btn btn-ghost !py-2 text-sm" />
       </div>
     </section>
   );

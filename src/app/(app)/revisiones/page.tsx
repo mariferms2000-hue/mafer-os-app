@@ -30,8 +30,8 @@ export default async function RevisionesPage() {
       <div className="grid gap-4 sm:grid-cols-2 mb-6">
         {/* Diaria */}
         <section className="card p-5" data-testid="center-diaria">
-          <h2 className="text-lg text-forest-deep flex items-center gap-2 mb-1">
-            <CalendarCheck2 size={18} className="text-olive" aria-hidden /> Revisión diaria
+          <h2 className="section-eyebrow flex items-center gap-2 mb-1">
+            <CalendarCheck2 size={13} className="text-sage-deep" aria-hidden /> Revisión diaria
           </h2>
           <p className="text-sm text-stone">
             5 minutos · Última: {c.daily.lastCompleted ? humanDate(c.daily.lastCompleted.finishedAt, c.today) : "nunca"}
@@ -52,8 +52,8 @@ export default async function RevisionesPage() {
 
         {/* Semanal */}
         <section className="card p-5" data-testid="center-semanal">
-          <h2 className="text-lg text-forest-deep flex items-center gap-2 mb-1">
-            <CalendarRange size={18} className="text-olive" aria-hidden /> Revisión semanal
+          <h2 className="section-eyebrow flex items-center gap-2 mb-1">
+            <CalendarRange size={13} className="text-sage-deep" aria-hidden /> Revisión semanal
           </h2>
           <p className="text-sm text-stone">
             15–20 minutos ·{" "}
@@ -78,8 +78,8 @@ export default async function RevisionesPage() {
 
       {/* Historial simple: últimas 5 */}
       <section className="card p-5" data-testid="review-history">
-        <h2 className="text-lg text-forest-deep flex items-center gap-2 mb-2">
-          <History size={18} className="text-olive" aria-hidden /> Últimas revisiones
+        <h2 className="section-eyebrow flex items-center gap-2 mb-2">
+          <History size={13} className="text-sage-deep" aria-hidden /> Últimas revisiones
         </h2>
         {c.history.length === 0 ? (
           <p className="text-sm text-stone">Aquí aparecerán tus revisiones. La primera es la que más ayuda. 🌿</p>

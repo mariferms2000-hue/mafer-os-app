@@ -60,13 +60,13 @@ export default async function LearnFastPage() {
 
       {active.length > 0 && (
         <>
-          <h2 className="text-lg text-forest-deep mb-3">Sprint activo</h2>
+          <h2 className="section-eyebrow mb-3">Sprint activo</h2>
           <TopicGrid topics={active} highlight />
         </>
       )}
       {rest.length > 0 && (
         <>
-          <h2 className="text-lg text-forest-deep mt-8 mb-3">En pausa e ideas</h2>
+          <h2 className="section-eyebrow mt-8 mb-3">En pausa e ideas</h2>
           <TopicGrid topics={rest} />
         </>
       )}

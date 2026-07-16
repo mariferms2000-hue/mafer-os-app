@@ -128,8 +128,8 @@ export default async function BuscarPage({
       ) : (
         recents.length > 0 && (
           <section>
-            <h2 className="text-lg text-forest-deep flex items-center gap-2 mb-3">
-              <History size={17} className="text-olive" aria-hidden /> Retomar donde ibas
+            <h2 className="section-eyebrow flex items-center gap-2 mb-3">
+              <History size={13} className="text-sage-deep" aria-hidden /> Retomar donde ibas
             </h2>
             <ul className="flex flex-col gap-2">
               {recents.map((r) => (

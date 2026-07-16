@@ -17,8 +17,8 @@ const ICONS: Record<ForgetAlert["kind"], LucideIcon> = {
 export function ForgetAlerts({ alerts }: { alerts: ForgetAlert[] }) {
   return (
     <section aria-labelledby="antiolvido" className="card p-5" data-testid="forget-alerts">
-      <h2 id="antiolvido" className="text-lg text-forest-deep flex items-center gap-2 mb-2">
-        <BellRing size={18} className="text-olive" aria-hidden /> Para que nada se caiga
+      <h2 id="antiolvido" className="section-eyebrow flex items-center gap-1.5 mb-2">
+        <BellRing size={13} className="text-sage-deep" aria-hidden /> Para que nada se caiga
       </h2>
       {alerts.length === 0 ? (
         <p className="text-sm text-stone" data-testid="no-alerts">Nada olvidado por hoy. 🌿</p>
