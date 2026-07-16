@@ -8,7 +8,7 @@ export const SCHEMA_VERSION = 1;
 export async function exportAllJson() {
   const [
     projects, boards, columns, cards, inbox, journal, learning, ideas,
-    prompts, aiTools, agentsSkills, decisions, resources, events, priorities,
+    prompts, aiTools, agentsSkills, decisions, resources, events, priorities, reviews,
   ] = await Promise.all([
     db.select().from(schema.projects),
     db.select().from(schema.boards),
@@ -25,6 +25,7 @@ export async function exportAllJson() {
     db.select().from(schema.resources),
     db.select().from(schema.events),
     db.select().from(schema.todayPriorities),
+    db.select().from(schema.reviews),
   ]);
   return {
     app: "Mafer OS",
@@ -34,11 +35,11 @@ export async function exportAllJson() {
       projects: projects.length, cards: cards.length, journal: journal.length,
       learning: learning.length, ideas: ideas.length, prompts: prompts.length,
       decisions: decisions.length, resources: resources.length, events: events.length,
-      inbox: inbox.length,
+      inbox: inbox.length, reviews: reviews.length,
     },
     data: {
       projects, boards, columns, cards, inbox, journal, learning, ideas,
-      prompts, aiTools, agentsSkills, decisions, resources, events, priorities,
+      prompts, aiTools, agentsSkills, decisions, resources, events, priorities, reviews,
     },
   };
 }
@@ -132,6 +133,16 @@ export async function exportAllMarkdown(): Promise<Record<string, string>> {
 
   files[`09 - Exportaciones/ultima-exportacion.md`] =
     `# Última exportación\n\n- Fecha: ${json.exportedAt}\n- Versión de esquema: ${SCHEMA_VERSION}\n- Proyectos: ${json.counts.projects}\n- Tarjetas: ${json.counts.cards}\n- Journal: ${json.counts.journal}\n- Learn Fast: ${json.counts.learning}\n- Prompts: ${json.counts.prompts}\n- Decisiones: ${json.counts.decisions}\n- Recursos: ${json.counts.resources}\n`;
+
+  // Historial de revisiones diaria/semanal
+  if (d.reviews.length) {
+    let md = `# Historial de revisiones\n\n`;
+    for (const r of [...d.reviews].sort((a, b) => (b.startedAt < a.startedAt ? -1 : 1))) {
+      md += `- **${r.type}** · ${r.startedAt.slice(0, 16).replace("T", " ")} · ${r.completed ? "completa" : "incompleta"}` +
+        `${r.processed ? ` · ${r.processed} elementos` : ""}${r.summary ? ` — ${mdEscape(r.summary)}` : ""}\n`;
+    }
+    files["09 - Exportaciones/historial-revisiones.md"] = md;
+  }
 
   return files;
 }

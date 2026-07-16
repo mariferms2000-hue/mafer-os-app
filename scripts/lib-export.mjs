@@ -24,6 +24,8 @@ export function dumpAll(db) {
     agentsSkills: t("agents_skills"), decisions: t("decisions"), resources: t("resources"),
     events: t("events"), priorities: t("today_priorities"),
   };
+  // Revisiones (Fase 5A). La tabla puede no existir en bases antiguas.
+  try { data.reviews = t("reviews"); } catch { data.reviews = []; }
   return {
     app: "Mafer OS",
     schemaVersion: SCHEMA_VERSION,
@@ -96,6 +98,19 @@ export function toMarkdownFiles(dump) {
     files[`06 - Agentes y Skills/${slug(a.name)}.md`] =
       `# ${a.name}\n\n**Tipo:** ${a.kind} · **Fuente:** ${a.source} · **Estado:** ${a.status}\n\n**Qué hace:** ${esc(a.purpose)}\n\n**Úsalo cuando:** ${esc(a.when_to_use)}\n\n**No lo uses para:** ${esc(a.when_not_to_use)}\n${a.command ? `\n**Comando:** \`${a.command}\`\n` : ""}${rels.length ? `\n**Trabaja con:** ${rels.map((r) => `[[${r}]]`).join(", ")}\n` : ""}\n**Archivo fuente:** \`${a.source_path}\`\n`;
   }
+  // Historial de revisiones diaria/semanal (si la base ya las tiene)
+  const reviews = d.reviews ?? [];
+  if (reviews.length) {
+    let md = `# Historial de revisiones\n\n`;
+    for (const r of [...reviews].sort((a, b) => (b.started_at < a.started_at ? -1 : 1))) {
+      md += `- **${r.type}** · ${String(r.started_at).slice(0, 16).replace("T", " ")} · ` +
+        `${r.completed ? "completa" : "incompleta"}` +
+        `${r.processed ? ` · ${r.processed} elementos` : ""}` +
+        `${r.summary ? ` — ${esc(r.summary)}` : ""}\n`;
+    }
+    files["09 - Exportaciones/historial-revisiones.md"] = md;
+  }
+
   return files;
 }
 
