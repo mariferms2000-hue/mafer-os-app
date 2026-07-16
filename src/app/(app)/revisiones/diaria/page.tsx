@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, desc, eq, gte } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { CalendarCheck2 } from "lucide-react";
 import { db, today, schema } from "@/lib/db";
 import { getSetting } from "@/lib/auth";

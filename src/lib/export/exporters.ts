@@ -46,6 +46,21 @@ export async function exportAllJson() {
 
 const mdEscape = (s: string | null | undefined) => (s ?? "").trim();
 
+/* Representación local (los timestamps guardados no se tocan) */
+export const TIMEZONE = process.env.MAFER_TZ ?? "America/Mexico_City";
+export const GENERATED_MARK = "<!-- generado por Mafer OS · se regenera en cada sync · escribe tus notas en otro archivo -->";
+const fmtLocal = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleString("es-MX", { timeZone: TIMEZONE, dateStyle: "medium", timeStyle: "short" }) : "";
+const MESES_MD = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const fmtFecha = (ymd: string | null | undefined) => {
+  if (!ymd) return "";
+  const [y, m, d] = String(ymd).slice(0, 10).split("-").map(Number);
+  return y && m && d ? `${d} ${MESES_MD[m - 1]} ${y}` : String(ymd);
+};
+const hoyLocal = () => new Date().toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+const TIPO_CAPTURA: Record<string, string> = { tarea: "Tarea", proyecto: "Proyecto", idea: "Idea", aprendizaje: "Learn Fast", journal: "Journal", decision: "Decisión", recurso: "Recurso" };
+const IDEA_STATUS: Record<string, string> = { incubando: "Incubando", "algun-dia": "Algún día", graduada: "Graduada", archivada: "Archivada", rechazada: "Rechazada" };
+
 /** Exporta el sistema como colección de archivos Markdown { ruta relativa → contenido }. */
 export async function exportAllMarkdown(): Promise<Record<string, string>> {
   const json = await exportAllJson();
@@ -138,10 +153,137 @@ export async function exportAllMarkdown(): Promise<Record<string, string>> {
   if (d.reviews.length) {
     let md = `# Historial de revisiones\n\n`;
     for (const r of [...d.reviews].sort((a, b) => (b.startedAt < a.startedAt ? -1 : 1))) {
-      md += `- **${r.type}** · ${r.startedAt.slice(0, 16).replace("T", " ")} · ${r.completed ? "completa" : "incompleta"}` +
+      md += `- **${r.type}** · ${fmtLocal(r.startedAt)} · ${r.completed ? "completa" : "incompleta"}` +
         `${r.processed ? ` · ${r.processed} elementos` : ""}${r.summary ? ` — ${mdEscape(r.summary)}` : ""}\n`;
     }
     files["09 - Exportaciones/historial-revisiones.md"] = md;
+  }
+
+  /* ── 05 - Incubadora ── */
+  const learnName = new Map(d.learning.map((l) => [l.id, l.title]));
+  const vinculo = (g: string | null) => {
+    if (!g) return "";
+    const [tipo, gid] = g.split(":");
+    if (tipo === "proyecto") return `proyecto «${projName.get(gid) ?? "?"}»`;
+    if (tipo === "learnfast" || tipo === "aprendizaje") return `Learn Fast «${learnName.get(gid) ?? "?"}»`;
+    return tipo;
+  };
+  if (d.ideas.length) {
+    const conNota = (i: (typeof d.ideas)[number]) => Boolean(mdEscape(i.description)) || Boolean(i.graduatedTo);
+    let idx = `# Incubadora\n\n| Idea | Estado | Categoría | Creada | Última revisión | Vinculada a |\n|---|---|---|---|---|---|\n`;
+    for (const i of [...d.ideas].sort((a, b) => (b.updatedAt < a.updatedAt ? -1 : 1))) {
+      const nombre = conNota(i) ? `[[${slug(i.title)}\\|${i.title}]]` : i.title;
+      idx += `| ${nombre} | ${IDEA_STATUS[i.status] ?? i.status} | ${i.category ?? "general"} | ${fmtLocal(i.createdAt)} | ${fmtLocal(i.updatedAt)} | ${vinculo(i.graduatedTo) || "—"} |\n`;
+    }
+    files["05 - Incubadora/Incubadora.md"] = idx;
+    for (const i of d.ideas.filter(conNota)) {
+      let md = `# ${i.title}\n\n**Estado:** ${IDEA_STATUS[i.status] ?? i.status} · **Categoría:** ${i.category ?? "general"}\n\n`;
+      md += `**Creada:** ${fmtLocal(i.createdAt)} · **Última revisión:** ${fmtLocal(i.updatedAt)}\n\n`;
+      if (i.graduatedTo) md += `**Se convirtió en:** ${vinculo(i.graduatedTo)}\n\n`;
+      if (mdEscape(i.description)) md += `${mdEscape(i.description)}\n\n`;
+      md += `*(ID interno: ${i.id})*\n`;
+      files[`05 - Incubadora/${slug(i.title)}.md`] = md;
+    }
+  }
+
+  /* ── 06 - Inbox ── */
+  if (d.inbox.length) {
+    const nombres: Record<string, Map<string, string>> = {
+      tarea: new Map(d.cards.map((x) => [x.id, x.title])),
+      proyecto: projName,
+      idea: new Map(d.ideas.map((x) => [x.id, x.title])),
+      aprendizaje: learnName,
+      recurso: new Map(d.resources.map((x) => [x.id, x.title])),
+    };
+    const destino = (c: string | null) => {
+      if (!c) return "";
+      if (c === "archivado") return "archivada";
+      const [tipo, cid] = c.split(":");
+      const titulo = nombres[tipo]?.get(cid);
+      return `${TIPO_CAPTURA[tipo] ?? tipo}${titulo ? ` «${titulo}»` : ""}`;
+    };
+    const pendientes = d.inbox.filter((i) => !i.processed).sort((a, b) => (b.createdAt < a.createdAt ? -1 : 1));
+    const procesadas = d.inbox.filter((i) => i.processed && i.convertedTo !== "archivado").sort((a, b) => (b.createdAt < a.createdAt ? -1 : 1)).slice(0, 15);
+    const archivadas = d.inbox.filter((i) => i.convertedTo === "archivado").sort((a, b) => (b.createdAt < a.createdAt ? -1 : 1)).slice(0, 15);
+    let md = `# Inbox pendiente\n\n## Pendientes (${pendientes.length})\n\n`;
+    md += pendientes.length
+      ? pendientes.map((i) => `- **${i.content}**${mdEscape(i.note) ? ` — ${mdEscape(i.note)}` : ""}${i.typeHint ? ` · tipo: ${TIPO_CAPTURA[i.typeHint] ?? i.typeHint}` : ""} · ${fmtLocal(i.createdAt)}`).join("\n") + "\n"
+      : "Inbox en cero. 🌿\n";
+    if (procesadas.length) md += `\n## Procesadas recientemente\n\n` + procesadas.map((i) => `- ~~${i.content}~~ → ${destino(i.convertedTo)} · ${fmtLocal(i.createdAt)}`).join("\n") + "\n";
+    if (archivadas.length) md += `\n## Archivadas\n\n` + archivadas.map((i) => `- ~~${i.content}~~ · ${fmtLocal(i.createdAt)}`).join("\n") + "\n";
+    files["06 - Inbox/Inbox pendiente.md"] = md;
+  }
+
+  /* ── 09 - Prioridades diarias ── */
+  if (d.priorities.length) {
+    const cardById = new Map(d.cards.map((c) => [c.id, c]));
+    const porFecha = new Map<string, typeof d.priorities>();
+    for (const pr of d.priorities) porFecha.set(pr.date, [...(porFecha.get(pr.date) ?? []), pr]);
+    let md = `# Prioridades diarias\n\n`;
+    for (const fecha of [...porFecha.keys()].sort().reverse()) {
+      md += `## ${fmtFecha(fecha)}\n\n`;
+      for (const pr of porFecha.get(fecha)!.sort((a, b) => a.position - b.position)) {
+        const c = cardById.get(pr.cardId);
+        if (!c) { md += `- ${pr.position + 1}. (tarea eliminada)\n`; continue; }
+        const proy = c.projectId ? ` · ${projName.get(c.projectId) ?? ""}` : "";
+        const estado = c.completedAt ? "completada ✓" : c.archived ? "archivada" : "abierta";
+        md += `- ${pr.position + 1}. ${c.completedAt ? "~~" : ""}${c.title}${c.completedAt ? "~~" : ""}${proy} · ${estado}\n`;
+      }
+      md += "\n";
+    }
+    files["09 - Exportaciones/Prioridades diarias.md"] = md;
+  }
+
+  /* ── 09 - Calendario (hora local) ── */
+  if (d.events.length) {
+    const hoy = hoyLocal();
+    const linea = (e: (typeof d.events)[number]) => {
+      const horas = e.startTime ? `${e.startTime}${e.endTime ? `–${e.endTime}` : ""}` : "todo el día";
+      const proy = e.projectId ? ` · ${projName.get(e.projectId) ?? ""}` : "";
+      return `- **${fmtFecha(e.date)}** · ${horas} · ${e.title} (${e.type ?? "evento"})${proy}${mdEscape(e.notes) ? ` — ${mdEscape(e.notes)}` : ""}`;
+    };
+    const proximos = d.events.filter((e) => e.date >= hoy).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const corte = new Date(Date.now() - 30 * 86_400_000).toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+    const pasados = d.events.filter((e) => e.date < hoy && e.date >= corte).sort((a, b) => (b.date < a.date ? -1 : 1)).slice(0, 20);
+    let md = `# Calendario\n\n## Próximos\n\n${proximos.length ? proximos.map(linea).join("\n") + "\n" : "Sin eventos próximos.\n"}`;
+    if (pasados.length) md += `\n## Pasados recientes (30 días)\n\n${pasados.map(linea).join("\n")}\n`;
+    files["09 - Exportaciones/Calendario.md"] = md;
+  }
+
+  /* ── 00 - Tareas sin proyecto (sin duplicar las de proyectos) ── */
+  const sueltas = d.cards.filter((c) => !c.projectId);
+  if (sueltas.length) {
+    const linea = (c: (typeof d.cards)[number], checkbox = true) => {
+      const metas = [
+        c.dueDate && `📅 ${fmtFecha(c.dueDate)}`,
+        durationLabel(c.duration) && `⏱ ${durationLabel(c.duration)}`,
+        energyLabel(c.energy) && `⚡ energía ${energyLabel(c.energy)?.toLowerCase()}`,
+        c.priority === "alta" && "prioridad alta",
+      ].filter(Boolean);
+      let out = checkbox ? `- [${c.completedAt ? "x" : " "}] **${c.title}**` : `- **${c.title}**`;
+      if (metas.length) out += ` · ${metas.join(" · ")}`;
+      const desc = mdEscape(c.description);
+      if (desc) out += `\n  ${desc.split("\n")[0].slice(0, 140)}`;
+      for (const item of c.checklist ?? []) out += `\n  - [${item.done ? "x" : " "}] ${item.text}`;
+      return out;
+    };
+    const abiertas = sueltas.filter((c) => !c.completedAt && !c.archived && !c.waitingFor && !c.blockedReason);
+    const esperando = sueltas.filter((c) => !c.completedAt && !c.archived && c.waitingFor);
+    const bloqueadas = sueltas.filter((c) => !c.completedAt && !c.archived && c.blockedReason && !c.waitingFor);
+    const terminadas = sueltas.filter((c) => c.completedAt && !c.archived).sort((a, b) => ((b.completedAt ?? "") < (a.completedAt ?? "") ? -1 : 1)).slice(0, 20);
+    const archivadasT = sueltas.filter((c) => c.archived).slice(0, 20);
+    let md = `# Tareas sin proyecto\n\n`;
+    if (abiertas.length) md += `## Abiertas (${abiertas.length})\n\n${abiertas.map((c) => linea(c)).join("\n")}\n\n`;
+    if (esperando.length) md += `## Esperando\n\n${esperando.map((c) => `${linea(c)}\n  ⏳ espera a: ${c.waitingFor}`).join("\n")}\n\n`;
+    if (bloqueadas.length) md += `## Bloqueadas\n\n${bloqueadas.map((c) => `${linea(c)}\n  ⛔ ${c.blockedReason}`).join("\n")}\n\n`;
+    if (terminadas.length) md += `## Terminadas recientes\n\n${terminadas.map((c) => linea(c)).join("\n")}\n\n`;
+    if (archivadasT.length) md += `## Archivadas\n\n${archivadasT.map((c) => linea(c, false)).join("\n")}\n`;
+    files["00 - Tareas/Tareas sin proyecto.md"] = md;
+  }
+
+  // Marca de «generado» en todos los archivos administrados
+  for (const k of Object.keys(files)) {
+    files[k] = files[k].trimEnd() + "\n\n" + GENERATED_MARK + "\n";
   }
 
   return files;

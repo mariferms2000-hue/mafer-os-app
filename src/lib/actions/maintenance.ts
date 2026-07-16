@@ -7,7 +7,7 @@ import path from "path";
 import fs from "fs";
 import { db, schema, uid, now, today } from "@/lib/db";
 import { requireAuth, setSetting, getSetting } from "@/lib/auth";
-import { exportAllJson, exportAllMarkdown, SCHEMA_VERSION } from "@/lib/export/exporters";
+import { exportAllJson, exportAllMarkdown, GENERATED_MARK, SCHEMA_VERSION } from "@/lib/export/exporters";
 
 const BACKUPS_DIR = process.env.BACKUPS_PATH ?? path.join(process.cwd(), "..", "backups-and-exports");
 const VAULT_DIR = process.env.OBSIDIAN_VAULT_PATH ?? path.join(process.cwd(), "..", "mafer-os-vault");
@@ -75,6 +75,26 @@ export async function syncObsidianAction(): Promise<{ ok: boolean; notes?: numbe
       return { ok: false, error: `No encuentro el vault en ${VAULT_DIR}` };
     }
     const files = await exportAllMarkdown();
+    // Igual que npm run sync:obsidian: elimina SOLO archivos generados huérfanos
+    // (llevan la marca y su registro ya no existe). Las notas manuales no se tocan.
+    const MANAGED = [
+      "00 - Tareas", "01 - Proyectos", "02 - Decisiones", "03 - Learn Fast", "04 - Journal",
+      "05 - Incubadora", "06 - Agentes y Skills", "06 - Inbox", "07 - Prompts", "08 - Recursos",
+      "09 - Exportaciones",
+    ];
+    const keep = new Set(Object.keys(files));
+    for (const dir of MANAGED) {
+      const fullDir = path.join(VAULT_DIR, dir);
+      if (!fs.existsSync(fullDir)) continue;
+      for (const f of fs.readdirSync(fullDir)) {
+        if (!f.endsWith(".md") || keep.has(`${dir}/${f}`)) continue;
+        try {
+          if (fs.readFileSync(path.join(fullDir, f), "utf8").includes(GENERATED_MARK)) {
+            fs.rmSync(path.join(fullDir, f));
+          }
+        } catch {}
+      }
+    }
     for (const [rel, content] of Object.entries(files)) {
       const full = path.join(VAULT_DIR, rel);
       fs.mkdirSync(path.dirname(full), { recursive: true });

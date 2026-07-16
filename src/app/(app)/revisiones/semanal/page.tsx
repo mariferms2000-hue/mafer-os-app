@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { CalendarRange } from "lucide-react";
 import { db, today, schema } from "@/lib/db";
 import { getSetting } from "@/lib/auth";
@@ -210,7 +210,9 @@ export default async function RevisionSemanalPage({
   } else {
     // Paso 6 — próxima semana
     const open = (await openCards()).filter((c) => !c.completedAt);
-    const en7 = new Date(Date.now() + 7 * 86_400_000).toLocaleDateString("en-CA");
+    const dentroDe7 = new Date(`${d}T12:00:00`);
+    dentroDe7.setDate(dentroDe7.getDate() + 7);
+    const en7 = dentroDe7.toLocaleDateString("en-CA");
     const proximas = open
       .filter((c) => c.dueDate && c.dueDate >= d && c.dueDate <= en7)
       .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));

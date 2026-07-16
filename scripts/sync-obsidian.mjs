@@ -9,7 +9,7 @@
  */
 import path from "node:path";
 import fs from "node:fs";
-import { openDb, dumpAll, toMarkdownFiles, writeFiles, SCHEMA_VERSION } from "./lib-export.mjs";
+import { openDb, dumpAll, toMarkdownFiles, writeFiles, fmtLocal, TIMEZONE, SCHEMA_VERSION } from "./lib-export.mjs";
 
 const VAULT = process.env.OBSIDIAN_VAULT_PATH ?? path.join(process.cwd(), "..", "mafer-os-vault");
 if (!fs.existsSync(VAULT)) {
@@ -22,7 +22,7 @@ const dump = dumpAll(db);
 const files = toMarkdownFiles(dump);
 
 files["09 - Exportaciones/ultima-sincronizacion.md"] =
-  `# Última sincronización\n\n- Fecha: ${dump.exportedAt}\n- Versión de esquema: ${SCHEMA_VERSION}\n\n` +
+  `# Última sincronización\n\n- Fecha: ${fmtLocal(dump.exportedAt)} (${TIMEZONE})\n- Versión de esquema: ${SCHEMA_VERSION}\n\n` +
   Object.entries(dump.counts).map(([k, v]) => `- ${k}: ${v}`).join("\n") + "\n";
 
 writeFiles(VAULT, files);
