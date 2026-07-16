@@ -48,7 +48,7 @@ export function NewTaskModal({
 
   return (
     <div
-      className="fixed inset-0 z-[55] bg-charcoal/30 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="presentation"
     >
@@ -56,7 +56,7 @@ export function NewTaskModal({
         role="dialog"
         aria-modal="true"
         aria-label="Nueva tarea"
-        className="card w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
+        className="card card-raised w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg text-forest-deep">{created ? "Clasificar (opcional)" : "Nueva tarea"}</h2>

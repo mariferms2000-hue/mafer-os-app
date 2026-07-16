@@ -189,7 +189,7 @@ export function TasksToolbar({
       {/* Panel Filtrar: lateral en desktop, bottom sheet en móvil */}
       {panelOpen && (
         <div
-          className="fixed inset-0 z-[55] bg-charcoal/30 backdrop-blur-sm flex items-end md:items-stretch md:justify-end"
+          className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-stretch md:justify-end"
           onClick={(e) => e.target === e.currentTarget && setPanelOpen(false)}
           role="presentation"
         >
@@ -197,7 +197,7 @@ export function TasksToolbar({
             role="dialog"
             aria-modal="true"
             aria-label="Filtrar tareas"
-            className="card w-full md:w-[380px] md:h-full max-h-[92dvh] md:max-h-none overflow-y-auto rounded-b-none md:rounded-none md:rounded-l-[18px] p-5 pb-safe"
+            className="card card-raised w-full md:w-[380px] md:h-full max-h-[92dvh] md:max-h-none overflow-y-auto rounded-b-none md:rounded-none md:rounded-l-[18px] p-5 pb-safe"
             data-testid="filters-panel"
           >
             <div className="flex items-center justify-between mb-4">
@@ -246,7 +246,7 @@ export function TasksToolbar({
                             x: active ? d.x.filter((v) => v !== value) : [...d.x, value],
                           }))
                         }
-                        className={`chip !min-h-8 transition-colors ${active ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+                        className={`chip !min-h-8 transition-colors ${active ? "chip-on" : "hover:bg-sand"}`}
                       >
                         {label}
                       </button>

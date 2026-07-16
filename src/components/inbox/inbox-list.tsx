@@ -61,7 +61,7 @@ export function InboxList({ items, projects }: { items: Item[]; projects: Projec
       )}
       {classify && (
         <div
-          className="fixed inset-0 z-[55] bg-charcoal/30 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
+          className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
           onClick={(e) => e.target === e.currentTarget && setClassify(null)}
           role="presentation"
         >
@@ -69,7 +69,7 @@ export function InboxList({ items, projects }: { items: Item[]; projects: Projec
             role="dialog"
             aria-modal="true"
             aria-label="Clasificar la tarea"
-            className="card w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
+            className="card card-raised w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
           >
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg text-forest-deep">Convertida en tarea ✓</h2>
@@ -208,7 +208,7 @@ function ProcessPanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-charcoal/30 backdrop-blur-sm flex items-end md:items-stretch md:justify-end"
+      className="fixed inset-0 z-50 overlay-screen flex items-end md:items-stretch md:justify-end"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="presentation"
     >
@@ -216,7 +216,7 @@ function ProcessPanel({
         role="dialog"
         aria-modal="true"
         aria-label={`Procesar «${item.content}»`}
-        className="card w-full md:w-[440px] md:h-full max-h-[92dvh] md:max-h-none overflow-y-auto rounded-b-none md:rounded-none md:rounded-l-[18px] p-5 pb-safe"
+        className="card card-raised w-full md:w-[440px] md:h-full max-h-[92dvh] md:max-h-none overflow-y-auto rounded-b-none md:rounded-none md:rounded-l-[18px] p-5 pb-safe"
         data-testid="process-panel"
       >
         <div className="flex items-center justify-between mb-4">

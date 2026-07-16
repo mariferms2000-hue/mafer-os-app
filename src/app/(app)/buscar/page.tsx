@@ -99,7 +99,7 @@ export default async function BuscarPage({
             <Link
               key={c.key}
               href={`/buscar?q=${encodeURIComponent(q)}${c.key ? `&cat=${c.key}` : ""}`}
-              className={`chip ${cat === c.key ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+              className={`chip ${cat === c.key ? "chip-on" : "hover:bg-sand"}`}
             >
               {c.label}
             </Link>

@@ -91,7 +91,7 @@ export default async function RecursosPage({
           <option value="archivado">Archivado</option>
         </select>
         <button type="submit" className="btn btn-secondary !min-h-9 text-sm">Filtrar</button>
-        <Link href="/biblioteca/recursos?fav=1" className={`chip self-center ${fav ? "!bg-forest !text-cream" : "hover:bg-sand"}`}>
+        <Link href="/biblioteca/recursos?fav=1" className={`chip self-center ${fav ? "chip-on" : "hover:bg-sand"}`}>
           <Star size={11} aria-hidden /> Favoritos
         </Link>
       </form>

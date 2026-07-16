@@ -150,7 +150,7 @@ export function NextActionPicker({
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-charcoal/40 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-[60] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="presentation"
     >
@@ -158,7 +158,7 @@ export function NextActionPicker({
         role="dialog"
         aria-modal="true"
         aria-label="Elegir siguiente acción"
-        className="card w-full md:max-w-md max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
+        className="card card-raised w-full md:max-w-md max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
         data-testid="next-action-picker"
       >
         <div className="flex items-center justify-between mb-2">

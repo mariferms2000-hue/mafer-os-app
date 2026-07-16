@@ -131,7 +131,7 @@ export function LearningWorkspace({ topic, resources }: { topic: Topic; resource
                   id={`ex-${ex.id}`}
                   checked={ex.done}
                   onChange={() => saveExercises(exercises.map((i) => (i.id === ex.id ? { ...i, done: !i.done } : i)))}
-                  className="h-4 w-4 accent-[#45573f]"
+                  className="h-4 w-4"
                 />
                 <label htmlFor={`ex-${ex.id}`} className={`text-sm flex-1 ${ex.done ? "line-through text-stone-soft" : ""}`}>
                   {ex.text}

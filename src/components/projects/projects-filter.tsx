@@ -50,7 +50,7 @@ export function ProjectsFilter({ f, area, atencion }: { f: string; area: string;
           key={fl.key}
           type="button"
           onClick={() => router.push(url(fl.key, area))}
-          className={`chip transition-colors ${f === fl.key ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+          className={`chip transition-colors ${f === fl.key ? "chip-on" : "hover:bg-sand"}`}
           aria-pressed={f === fl.key}
           data-testid={`pf-${fl.key}`}
         >
@@ -62,7 +62,7 @@ export function ProjectsFilter({ f, area, atencion }: { f: string; area: string;
       <div className="relative" ref={ref}>
         <button
           type="button"
-          className={`chip transition-colors ${enMas ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+          className={`chip transition-colors ${enMas ? "chip-on" : "hover:bg-sand"}`}
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           data-testid="pf-more"

@@ -14,7 +14,7 @@ export function NewProjectButton({ autoOpen = false }: { autoOpen?: boolean }) {
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-50 bg-charcoal/30 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
+          className="fixed inset-0 z-50 overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
           role="presentation"
         >
@@ -22,7 +22,7 @@ export function NewProjectButton({ autoOpen = false }: { autoOpen?: boolean }) {
             role="dialog"
             aria-modal="true"
             aria-label="Nuevo proyecto"
-            className="card w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
+            className="card card-raised w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
           >
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg text-forest-deep">Nuevo proyecto</h2>

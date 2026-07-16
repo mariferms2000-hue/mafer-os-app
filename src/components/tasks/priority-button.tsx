@@ -67,7 +67,7 @@ export function MarkPriorityButton({ cardId, className }: { cardId: string; clas
 
       {full && (
         <div
-          className="fixed inset-0 z-[60] bg-charcoal/40 backdrop-blur-sm flex items-center justify-center p-6"
+          className="fixed inset-0 z-[60] overlay-screen flex items-center justify-center p-6"
           onClick={(e) => e.target === e.currentTarget && setFull(null)}
           role="presentation"
         >
@@ -75,7 +75,7 @@ export function MarkPriorityButton({ cardId, className }: { cardId: string; clas
             role="dialog"
             aria-modal="true"
             aria-label="Reemplazar una prioridad"
-            className="card w-full max-w-sm p-5"
+            className="card card-raised w-full max-w-sm p-5"
             data-testid="priority-replace-dialog"
           >
             <div className="flex items-center justify-between mb-2">

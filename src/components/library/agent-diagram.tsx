@@ -37,25 +37,25 @@ export function AgentDiagram({ agents }: { agents: Agent[] }) {
         <svg viewBox="0 0 800 430" className="w-full min-w-[560px]" role="group" aria-label="Diagrama del sistema de agentes MACA">
           {/* flechas del orquestador al pipeline */}
           {["maca-researcher", "maca-content-strategist", "maca-calm-authority-writer", "maca-clinical-brand-auditor"].map((n) => (
-            <line key={n} x1={400} y1={80} x2={POS[n].x} y2={POS[n].y - 32} stroke="#d4c5a9" strokeWidth="1.5" strokeDasharray="4 4" />
+            <line key={n} x1={400} y1={80} x2={POS[n].x} y2={POS[n].y - 32} stroke="var(--color-sand-deep)" strokeWidth="1.5" strokeDasharray="4 4" />
           ))}
           {/* pipeline principal */}
           {FLOW.map(([a, b]) => (
             <g key={`${a}-${b}`}>
               <line x1={POS[a].x + (POS[a].y === POS[b].y ? 62 : 0)} y1={POS[a].y === POS[b].y ? POS[a].y : POS[a].y - 32}
                 x2={POS[b].x - (POS[a].y === POS[b].y ? 70 : 0)} y2={POS[a].y === POS[b].y ? POS[b].y : POS[b].y + 32}
-                stroke="#7c9473" strokeWidth="2" markerEnd="url(#arrow)" />
+                stroke="var(--color-sage-deep)" strokeWidth="2" markerEnd="url(#arrow)" />
             </g>
           ))}
           <defs>
             <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-              <path d="M0,0 L8,4 L0,8 Z" fill="#7c9473" />
+              <path d="M0,0 L8,4 L0,8 Z" fill="var(--color-sage-deep)" />
             </marker>
           </defs>
-          <text x={400} y={130} textAnchor="middle" fontSize="11" fill="#7c766a">
+          <text x={400} y={130} textAnchor="middle" fontSize="11" fill="var(--color-stone)">
             pipeline de contenido → (investigar → planear → redactar → auditar)
           </text>
-          <text x={400} y={415} textAnchor="middle" fontSize="11" fill="#7c766a">
+          <text x={400} y={415} textAnchor="middle" fontSize="11" fill="var(--color-stone)">
             especialistas de apoyo (se usan directo cuando los necesitas)
           </text>
           {Object.entries(POS).map(([name, p]) => {
@@ -72,14 +72,14 @@ export function AgentDiagram({ agents }: { agents: Agent[] }) {
                 onKeyDown={(e) => e.key === "Enter" && agent && setSelectedId(isSel ? null : agent.id)}
               >
                 <rect x={p.x - 62} y={p.y - 30} width={124} height={60} rx={14}
-                  fill={isSel ? "#45573f" : name === "maca-orchestrator" ? "#dde5d6" : "#fdfcf8"}
-                  stroke={isSel ? "#45573f" : "#d4c5a9"} strokeWidth="1.5" />
+                  fill={isSel ? "var(--color-forest)" : name === "maca-orchestrator" ? "var(--color-sage-soft)" : "var(--color-paper)"}
+                  stroke={isSel ? "var(--color-forest)" : "var(--color-sand-deep)"} strokeWidth="1.5" />
                 <text x={p.x} y={p.y - 4} textAnchor="middle" fontSize="13" fontWeight="600"
-                  fill={isSel ? "#faf7f1" : "#324230"}>
+                  fill={isSel ? "var(--color-cream)" : "var(--color-forest-deep)"}>
                   {p.short}
                 </text>
                 <text x={p.x} y={p.y + 14} textAnchor="middle" fontSize="9"
-                  fill={isSel ? "#dde5d6" : "#7c766a"}>
+                  fill={isSel ? "var(--color-sage-soft)" : "var(--color-stone)"}>
                   {name.replace("maca-", "")}
                 </text>
               </g>

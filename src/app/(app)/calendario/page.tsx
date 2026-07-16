@@ -197,7 +197,7 @@ export default async function CalendarioPage({
           { k: "mes", label: "Mes" },
           { k: "agenda", label: "Agenda" },
         ].map((v) => (
-          <Link key={v.k} href={keep({ vista: v.k })} data-testid={`vista-${v.k}`} className={`chip ${vista === v.k ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}>
+          <Link key={v.k} href={keep({ vista: v.k })} data-testid={`vista-${v.k}`} className={`chip ${vista === v.k ? "chip-on" : "hover:bg-sand"}`}>
             {v.label}
           </Link>
         ))}
@@ -209,7 +209,7 @@ export default async function CalendarioPage({
           { k: "recordatorio", label: "Recordatorios" },
           { k: "tareas", label: "Tareas" },
         ].map((t) => (
-          <Link key={t.k} href={keep({ tipo: t.k })} className={`chip ${tipo === t.k ? "!bg-olive !text-cream !border-olive" : "hover:bg-sand"}`}>
+          <Link key={t.k} href={keep({ tipo: t.k })} className={`chip ${tipo === t.k ? "chip-on-alt" : "hover:bg-sand"}`}>
             {t.label}
           </Link>
         ))}

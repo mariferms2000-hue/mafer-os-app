@@ -46,8 +46,8 @@ export function TaskDetailModal({ cardId, onClose }: { cardId: string; onClose: 
 
   if (!data) {
     return (
-      <div className="fixed inset-0 z-[55] bg-charcoal/30 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6" role="presentation">
-        <div role="dialog" aria-modal="true" aria-label="Cargando tarea" className="card w-full md:max-w-3xl p-6 rounded-b-none md:rounded-b-[18px]" data-testid="card-detail">
+      <div className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6" role="presentation">
+        <div role="dialog" aria-modal="true" aria-label="Cargando tarea" className="card card-raised w-full md:max-w-3xl p-6 rounded-b-none md:rounded-b-[18px]" data-testid="card-detail">
           <p className="text-sm text-stone">Abriendo tarea…</p>
         </div>
       </div>
@@ -196,7 +196,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
 
   return (
     <div
-      className="fixed inset-0 z-[55] bg-charcoal/30 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && attemptClose()}
       role="presentation"
     >
@@ -204,7 +204,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle de «${card.title}»`}
-        className="card w-full md:max-w-3xl max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 md:p-6 pb-safe"
+        className="card card-raised w-full md:max-w-3xl max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 md:p-6 pb-safe"
         data-testid="card-detail"
       >
         <div className="flex items-start justify-between gap-3 mb-4">
@@ -266,7 +266,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                           onChange={() =>
                             saveChecklist(checklist.map((i) => (i.id === item.id ? { ...i, done: !i.done } : i)))
                           }
-                          className="h-4 w-4 accent-[#45573f] shrink-0"
+                          className="h-4 w-4 shrink-0"
                         />
                         <input
                           className={`text-sm flex-1 bg-transparent border-0 focus:outline-none focus:bg-beige/60 rounded px-1 -mx-1 ${item.done ? "line-through text-stone-soft" : ""}`}
@@ -397,7 +397,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                     aria-checked={!projectId}
                     data-testid="project-none"
                     onClick={() => pickProject(null)}
-                    className={`chip transition-colors ${!projectId ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+                    className={`chip transition-colors ${!projectId ? "chip-on" : "hover:bg-sand"}`}
                   >
                     Sin proyecto
                   </button>
@@ -409,7 +409,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                       aria-checked={projectId === p.id}
                       data-testid={`project-${p.id}`}
                       onClick={() => pickProject(p.id)}
-                      className={`chip transition-colors ${projectId === p.id ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+                      className={`chip transition-colors ${projectId === p.id ? "chip-on" : "hover:bg-sand"}`}
                     >
                       {p.title}
                     </button>
@@ -432,7 +432,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                           setDirty(true);
                           setColumnId(c.id);
                         }}
-                        className={`chip transition-colors ${columnId === c.id ? "!bg-olive !text-cream !border-olive" : "hover:bg-sand"}`}
+                        className={`chip transition-colors ${columnId === c.id ? "chip-on-alt" : "hover:bg-sand"}`}
                       >
                         {c.title}
                       </button>
@@ -630,7 +630,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
 
         {/* Aviso de cambios sin guardar (nada de alertas nativas) */}
         {confirmClose && (
-          <div className="fixed inset-0 z-[60] bg-charcoal/40 backdrop-blur-[2px] flex items-center justify-center p-6" data-testid="unsaved-warning">
+          <div className="fixed inset-0 z-[60] overlay-screen flex items-center justify-center p-6" data-testid="unsaved-warning">
             <div className="card p-5 max-w-sm text-center flex flex-col gap-3">
               <p className="text-sm font-medium">Tienes cambios sin guardar</p>
               <p className="text-xs text-stone">Si cierras ahora, se perderán los cambios que no guardaste.</p>

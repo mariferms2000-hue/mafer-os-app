@@ -76,7 +76,7 @@ export function QuickViews({ base }: { base: ToolbarState }) {
       key={key}
       type="button"
       onClick={() => router.push(buildHref(key))}
-      className={`chip transition-colors ${current === key ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+      className={`chip transition-colors ${current === key ? "chip-on" : "hover:bg-sand"}`}
       aria-pressed={current === key}
       data-testid={`view-${key}`}
     >
@@ -94,7 +94,7 @@ export function QuickViews({ base }: { base: ToolbarState }) {
           type="button"
           className={`chip transition-colors ${
             MORE_VIEWS.some((v) => v.key === current && !favs.includes(v.key))
-              ? "!bg-forest !text-cream !border-forest"
+              ? "chip-on"
               : "hover:bg-sand"
           }`}
           onClick={() => setOpen((o) => !o)}

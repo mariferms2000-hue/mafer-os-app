@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import fs from "fs";
+import path from "path";
 
 const PASSWORD = "prueba-mafer-123";
 
@@ -236,11 +238,41 @@ test("safari/webkit: prioridad con feedback y toast legible en modo oscuro", asy
     const s = getComputedStyle(el);
     return { bg: s.backgroundColor, fg: s.color };
   });
-  expect(css.bg).toBe("rgb(34, 49, 34)");
-  expect(css.fg).toBe("rgb(242, 236, 223)");
+  expect(css.bg).toBe("rgb(36, 48, 31)");
+  expect(css.fg).toBe("rgb(242, 236, 220)");
   await toast.getByRole("button", { name: "Deshacer" }).click();
   await page.goto("/ajustes");
   await page.getByTestId("theme-light").click();
+});
+
+test("safari/webkit: modo oscuro — niveles de profundidad y chip activo legible (captura)", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("mafer-theme", "dark"));
+  await page.goto("/login");
+  await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL("/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(16, 21, 14)");
+  const card = page.locator(".card:not(.card-raised)").first();
+  expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(26, 33, 23)");
+
+  await page.goto("/tareas");
+  const activo = page.getByTestId("view-ahora");
+  const css = await activo.evaluate((el) => {
+    const s = getComputedStyle(el);
+    return { bg: s.backgroundColor, fg: s.color };
+  });
+  expect(css.bg).toBe("rgb(147, 175, 128)");
+  expect(css.fg).toBe("rgb(19, 26, 14)");
+
+  const qa = path.join(__dirname, "..", "docs", "qa", "phase-6a-dark-system", "12-safari-oscuro.png");
+  fs.mkdirSync(path.dirname(qa), { recursive: true });
+  await page.screenshot({ path: qa, fullPage: false });
+
+  await page.goto("/ajustes");
+  await page.getByTestId("theme-light").click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
 
 test("safari/webkit: clic físico en una fila de Tareas abre el detalle y persiste", async ({ page }, testInfo) => {

@@ -90,7 +90,7 @@ export function NewCapturePanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-charcoal/30 backdrop-blur-sm flex items-end md:items-stretch md:justify-end"
+      className="fixed inset-0 z-50 overlay-screen flex items-end md:items-stretch md:justify-end"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="presentation"
     >
@@ -98,7 +98,7 @@ export function NewCapturePanel({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Nueva captura"
-        className="card w-full md:w-[420px] md:h-full max-h-[92dvh] md:max-h-none overflow-y-auto rounded-b-none md:rounded-none md:rounded-l-[20px] p-5 pb-safe"
+        className="card card-raised w-full md:w-[420px] md:h-full max-h-[92dvh] md:max-h-none overflow-y-auto rounded-b-none md:rounded-none md:rounded-l-[20px] p-5 pb-safe"
         data-testid="new-capture-panel"
       >
         <div className="flex items-center justify-between mb-4">

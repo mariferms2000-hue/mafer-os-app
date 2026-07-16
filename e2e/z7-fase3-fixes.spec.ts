@@ -167,8 +167,8 @@ test("toasts legibles en modo oscuro (éxito e información) y en claro", async 
     const s = getComputedStyle(el);
     return { bg: s.backgroundColor, fg: s.color };
   });
-  expect(css.bg).toBe("rgb(34, 49, 34)"); // superficie verde bosque elevada, nada de crema
-  expect(css.fg).toBe("rgb(242, 236, 223)"); // texto crema legible
+  expect(css.bg).toBe("rgb(36, 48, 31)"); // superficie verde bosque elevada, nada de crema
+  expect(css.fg).toBe("rgb(242, 236, 220)"); // texto crema legible
   expect(css.bg).not.toBe(css.fg);
   await expect(toastOscuro.getByRole("button", { name: "Deshacer" })).toBeVisible();
   await shot(page, "03-toast-oscuro");

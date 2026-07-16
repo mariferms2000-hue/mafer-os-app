@@ -74,7 +74,7 @@ export function CaptureFab({ projects }: { projects: ProjectOption[] }) {
 
       {menu && (
         <div
-          className="fixed inset-0 z-40 bg-charcoal/20"
+          className="fixed inset-0 z-40 overlay-screen"
           onClick={() => setMenu(false)}
           role="presentation"
         >
@@ -131,7 +131,7 @@ function CaptureModal({ projects, onClose }: { projects: ProjectOption[]; onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-charcoal/30 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-50 overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="presentation"
     >
@@ -139,7 +139,7 @@ function CaptureModal({ projects, onClose }: { projects: ProjectOption[]; onClos
         role="dialog"
         aria-modal="true"
         aria-label="Capturar en el Inbox"
-        className="card w-full md:max-w-lg rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
+        className="card card-raised w-full md:max-w-lg rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg text-forest-deep">Capturar</h2>

@@ -39,6 +39,26 @@
 
   --color-card-border: #ece3d3;
 
+  /* ── Capa semántica (Fase 6A) — claro conserva la apariencia actual ── */
+  --color-sidebar: #f8f4ec;            /* fondo de la navegación lateral */
+  --color-raised: #fdfcf8;             /* superficie nivel 3 (modales, foco) */
+  --color-surface-hover: #f1eadd;      /* hover de superficies interactivas */
+  --color-input-bg: #fdfcf8;           /* campos de texto */
+  --color-overlay: rgb(46 43 37 / 0.30);
+  --color-border-strong: #d4c5a9;
+  --color-border-focus: #7c9473;
+  --color-link: #45573f;
+  --color-btn-primary-bg: #45573f;
+  --color-btn-primary-fg: #faf7f1;
+  --color-btn-primary-hover: #324230;
+  --color-chip-on-bg: #45573f;         /* chip/filtro activo */
+  --color-chip-on-fg: #faf7f1;
+  --color-chip-on-alt-bg: #6d7a54;
+  --color-chip-on-alt-fg: #faf7f1;
+  --color-selection-bg: #a9bca0;
+  --color-selection-fg: #324230;
+  --shadow-glow: var(--shadow-lift);   /* en claro no hay glow: misma sombra */
+
   /* Toasts: superficie propia con tokens por tono (nunca colores sueltos) */
   --color-toast-bg: #2e2b25;
   --color-toast-fg: #faf7f1;
@@ -60,42 +80,73 @@
 html[data-theme="dark"] {
   color-scheme: dark;
 
-  --color-cream: #171c15;
-  --color-paper: #1f2519;
-  --color-beige: #262d20;
-  --color-sand: #343d2d;
-  --color-card-border: #2b3325;
-  --color-sand-deep: #4f5946;
-  --color-sage-soft: #35402e;
-  --color-sage: #5f7254;
-  --color-sage-deep: #8fa982;
-  --color-olive: #a3b585;
-  --color-forest: #9dbb8d;
-  --color-forest-deep: #b7cfa9;
-  --color-stone: #aaa496;
-  --color-stone-soft: #7f7a6e;
-  --color-charcoal: #ece6d9;
-  --color-ink-green: #c8d4bb;
+  /* Nivel 1: bosque casi negro (nunca negro puro) */
+  --color-cream: #10150e;
+  --color-sidebar: #0d120c;
+  /* Nivel 2: superficies de tarjeta, un paso más de luz */
+  --color-paper: #1a2117;
+  /* Nivel 3: elevado — modales, «Haz esto ahora», acciones críticas */
+  --color-raised: #212a1e;
+  --color-surface-hover: #27321f;
+  --color-input-bg: #141a11;
+  --color-overlay: rgb(5 8 4 / 0.62);
 
-  --color-blocked: #d38f7b;
-  --color-blocked-soft: #453029;
-  --color-waiting: #d7b377;
-  --color-waiting-soft: #433b29;
-  --color-done: #a5c497;
-  --color-done-soft: #2e3a29;
+  /* Fondos suaves y bordes en tres pesos */
+  --color-beige: #232b1d;
+  --color-card-border: #262f1f;      /* sutil */
+  --color-sand: #33402a;             /* normal */
+  --color-border-strong: #566349;    /* fuerte */
+  --color-sand-deep: #566349;
+  --color-border-focus: #a5c294;
 
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.30), 0 6px 22px rgb(0 0 0 / 0.25);
-  --shadow-lift: 0 2px 8px rgb(0 0 0 / 0.40), 0 14px 36px rgb(0 0 0 / 0.35);
+  /* Verdes de identidad, ahora con jerarquía luminosa */
+  --color-sage-soft: #2d3a24;
+  --color-sage: #708560;
+  --color-sage-deep: #9db88d;        /* íconos e interactivo */
+  --color-olive: #b5c68c;            /* acento arena-oliva */
+  --color-forest: #abc897;           /* enlaces y acentos de texto */
+  --color-forest-deep: #d0dfbb;      /* títulos fuertes */
+  --color-link: #abc897;
 
-  /* Toast en oscuro: superficie verde bosque elevada, texto crema legible */
-  --color-toast-bg: #223122;
-  --color-toast-fg: #f2ecdf;
-  --color-toast-muted: #b9c4ac;
-  --color-toast-border: #3b4d39;
-  --color-toast-ok: #a5c497;
-  --color-toast-info: #9fb4c0;
-  --color-toast-warn: #d7b377;
-  --color-toast-error: #d38f7b;
+  /* Texto: crema cálido, tres niveles legibles (nada de blanco puro) */
+  --color-charcoal: #f1ebdb;         /* principal */
+  --color-stone: #b7b2a2;            /* secundario */
+  --color-stone-soft: #948e7d;       /* tenue */
+  --color-ink-green: #d8e2c6;
+
+  /* Acción primaria: verde luminoso reservado para lo importante */
+  --color-btn-primary-bg: #a9c79a;
+  --color-btn-primary-fg: #131a0e;
+  --color-btn-primary-hover: #bcd6aa;
+  --color-chip-on-bg: #93af80;
+  --color-chip-on-fg: #131a0e;
+  --color-chip-on-alt-bg: #b5c68c;
+  --color-chip-on-alt-fg: #191d10;
+  --color-selection-bg: #3c4a2f;
+  --color-selection-fg: #eef4de;
+
+  /* Estados apagados pero distinguibles */
+  --color-blocked: #de9b85;
+  --color-blocked-soft: #402c24;
+  --color-waiting: #dcba7e;
+  --color-waiting-soft: #3a3322;
+  --color-done: #adc99a;
+  --color-done-soft: #2a3a23;
+
+  /* Profundidad: sombras reales + glow discreto solo para foco */
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.45), 0 8px 24px rgb(0 0 0 / 0.30);
+  --shadow-lift: 0 2px 10px rgb(0 0 0 / 0.50), 0 16px 40px rgb(0 0 0 / 0.40);
+  --shadow-glow: 0 0 0 1px rgb(169 199 149 / 0.25), 0 10px 34px rgb(0 0 0 / 0.45), 0 0 28px rgb(169 199 149 / 0.10);
+
+  /* Toast: superficie elevada de bosque, texto crema */
+  --color-toast-bg: #24301f;
+  --color-toast-fg: #f2ecdc;
+  --color-toast-muted: #bcc6ad;
+  --color-toast-border: #3e4d33;
+  --color-toast-ok: #abc998;
+  --color-toast-info: #a3b8c4;
+  --color-toast-warn: #dcba7e;
+  --color-toast-error: #de9b85;
 }
 
 html {
@@ -117,8 +168,8 @@ h1, h2, h3, .font-display {
 }
 
 ::selection {
-  background: var(--color-sage);
-  color: var(--color-forest-deep);
+  background: var(--color-selection-bg);
+  color: var(--color-selection-fg);
 }
 
 /* Componentes base */
@@ -128,6 +179,41 @@ h1, h2, h3, .font-display {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-soft);
 }
+
+/* Nivel 3: superficies elevadas (modales, paneles, foco principal) */
+.card-raised {
+  background: var(--color-raised);
+  border-color: var(--color-sand);
+  box-shadow: var(--shadow-lift);
+}
+
+/* Velo de pantalla para modales y paneles (independiente del texto) */
+.overlay-screen {
+  background: var(--color-overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Chip / filtro / vista ACTIVA — legible en ambos temas */
+.chip-on {
+  background: var(--color-chip-on-bg) !important;
+  color: var(--color-chip-on-fg) !important;
+  border-color: transparent !important;
+  font-weight: 600;
+}
+.chip-on-alt {
+  background: var(--color-chip-on-alt-bg) !important;
+  color: var(--color-chip-on-alt-fg) !important;
+  border-color: transparent !important;
+  font-weight: 600;
+}
+
+/* Navegación lateral con superficie propia */
+.sidebar-surface { background: var(--color-sidebar); }
+html[data-theme="dark"] .nav-active { box-shadow: inset 3px 0 0 var(--color-sage-deep); }
+
+/* Glow discreto: solo para el foco principal (Haz esto ahora, elementos críticos) */
+.glow-focus { box-shadow: var(--shadow-glow); }
 
 /* Etiqueta de sección al estilo editorial: pequeña, espaciada, serena */
 .section-eyebrow {
@@ -175,8 +261,8 @@ h1, h2, h3, .font-display {
   min-height: 40px;
 }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: var(--color-forest); color: var(--color-cream); }
-.btn-primary:hover { background: var(--color-forest-deep); }
+.btn-primary { background: var(--color-btn-primary-bg); color: var(--color-btn-primary-fg); font-weight: 600; }
+.btn-primary:hover { background: var(--color-btn-primary-hover); }
 .btn-secondary { background: var(--color-beige); color: var(--color-forest-deep); border-color: var(--color-sand); }
 .btn-secondary:hover { background: var(--color-sand); }
 .btn-ghost { background: transparent; color: var(--color-stone); }
@@ -186,7 +272,7 @@ h1, h2, h3, .font-display {
 
 .input, .select, .textarea {
   width: 100%;
-  background: var(--color-paper);
+  background: var(--color-input-bg);
   border: 1px solid var(--color-sand);
   border-radius: var(--radius-soft);
   padding: 0.55rem 0.85rem;
@@ -218,9 +304,9 @@ input[type="date"], input[type="time"] {
   -webkit-appearance: none;
 }
 .input:focus, .select:focus, .textarea:focus {
-  outline: 2px solid var(--color-sage-deep);
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 1px;
-  border-color: var(--color-sage-deep);
+  border-color: var(--color-border-focus);
 }
 .input::placeholder, .textarea::placeholder { color: var(--color-stone-soft); }
 
@@ -254,7 +340,7 @@ input[type="date"], input[type="time"] {
 
 /* Foco visible accesible en todo */
 a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
-  outline: 2px solid var(--color-sage-deep);
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
   border-radius: 6px;
 }

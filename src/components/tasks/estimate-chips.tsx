@@ -29,7 +29,7 @@ function ChipGroup({
             aria-checked={active}
             data-testid={`${testPrefix}-${o.value}`}
             onClick={() => onChange(o.value)}
-            className={`chip !min-h-8 transition-colors ${active ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"}`}
+            className={`chip !min-h-8 transition-colors ${active ? "chip-on" : "hover:bg-sand"}`}
           >
             {o.label}
           </button>
@@ -41,7 +41,7 @@ function ChipGroup({
         aria-checked={value === null}
         data-testid={`${testPrefix}-none`}
         onClick={() => onChange(null)}
-        className={`chip !min-h-8 transition-colors ${value === null ? "!bg-olive !text-cream !border-olive" : "hover:bg-sand"}`}
+        className={`chip !min-h-8 transition-colors ${value === null ? "chip-on-alt" : "hover:bg-sand"}`}
       >
         Sin estimar
       </button>

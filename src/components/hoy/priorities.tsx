@@ -201,7 +201,7 @@ export function EnergySelector({ current }: { current: string }) {
             })
           }
           className={`chip transition-colors ${
-            current === o.v ? "!bg-forest !text-cream !border-forest" : "hover:bg-sand"
+            current === o.v ? "chip-on" : "hover:bg-sand"
           }`}
         >
           {o.label}

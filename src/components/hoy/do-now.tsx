@@ -19,7 +19,7 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
 
   if (items.length === 0) {
     return (
-      <section aria-labelledby="haz-ahora" className="card p-5 !border-sage-deep border-2" data-testid="do-now">
+      <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-5 !border-sage-deep border-2" data-testid="do-now">
         <h2 id="haz-ahora" className="text-lg text-forest-deep flex items-center gap-2 mb-1">
           <Target size={18} className="text-olive" aria-hidden /> Haz esto ahora
         </h2>
@@ -62,7 +62,7 @@ export function DoNow({ items }: { items: { card: CardRow; reasons: string[] }[]
   }
 
   return (
-    <section aria-labelledby="haz-ahora" className="card p-5 !border-sage-deep border-2" data-testid="do-now">
+    <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-5 !border-sage-deep border-2" data-testid="do-now">
       <div className="flex items-center justify-between mb-2">
         <h2 id="haz-ahora" className="text-lg text-forest-deep flex items-center gap-2">
           <Target size={18} className="text-olive" aria-hidden /> Haz esto ahora

@@ -78,7 +78,7 @@ function useSectionMemory() {
 function SidebarInner() {
   const { pathname, onNavClick } = useSectionMemory();
   return (
-    <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-sand bg-paper/60 px-4 py-6 sticky top-0 h-dvh">
+    <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-sand sidebar-surface px-4 py-6 sticky top-0 h-dvh">
       <div className="flex items-center justify-between px-2 mb-8">
         <Link href="/" className="flex items-center gap-2.5">
           <LeafLogo className="h-9 w-9" />
@@ -97,7 +97,7 @@ function SidebarInner() {
               aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-sage-soft text-forest-deep"
+                  ? "nav-active bg-sage-soft text-forest-deep"
                   : "text-stone hover:bg-beige hover:text-charcoal"
               }`}
             >
@@ -119,7 +119,7 @@ function SidebarInner() {
         <Link
           href="/buscar"
           className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
-            isActive(pathname, "/buscar") ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+            isActive(pathname, "/buscar") ? "nav-active bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
           }`}
         >
           <Search size={17} aria-hidden /> Buscar
@@ -128,7 +128,7 @@ function SidebarInner() {
         <Link
           href="/ajustes"
           className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
-            isActive(pathname, "/ajustes") ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+            isActive(pathname, "/ajustes") ? "nav-active bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
           }`}
         >
           <Settings size={17} aria-hidden /> Ajustes
@@ -148,7 +148,7 @@ function BottomNavInner() {
   return (
     <nav
       aria-label="Navegación principal"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-paper/95 backdrop-blur border-t border-sand pb-safe"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 sidebar-surface backdrop-blur border-t border-sand pb-safe"
     >
       <div className="grid grid-cols-7">
         {NAV.map(({ href, label, icon: Icon }) => {
