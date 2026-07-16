@@ -1,0 +1,38 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`renderer_version > v1 queda congelada: snapshot exacto de una entrada conocida 1`] = `
+{
+  "branches": {
+    "angleDeg": 20.583,
+    "arrangement": "opuesta",
+    "count": 2,
+    "lengthRatio": 0.306,
+  },
+  "details": [
+    "espigas-florales",
+  ],
+  "height": 0.577,
+  "leaves": {
+    "count": 15,
+    "density": 0.515,
+    "shape": "hoja-lineal",
+    "sizeRatio": 0.038,
+  },
+  "orientation": {
+    "leanDeg": -4.083,
+  },
+  "proportions": {
+    "crownWidthRatio": 0.698,
+    "stemHeightRatio": 0.299,
+  },
+  "rendererVersion": 1,
+  "species": "lavanda",
+  "stage": "planta-joven",
+  "stem": {
+    "count": 4,
+    "curvature": 0.23,
+    "thickness": 0.041,
+    "woody": false,
+  },
+}
+`;

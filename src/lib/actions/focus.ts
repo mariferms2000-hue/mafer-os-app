@@ -11,11 +11,12 @@ import {
   initialState,
   transition,
   recover,
-  applyMinutesToPlant,
+  splitCreditedMinutes,
   type FocusAction,
   type FocusState,
   type PresetKey,
 } from "@/lib/focus-logic";
+import { newPlantIdentity } from "@/lib/plant-render";
 
 /* Server actions de Focus Garden — Fase 7B (motor sin interfaz).
    Regla de una sola sesión: si ya hay una abierta, empezar devuelve esa.
@@ -45,33 +46,67 @@ async function openSession(): Promise<SessionRow | null> {
   );
 }
 
+/** Fila de una planta recién nacida: su identidad (especie, visual_seed,
+ *  renderer_version) se deriva del id UNA sola vez, aquí, y se persiste —
+ *  después solo se lee, nunca se recalcula (7E.2). */
+function newbornPlant(accumulatedMinutes: number) {
+  const id = uid();
+  const identity = newPlantIdentity(id);
+  return {
+    id,
+    species: identity.species,
+    visualSeed: identity.visualSeed,
+    rendererVersion: identity.rendererVersion,
+    accumulatedMinutes,
+    name: null,
+    note: null,
+    startedAt: now(),
+    completedAt: null,
+  };
+}
+
 /** Planta actual; si no existe (primera vez), nace la primera semilla. */
 async function activePlant() {
   const plant = await db.select().from(schema.focusPlants).where(isNull(schema.focusPlants.completedAt)).get();
   if (plant) return plant;
-  const fresh = { id: uid(), species: "brote-comun", accumulatedMinutes: 0, startedAt: now(), completedAt: null };
+  const fresh = newbornPlant(0);
   await db.insert(schema.focusPlants).values(fresh);
   return fresh;
 }
 
-/** Abona minutos de enfoque a la planta actual. Si se completa, pasa al jardín
- *  y nace una semilla nueva con el excedente (ningún minuto se pierde). */
-async function creditPlant(minutes: number): Promise<{ plantCompleted: boolean }> {
+/** Abona los minutos de una sesión a la planta actual y registra la asignación
+ *  sesión→planta. Si la planta se completa, pasa al jardín y nace una semilla
+ *  nueva con el excedente — con su propia fila de asignación: la suma de filas
+ *  de la sesión es exactamente credited_minutes; ningún minuto se pierde. */
+async function creditPlant(sessionId: string, minutes: number): Promise<{ plantCompleted: boolean }> {
   if (minutes <= 0) return { plantCompleted: false };
   const plant = await activePlant();
-  const res = applyMinutesToPlant(plant.accumulatedMinutes, minutes);
+  const res = splitCreditedMinutes(plant.accumulatedMinutes, minutes);
   await db
     .update(schema.focusPlants)
     .set({ accumulatedMinutes: res.accumulated, completedAt: res.completed ? now() : null })
     .where(eq(schema.focusPlants.id, plant.id));
-  if (res.completed) {
-    await db.insert(schema.focusPlants).values({
+  if (res.toCurrent > 0) {
+    await db.insert(schema.focusSessionPlantAllocations).values({
       id: uid(),
-      species: "brote-comun",
-      accumulatedMinutes: res.overflow,
-      startedAt: now(),
-      completedAt: null,
+      sessionId,
+      plantId: plant.id,
+      creditedMinutes: res.toCurrent,
+      createdAt: now(),
     });
+  }
+  if (res.completed) {
+    const seedling = newbornPlant(res.overflow);
+    await db.insert(schema.focusPlants).values(seedling);
+    if (res.toNext > 0) {
+      await db.insert(schema.focusSessionPlantAllocations).values({
+        id: uid(),
+        sessionId,
+        plantId: seedling.id,
+        creditedMinutes: res.toNext,
+        createdAt: now(),
+      });
+    }
   }
   return { plantCompleted: res.completed };
 }
@@ -144,7 +179,7 @@ export async function focusTransitionAction(
   const s = result.state;
   let plantCompleted = false;
   if (result.finished) {
-    plantCompleted = (await creditPlant(result.finished.creditedMinutes)).plantCompleted;
+    plantCompleted = (await creditPlant(id, result.finished.creditedMinutes)).plantCompleted;
   }
   await db
     .update(schema.focusSessions)
@@ -197,7 +232,7 @@ export async function recoverFocusAction(
   const result = recover(toState(row), nowIso);
   let plantCompleted = false;
   if (result.finished) {
-    plantCompleted = (await creditPlant(result.finished.creditedMinutes)).plantCompleted;
+    plantCompleted = (await creditPlant(id, result.finished.creditedMinutes)).plantCompleted;
   }
   const s = result.state;
   await db

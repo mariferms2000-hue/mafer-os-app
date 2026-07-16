@@ -283,13 +283,34 @@ export const focusSessions = sqliteTable("focus_sessions", {
 
 /** La planta actual y el jardín: progreso acumulativo por planta, sin reloj,
  *  sin decaimiento. La etapa se DERIVA de accumulated_minutes (focus-logic.ts).
- *  completed_at null = planta actual; al completarse pasa al jardín y nace otra. */
+ *  completed_at null = planta actual; al completarse pasa al jardín y nace otra.
+ *  Identidad (7E.2): especie + visual_seed + renderer_version se fijan UNA vez al
+ *  nacer (newPlantIdentity en plant-render.ts) y nunca se recalculan — la apariencia
+ *  de una planta es estable para siempre. name/note sin interfaz en v1. */
 export const focusPlants = sqliteTable("focus_plants", {
   id: text("id").primaryKey(),
-  species: text("species").notNull().default("brote-comun"), // única especie en v1
+  species: text("species").notNull().default("brote-comun"), // helecho|monstera|suculenta|lavanda|olivo ('brote-comun' fue solo el placeholder pre-7E.2; el backfill lo reasignó)
   accumulatedMinutes: integer("accumulated_minutes").notNull().default(0),
+  visualSeed: integer("visual_seed").notNull().default(0), // uint32 fijado al nacer; nunca se recalcula
+  rendererVersion: integer("renderer_version").notNull().default(1), // congela la ruta de render con la que nació
+  name: text("name"), // nullable; renombrar queda fuera de la interfaz v1
+  note: text("note"), // nullable; notas quedan fuera de la interfaz v1
   startedAt: text("started_at").notNull(),
   completedAt: text("completed_at"),
+});
+
+/** Asignación de minutos de una sesión a una planta (7E.2). Una sesión normal
+ *  produce UNA fila; una sesión que completa una planta produce DOS (cierre de la
+ *  anterior + excedente a la semilla nueva). Invariante: para toda sesión cerrada
+ *  después de la migración 0006, SUM(credited_minutes) de sus filas == el
+ *  credited_minutes de la sesión. Las sesiones anteriores no tienen filas y quedan
+ *  honestamente «sin planta asociada». Referencias blandas, como card_id. */
+export const focusSessionPlantAllocations = sqliteTable("focus_session_plant_allocations", {
+  id: text("id").primaryKey(),
+  sessionId: text("session_id").notNull(), // referencia blanda a focus_sessions
+  plantId: text("plant_id").notNull(), // referencia blanda a focus_plants
+  creditedMinutes: integer("credited_minutes").notNull(),
+  createdAt: text("created_at").notNull(),
 });
 
 export const recentViews = sqliteTable("recent_views", {

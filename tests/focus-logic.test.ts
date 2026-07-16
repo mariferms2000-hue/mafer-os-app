@@ -9,6 +9,7 @@ import {
   plantStage,
   nextStageInfo,
   applyMinutesToPlant,
+  splitCreditedMinutes,
   initialState,
   transition,
   recover,
@@ -270,5 +271,56 @@ describe("planta completa y semilla nueva", () => {
     const res = applyMinutesToPlant(200, 99);
     expect(res.completed).toBe(false);
     expect(res.accumulated).toBe(299);
+  });
+});
+
+describe("reparto sesión→planta (splitCreditedMinutes, 7E.2)", () => {
+  it("el ejemplo canónico: 25 min con la planta en 290 → 10 cierran, 15 a la semilla", () => {
+    const res = splitCreditedMinutes(290, 25);
+    expect(res.completed).toBe(true);
+    expect(res.accumulated).toBe(300);
+    expect(res.toCurrent).toBe(10);
+    expect(res.toNext).toBe(15);
+    expect(res.overflow).toBe(15);
+  });
+
+  it("sin completar: todo va a la planta actual y nada a la siguiente", () => {
+    const res = splitCreditedMinutes(100, 25);
+    expect(res.completed).toBe(false);
+    expect(res.toCurrent).toBe(25);
+    expect(res.toNext).toBe(0);
+  });
+
+  it("cierre exacto: completa sin excedente (la semilla nueva nace en cero)", () => {
+    const res = splitCreditedMinutes(275, 25);
+    expect(res.completed).toBe(true);
+    expect(res.toCurrent).toBe(25);
+    expect(res.toNext).toBe(0);
+  });
+
+  it("invariante: toCurrent + toNext == minutos abonados, en toda la malla", () => {
+    for (let acc = 0; acc <= 300; acc += 10) {
+      for (let add = 0; add <= 90; add += 7) {
+        const res = splitCreditedMinutes(acc, add);
+        expect(res.toCurrent + res.toNext).toBe(add);
+        expect(res.toCurrent).toBeGreaterThanOrEqual(0);
+        expect(res.toNext).toBeGreaterThanOrEqual(0);
+        // ningún minuto se pierde ni se duplica: lo abonado crece exactamente add
+        const grown = res.accumulated - Math.min(acc, 300) + (res.completed ? res.overflow : 0);
+        expect(grown).toBe(add);
+      }
+    }
+  });
+
+  it("entradas corruptas no inventan minutos: acumulado > 300 no acredita de más", () => {
+    const res = splitCreditedMinutes(305, 10);
+    expect(res.toCurrent + res.toNext).toBe(10);
+    expect(res.toCurrent).toBe(0);
+    expect(res.toNext).toBe(10);
+  });
+
+  it("cero o negativo no genera asignaciones", () => {
+    expect(splitCreditedMinutes(50, 0)).toMatchObject({ toCurrent: 0, toNext: 0, completed: false });
+    expect(splitCreditedMinutes(50, -5)).toMatchObject({ toCurrent: 0, toNext: 0 });
   });
 });

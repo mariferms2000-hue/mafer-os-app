@@ -79,6 +79,22 @@ export function applyMinutesToPlant(
   return { accumulated: total, completed: false, overflow: 0 };
 }
 
+/** Reparte los minutos acreditados de una sesión entre la planta actual (toCurrent)
+ *  y, si la completa, la semilla nueva (toNext) — la base del historial de
+ *  asignaciones (7E.2). Invariante: toCurrent + toNext === minutos abonados,
+ *  siempre, incluso ante un acumulado corrupto (ambos acotados a [0, add]):
+ *  ningún minuto se pierde ni se duplica. Con el máximo de sesión (90 min) el
+ *  excedente jamás alcanza para completar también la semilla nueva. */
+export function splitCreditedMinutes(
+  accumulatedMinutes: number,
+  creditedMinutes: number
+): { accumulated: number; completed: boolean; overflow: number; toCurrent: number; toNext: number } {
+  const add = Math.max(0, Math.floor(creditedMinutes));
+  const res = applyMinutesToPlant(accumulatedMinutes, add);
+  const toCurrent = Math.max(0, add - res.overflow);
+  return { ...res, toCurrent, toNext: add - toCurrent };
+}
+
 // ── Estados de sesión ────────────────────────────────────────────
 
 export type FocusPhase = "enfoque" | "pausado" | "enfoque-listo" | "descanso" | "descanso-pausado";
