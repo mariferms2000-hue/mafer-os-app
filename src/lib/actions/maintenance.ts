@@ -29,6 +29,12 @@ const MD_TO_BACKUP_DIR: Record<string, string> = {
 /** Respaldo completo desde la interfaz — mismo resultado que `npm run backup`. */
 export async function createBackupAction(): Promise<{ ok: boolean; dir?: string; error?: string }> {
   await requireAuth();
+  if (process.env.VERCEL) {
+    return {
+      ok: false,
+      error: "El respaldo local no está disponible en la versión desplegada — usa /api/export/json o /api/export/markdown para descargar, o revisa los backups automáticos de Supabase.",
+    };
+  }
   try {
     const date = localDate();
     const dir = path.join(BACKUPS_DIR, date);
