@@ -1,4 +1,4 @@
-import { desc, eq, isNull, isNotNull } from "drizzle-orm";
+import { count, desc, eq, isNull, isNotNull } from "drizzle-orm";
 import { db, today, schema } from "@/lib/db";
 import { plantStage, nextStageInfo, type StageKey } from "@/lib/focus-logic";
 import { getTodayData } from "@/lib/queries/today";
@@ -52,6 +52,69 @@ export async function getFocusPicker(preselectId?: string | null): Promise<{
     suggested: suggestedCard ? { id: suggestedCard.id, title: suggestedCard.title } : null,
     priorities,
     preselect,
+  };
+}
+
+/** Datos de la vista «Mi jardín» (Fase 7E.3). Solo lectura: la planta actual con
+ *  su identidad completa y etapa derivada, y las completadas (más reciente
+ *  primero) con paginación simple por límite. Nunca modifica nada. */
+export type GardenPlant = {
+  id: string;
+  species: string;
+  visualSeed: number;
+  rendererVersion: number;
+  accumulatedMinutes: number;
+  startedAt: string;
+  completedAt: string | null;
+};
+
+export type GardenData = {
+  current: (GardenPlant & { stage: StageKey; next: { key: StageKey; missingMinutes: number } | null }) | null;
+  completed: GardenPlant[];
+  totalCompleted: number;
+};
+
+export async function getGarden(limit = 12): Promise<GardenData> {
+  const current =
+    (await db.select().from(schema.focusPlants).where(isNull(schema.focusPlants.completedAt)).get()) ?? null;
+
+  const completed = await db
+    .select()
+    .from(schema.focusPlants)
+    .where(isNotNull(schema.focusPlants.completedAt))
+    .orderBy(desc(schema.focusPlants.completedAt))
+    .limit(Math.max(1, limit));
+
+  const total = await db
+    .select({ n: count() })
+    .from(schema.focusPlants)
+    .where(isNotNull(schema.focusPlants.completedAt))
+    .get();
+
+  return {
+    current: current
+      ? {
+          id: current.id,
+          species: current.species,
+          visualSeed: current.visualSeed,
+          rendererVersion: current.rendererVersion,
+          accumulatedMinutes: current.accumulatedMinutes,
+          startedAt: current.startedAt,
+          completedAt: current.completedAt,
+          stage: plantStage(current.accumulatedMinutes),
+          next: nextStageInfo(current.accumulatedMinutes),
+        }
+      : null,
+    completed: completed.map((p) => ({
+      id: p.id,
+      species: p.species,
+      visualSeed: p.visualSeed,
+      rendererVersion: p.rendererVersion,
+      accumulatedMinutes: p.accumulatedMinutes,
+      startedAt: p.startedAt,
+      completedAt: p.completedAt,
+    })),
+    totalCompleted: total?.n ?? 0,
   };
 }
 

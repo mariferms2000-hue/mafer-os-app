@@ -77,7 +77,7 @@ function PlantaCompleta() {
   );
 }
 
-const STAGE_ART: Record<StageKey, () => React.ReactNode> = {
+export const STAGE_ART: Record<StageKey, () => React.ReactNode> = {
   semilla: Semilla,
   brote: Brote,
   hojas: Hojas,
@@ -88,7 +88,7 @@ const STAGE_ART: Record<StageKey, () => React.ReactNode> = {
 /** Encuadre por etapa: las etapas tempranas ocupan solo la base del dibujo,
  *  así que se acercan (escala alrededor de su centro) para que la planta sea
  *  protagonista a cualquier tamaño. El crecimiento «aleja la cámara». */
-const STAGE_VIEW: Record<StageKey, { k: number; cx: number; cy: number }> = {
+export const STAGE_VIEW: Record<StageKey, { k: number; cx: number; cy: number }> = {
   semilla: { k: 1.8, cx: 48, cy: 72 },
   brote: { k: 1.6, cx: 48, cy: 67 },
   hojas: { k: 1.25, cx: 48, cy: 59 },

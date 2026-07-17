@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Sprout, Play, Leaf } from "lucide-react";
 import { openFocusUrl } from "@/components/focus/focus-overlay";
 import {
@@ -25,6 +26,21 @@ const STAGE_LABEL: Record<StageKey, string> = Object.fromEntries(STAGES.map((s) 
   StageKey,
   string
 >;
+
+/** 7E.3: enlace discreto a la vista real del jardín — visible con y sin sesión,
+ *  para que Mi jardín siempre esté a un clic desde Hoy. */
+function GardenLink({ count }: { count: number }) {
+  return (
+    <Link
+      href="/explorar/jardin"
+      className="text-[11px] text-stone-soft mt-2 flex items-center gap-1 hover:text-stone underline-offset-4 hover:underline w-fit"
+      data-testid="focus-module-garden-link"
+    >
+      <Leaf size={10} aria-hidden />
+      {count > 0 ? `${count} planta${count > 1 ? "s" : ""} en tu jardín — ver mi jardín` : "Ver mi jardín"}
+    </Link>
+  );
+}
 
 export function FocusModule({ overview }: { overview: FocusOverview }) {
   const s = overview.openSession;
@@ -80,6 +96,7 @@ export function FocusModule({ overview }: { overview: FocusOverview }) {
             Volver
           </button>
         </div>
+        <GardenLink count={overview.garden.length} />
       </section>
     );
   }
@@ -114,12 +131,7 @@ export function FocusModule({ overview }: { overview: FocusOverview }) {
           <Play size={14} aria-hidden /> Enfocarme
         </button>
       </div>
-      {overview.garden.length > 0 && (
-        <p className="text-[11px] text-stone-soft mt-2 flex items-center gap-1">
-          <Leaf size={10} aria-hidden /> {overview.garden.length} planta{overview.garden.length > 1 ? "s" : ""} en tu
-          jardín
-        </p>
-      )}
+      <GardenLink count={overview.garden.length} />
     </section>
   );
 }

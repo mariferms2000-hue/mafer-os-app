@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Lightbulb, Rocket, NotebookPen } from "lucide-react";
+import { Lightbulb, Rocket, NotebookPen, Sprout } from "lucide-react";
 
 const TABS = [
   { href: "/explorar", label: "Incubadora", icon: Lightbulb },
   { href: "/explorar/learn-fast", label: "Learn Fast", icon: Rocket },
   { href: "/explorar/journal", label: "Journal", icon: NotebookPen },
+  { href: "/explorar/jardin", label: "Mi jardín", icon: Sprout },
 ];
 
 export function ExplorarTabs() {
