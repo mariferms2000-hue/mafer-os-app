@@ -156,7 +156,7 @@ export default async function AjustesPage() {
           <Smartphone size={13} className="text-sage-deep" aria-hidden /> Instalación en dispositivos
         </h2>
         <ol className="list-decimal ml-5 text-sm text-stone flex flex-col gap-1">
-          <li>Abre Mafer OS en <strong>Safari</strong> en tu iPhone (misma red Wi-Fi que tu Mac).</li>
+          <li>Abre Mafer OS en <strong>Safari</strong> en tu iPhone (con internet, desde cualquier red).</li>
           <li>Toca el botón de <strong>Compartir</strong> (el cuadrito con flecha).</li>
           <li>Elige <strong>«Agregar a inicio»</strong>.</li>
         </ol>

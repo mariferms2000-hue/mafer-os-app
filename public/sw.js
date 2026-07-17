@@ -6,8 +6,8 @@ const OFFLINE_HTML = `<!doctype html><html lang="es"><head><meta charset="utf-8"
 <title>Sin conexión · Mafer OS</title>
 <style>body{font-family:system-ui;background:#faf7f1;color:#2e2b25;display:grid;place-items:center;min-height:100dvh;margin:0;text-align:center;padding:24px}
 h1{color:#324230;font-weight:600}p{color:#7c766a;max-width:34ch}</style></head>
-<body><div><h1>🌿 Sin conexión con tu Mac</h1>
-<p>Mafer OS corre en tu Mac. Revisa que esté encendida, en la misma red Wi-Fi, y que la ventanita de «Abrir Mafer OS» siga abierta. Tus datos están a salvo.</p>
+<body><div><h1>🌿 Sin conexión a internet</h1>
+<p>Mafer OS necesita internet para cargar. Revisa tu conexión Wi-Fi o datos móviles e intenta de nuevo. Tus datos están a salvo.</p>
 </div></body></html>`;
 
 self.addEventListener("install", (e) => {
