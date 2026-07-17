@@ -15,7 +15,7 @@ function secret(): Uint8Array {
 }
 
 async function getSetting(key: string): Promise<string | null> {
-  const row = await db.select().from(schema.settings).where(eq(schema.settings.key, key)).get();
+  const [row] = await db.select().from(schema.settings).where(eq(schema.settings.key, key)).limit(1);
   return row?.value ?? null;
 }
 

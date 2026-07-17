@@ -1,23 +1,32 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import path from "path";
-import fs from "fs";
 import * as schema from "./schema";
 
-const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "data", "mafer-os.db");
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  throw new Error("Falta DATABASE_URL en .env.local — copia el connection string de Supabase (Project Settings > Database).");
+}
 
 declare global {
   var __maferDb: ReturnType<typeof createDb> | undefined;
 }
 
 function createDb() {
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-  const sqlite = new Database(DB_PATH);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-  const db = drizzle(sqlite, { schema });
-  migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") });
+  // max: 1 — cada instancia serverless mantiene una sola conexión; con la conexión
+  // directa de Supabase (no el pooler) evita agotar el límite de conexiones si
+  // Vercel escala a varias instancias concurrentes.
+  const sql = postgres(DATABASE_URL!, { max: 1 });
+  const db = drizzle(sql, { schema });
+  // Fire-and-forget: la tabla de tracking de Drizzle hace que correr esto en cada
+  // cold start sea idempotente (no-op tras la primera vez). No se bloquea el
+  // arranque en ello — para una app de un solo usuario, el riesgo de que la
+  // primera petición justo después de un deploy nuevo choque con una migración
+  // en curso es aceptable.
+  migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") }).catch((e) => {
+    console.error("[db] migración falló", e);
+  });
   return db;
 }
 

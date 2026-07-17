@@ -5,7 +5,7 @@
 - **Next.js 16** (App Router, React 19, Server Components + Server Actions)
 - **TypeScript** estricto
 - **Tailwind CSS 4** con tokens propios (`src/app/globals.css`, bloque `@theme`)
-- **SQLite** vía better-sqlite3 + **Drizzle ORM** (`src/lib/db/`)
+- **Supabase (Postgres)** vía postgres-js + **Drizzle ORM** (`src/lib/db/`) — antes SQLite local (`better-sqlite3`); los scripts locales (`seed.mjs`, `backup.mjs`, `sync-obsidian.mjs`, `inventory-agents.mjs`) siguen usando SQLite y quedan desactualizados frente a la fuente de verdad
 - **dnd-kit** para drag & drop (mouse, trackpad y touch)
 - **jose** (JWT firmado) + **bcryptjs** para autenticación local de usuario único
 - **googleapis** para Google Calendar (OAuth 2, scope `calendar.app.created`)
@@ -18,9 +18,10 @@ Navegador ──(HTTP + cookie mafer_session)──▶ Next.js (proxy.ts verific
    │                                            │
    │  Server Components (lecturas)              │  Server Actions (escrituras)
    ▼                                            ▼
-        src/lib/db  ── better-sqlite3 ──▶  data/mafer-os.db (WAL)
-                                                │
-                     scripts/ (backup, sync:obsidian) leen la misma base
+        src/lib/db  ── postgres-js ──▶  Supabase (Postgres, hosteado)
+
+  scripts/ (backup, sync:obsidian, seed, inventory) siguen leyendo un SQLite
+  local aparte — desincronizados de la fuente de verdad, ver sección de stack
 ```
 
 - Todas las páginas de la app son dinámicas (`force-dynamic`) y leen la base en el servidor.
@@ -43,11 +44,14 @@ Navegador ──(HTTP + cookie mafer_session)──▶ Next.js (proxy.ts verific
 
 ## Migraciones
 
-- Esquema fuente: `src/lib/db/schema.ts`.
+- Esquema fuente: `src/lib/db/schema.ts` (dialecto `postgresql`).
 - `npx drizzle-kit generate` produce SQL en `drizzle/`; `migrate()` lo aplica
   automáticamente al abrir la conexión (`src/lib/db/index.ts`), por lo que una base
-  nueva se crea sola al iniciar la app.
+  nueva se crea sola al iniciar la app. Correr en cada cold start es idempotente
+  (tabla de tracking de Drizzle) — aceptable para una app de un solo usuario.
 - Para cambiar el esquema: editar schema.ts → `npx drizzle-kit generate` → reiniciar.
+- `drizzle-sqlite-archive/` conserva el historial de migraciones de la era SQLite
+  (referencia, no se aplica más).
 
 ## Google Calendar
 
@@ -69,7 +73,9 @@ Navegador ──(HTTP + cookie mafer_session)──▶ Next.js (proxy.ts verific
 - Local (sin servidor): `scripts/lib-export.mjs` compartido por `backup.mjs` y
   `sync-obsidian.mjs`. La duplicación app/scripts es deliberada (los scripts funcionan
   con la app apagada) y está cubierta por tests unitarios.
-- El respaldo del binario usa `db.backup()` (consistente con WAL), no copia de archivo.
+- El botón «Respaldo» de Ajustes escribe el JSON + Markdown (vía Drizzle, ya no depende
+  de SQLite); el respaldo binario/point-in-time de la base real lo cubre Supabase
+  (dashboard del proyecto), no un botón de la app.
 
 ## Estructura de carpetas
 

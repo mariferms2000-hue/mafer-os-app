@@ -34,7 +34,7 @@ export async function updateIdeaStatusAction(id: string, status: string) {
 /** Gradúa una idea a proyecto activo o a tema Learn Fast. */
 export async function graduateIdeaAction(id: string, target: "proyecto" | "learnfast") {
   await requireAuth();
-  const idea = await db.select().from(schema.ideas).where(eq(schema.ideas.id, id)).get();
+  const [idea] = await db.select().from(schema.ideas).where(eq(schema.ideas.id, id)).limit(1);
   if (!idea) return;
   const t = now();
   let graduatedTo = "";
@@ -120,7 +120,7 @@ export async function createLearningAction(formData: FormData) {
 export async function updateLearningAction(formData: FormData) {
   await requireAuth();
   const id = String(formData.get("id"));
-  const topic = await db.select().from(schema.learningTopics).where(eq(schema.learningTopics.id, id)).get();
+  const [topic] = await db.select().from(schema.learningTopics).where(eq(schema.learningTopics.id, id)).limit(1);
   if (!topic) return;
   const str = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "") : undefined);
   await db
@@ -199,7 +199,7 @@ export async function createJournalAction(formData: FormData) {
 export async function updateJournalAction(formData: FormData) {
   await requireAuth();
   const id = String(formData.get("id"));
-  const e = await db.select().from(schema.journalEntries).where(eq(schema.journalEntries.id, id)).get();
+  const [e] = await db.select().from(schema.journalEntries).where(eq(schema.journalEntries.id, id)).limit(1);
   if (!e) return;
   await db
     .update(schema.journalEntries)
@@ -219,7 +219,7 @@ export async function updateJournalAction(formData: FormData) {
 
 export async function toggleJournalFavoriteAction(id: string) {
   await requireAuth();
-  const e = await db.select().from(schema.journalEntries).where(eq(schema.journalEntries.id, id)).get();
+  const [e] = await db.select().from(schema.journalEntries).where(eq(schema.journalEntries.id, id)).limit(1);
   if (!e) return;
   await db
     .update(schema.journalEntries)

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { eq, like } from "drizzle-orm";
-import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 import { db, schema, uid, now, today } from "@/lib/db";
@@ -11,7 +10,6 @@ import { exportAllJson, exportAllMarkdown, GENERATED_MARK, SCHEMA_VERSION } from
 
 const BACKUPS_DIR = process.env.BACKUPS_PATH ?? path.join(process.cwd(), "..", "backups-and-exports");
 const VAULT_DIR = process.env.OBSIDIAN_VAULT_PATH ?? path.join(process.cwd(), "..", "mafer-os-vault");
-const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "data", "mafer-os.db");
 
 function localDate() {
   const d = new Date();
@@ -48,14 +46,9 @@ export async function createBackupAction(): Promise<{ ok: boolean; dir?: string;
       fs.writeFileSync(full, content);
     }
 
-    // Copia binaria consistente (API de backup de SQLite, segura con WAL)
-    const raw = new Database(DB_PATH, { readonly: true });
-    await raw.backup(path.join(dir, "mafer-os.db"));
-    raw.close();
-
     fs.writeFileSync(
       path.join(dir, "manifest.md"),
-      `# Respaldo de Mafer OS — ${date}\n\n- Fecha: ${json.exportedAt}\n- Versión de esquema: ${SCHEMA_VERSION}\n\n## Conteos\n\n${Object.entries(json.counts).map(([k, v]) => `- ${k}: ${v}`).join("\n")}\n\n## Cómo restaurar\n\n1. Restauración completa: cierra la app y copia \`mafer-os.db\` de esta carpeta a \`mafer-os-app/data/\` (reemplazando).\n2. Consulta puntual: los .md y el JSON son legibles directamente.\n`
+      `# Respaldo de Mafer OS — ${date}\n\n- Fecha: ${json.exportedAt}\n- Versión de esquema: ${SCHEMA_VERSION}\n\n## Conteos\n\n${Object.entries(json.counts).map(([k, v]) => `- ${k}: ${v}`).join("\n")}\n\n## Cómo restaurar\n\n1. Consulta puntual: los .md y \`full-backup.json\` son legibles directamente.\n2. Restauración completa de la base: Supabase mantiene sus propios backups y point-in-time recovery — restaura desde el dashboard de Supabase, no desde este export.\n`
     );
 
     await setSetting("last_backup_at", json.exportedAt);

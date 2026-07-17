@@ -32,7 +32,7 @@ export async function createEventAction(formData: FormData) {
 export async function updateEventAction(formData: FormData) {
   await requireAuth();
   const id = String(formData.get("id"));
-  const e = await db.select().from(schema.events).where(eq(schema.events.id, id)).get();
+  const [e] = await db.select().from(schema.events).where(eq(schema.events.id, id)).limit(1);
   if (!e) return;
   await db
     .update(schema.events)
@@ -52,7 +52,7 @@ export async function updateEventAction(formData: FormData) {
 
 export async function deleteEventAction(id: string) {
   await requireAuth();
-  const e = await db.select().from(schema.events).where(eq(schema.events.id, id)).get();
+  const [e] = await db.select().from(schema.events).where(eq(schema.events.id, id)).limit(1);
   if (!e) return;
   if (e.gcalEventId) await deleteGoogleEvent(e.gcalEventId).catch(() => {});
   await db.delete(schema.events).where(eq(schema.events.id, id));

@@ -12,6 +12,19 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+// Breakpoints estándar de apple-touch-startup-image (puntos CSS + escala).
+// Deben coincidir con los archivos generados por scripts/generate-pwa-assets.mjs.
+const APPLE_SPLASH_SCREENS = [
+  { file: "iphone-se", widthPt: 375, heightPt: 667, scale: 2 },
+  { file: "iphone-12-14", widthPt: 390, heightPt: 844, scale: 3 },
+  { file: "iphone-15-16", widthPt: 393, heightPt: 852, scale: 3 },
+  { file: "iphone-12-14-pro-max", widthPt: 428, heightPt: 926, scale: 3 },
+  { file: "iphone-15-16-pro-max", widthPt: 430, heightPt: 932, scale: 3 },
+  { file: "ipad-10-9", widthPt: 820, heightPt: 1180, scale: 2 },
+  { file: "ipad-pro-11", widthPt: 834, heightPt: 1194, scale: 2 },
+  { file: "ipad-pro-12-9", widthPt: 1024, heightPt: 1366, scale: 2 },
+];
+
 export const metadata: Metadata = {
   title: { default: "Mafer OS", template: "%s · Mafer OS" },
   description: "El sistema operativo personal de Mafer",
@@ -20,10 +33,18 @@ export const metadata: Metadata = {
     capable: true,
     title: "Mafer OS",
     statusBarStyle: "default",
+    startupImage: APPLE_SPLASH_SCREENS.map(({ file, widthPt, heightPt, scale }) => ({
+      url: `/splash/${file}.png`,
+      media: `(device-width: ${widthPt}px) and (device-height: ${heightPt}px) and (-webkit-device-pixel-ratio: ${scale}) and (orientation: portrait)`,
+    })),
   },
   icons: {
     icon: "/icons/icon.svg",
-    apple: "/icons/apple-touch-icon.png",
+    apple: [
+      { url: "/icons/apple-touch-icon-152.png", sizes: "152x152", type: "image/png" },
+      { url: "/icons/apple-touch-icon-167.png", sizes: "167x167", type: "image/png" },
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 

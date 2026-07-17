@@ -16,24 +16,22 @@ export type ReviewCenter = {
 };
 
 async function openSession(type: string): Promise<ReviewRow | null> {
-  return (
-    (await db
-      .select()
-      .from(schema.reviews)
-      .where(and(eq(schema.reviews.type, type), isNull(schema.reviews.finishedAt)))
-      .get()) ?? null
-  );
+  const [row] = await db
+    .select()
+    .from(schema.reviews)
+    .where(and(eq(schema.reviews.type, type), isNull(schema.reviews.finishedAt)))
+    .limit(1);
+  return row ?? null;
 }
 
 async function lastCompleted(type: string): Promise<ReviewRow | null> {
-  return (
-    (await db
-      .select()
-      .from(schema.reviews)
-      .where(and(eq(schema.reviews.type, type), eq(schema.reviews.completed, true)))
-      .orderBy(desc(schema.reviews.finishedAt))
-      .get()) ?? null
-  );
+  const [row] = await db
+    .select()
+    .from(schema.reviews)
+    .where(and(eq(schema.reviews.type, type), eq(schema.reviews.completed, true)))
+    .orderBy(desc(schema.reviews.finishedAt))
+    .limit(1);
+  return row ?? null;
 }
 
 export async function getOpenReview(type: "diaria" | "semanal"): Promise<ReviewRow | null> {

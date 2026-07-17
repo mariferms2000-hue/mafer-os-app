@@ -41,9 +41,12 @@ function toState(row: SessionRow): FocusState {
 }
 
 async function openSession(): Promise<SessionRow | null> {
-  return (
-    (await db.select().from(schema.focusSessions).where(isNull(schema.focusSessions.finishedAt)).get()) ?? null
-  );
+  const [row] = await db
+    .select()
+    .from(schema.focusSessions)
+    .where(isNull(schema.focusSessions.finishedAt))
+    .limit(1);
+  return row ?? null;
 }
 
 /** Fila de una planta recién nacida: su identidad (especie, visual_seed,
@@ -67,7 +70,7 @@ function newbornPlant(accumulatedMinutes: number) {
 
 /** Planta actual; si no existe (primera vez), nace la primera semilla. */
 async function activePlant() {
-  const plant = await db.select().from(schema.focusPlants).where(isNull(schema.focusPlants.completedAt)).get();
+  const [plant] = await db.select().from(schema.focusPlants).where(isNull(schema.focusPlants.completedAt)).limit(1);
   if (plant) return plant;
   const fresh = newbornPlant(0);
   await db.insert(schema.focusPlants).values(fresh);
@@ -163,7 +166,7 @@ export async function focusTransitionAction(
   action: FocusAction
 ): Promise<{ phase: string; finished: boolean; outcome?: string; creditedMinutes?: number; plantCompleted?: boolean }> {
   await requireAuth();
-  const row = await db.select().from(schema.focusSessions).where(eq(schema.focusSessions.id, id)).get();
+  const [row] = await db.select().from(schema.focusSessions).where(eq(schema.focusSessions.id, id)).limit(1);
   if (!row) throw new Error("Sesión no encontrada.");
   if (row.finishedAt) return { phase: row.phase, finished: true, outcome: row.outcome ?? undefined };
 
@@ -224,7 +227,7 @@ export async function recoverFocusAction(
   id: string
 ): Promise<{ phase: string; finished: boolean; outcome?: string; creditedMinutes?: number; plantCompleted?: boolean }> {
   await requireAuth();
-  const row = await db.select().from(schema.focusSessions).where(eq(schema.focusSessions.id, id)).get();
+  const [row] = await db.select().from(schema.focusSessions).where(eq(schema.focusSessions.id, id)).limit(1);
   if (!row) throw new Error("Sesión no encontrada.");
   if (row.finishedAt) return { phase: row.phase, finished: true, outcome: row.outcome ?? undefined };
 
@@ -262,7 +265,7 @@ export async function recoverFocusAction(
  *  sin registro, pero el jardín solo crece con enfoque confirmado. */
 export async function discardFocusAction(id: string): Promise<void> {
   await requireAuth();
-  const row = await db.select().from(schema.focusSessions).where(eq(schema.focusSessions.id, id)).get();
+  const [row] = await db.select().from(schema.focusSessions).where(eq(schema.focusSessions.id, id)).limit(1);
   if (!row || row.finishedAt) return;
   await db
     .update(schema.focusSessions)

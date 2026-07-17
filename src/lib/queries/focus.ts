@@ -40,11 +40,11 @@ export async function getFocusPicker(preselectId?: string | null): Promise<{
 
   let preselect: FocusPickerOption | null = null;
   if (preselectId) {
-    const card = await db
+    const [card] = await db
       .select({ id: schema.cards.id, title: schema.cards.title })
       .from(schema.cards)
       .where(eq(schema.cards.id, preselectId))
-      .get();
+      .limit(1);
     preselect = card ?? null;
   }
 
@@ -75,8 +75,11 @@ export type GardenData = {
 };
 
 export async function getGarden(limit = 12): Promise<GardenData> {
-  const current =
-    (await db.select().from(schema.focusPlants).where(isNull(schema.focusPlants.completedAt)).get()) ?? null;
+  const [current] = await db
+    .select()
+    .from(schema.focusPlants)
+    .where(isNull(schema.focusPlants.completedAt))
+    .limit(1);
 
   const completed = await db
     .select()
@@ -85,11 +88,11 @@ export async function getGarden(limit = 12): Promise<GardenData> {
     .orderBy(desc(schema.focusPlants.completedAt))
     .limit(Math.max(1, limit));
 
-  const total = await db
+  const [total] = await db
     .select({ n: count() })
     .from(schema.focusPlants)
     .where(isNotNull(schema.focusPlants.completedAt))
-    .get();
+    .limit(1);
 
   return {
     current: current
@@ -119,21 +122,27 @@ export async function getGarden(limit = 12): Promise<GardenData> {
 }
 
 export async function getFocusOverview(): Promise<FocusOverview> {
-  const open =
-    (await db.select().from(schema.focusSessions).where(isNull(schema.focusSessions.finishedAt)).get()) ?? null;
+  const [open] = await db
+    .select()
+    .from(schema.focusSessions)
+    .where(isNull(schema.focusSessions.finishedAt))
+    .limit(1);
 
   let cardTitle: string | null = null;
   if (open?.cardId) {
-    const card = await db
+    const [card] = await db
       .select({ title: schema.cards.title })
       .from(schema.cards)
       .where(eq(schema.cards.id, open.cardId))
-      .get();
+      .limit(1);
     cardTitle = card?.title ?? null;
   }
 
-  const plant =
-    (await db.select().from(schema.focusPlants).where(isNull(schema.focusPlants.completedAt)).get()) ?? null;
+  const [plant] = await db
+    .select()
+    .from(schema.focusPlants)
+    .where(isNull(schema.focusPlants.completedAt))
+    .limit(1);
 
   // Acumulado de hoy: la suma de lo ya abonado en sesiones cerradas de esta fecha.
   const todaySessions = await db

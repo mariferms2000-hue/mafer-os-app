@@ -29,7 +29,7 @@ export async function captureAction(formData: FormData): Promise<{ id: string } 
 export async function updateInboxItem(formData: FormData) {
   await requireAuth();
   const id = String(formData.get("id"));
-  const item = await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, id)).get();
+  const [item] = await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, id)).limit(1);
   if (!item) return;
   await db
     .update(schema.inboxItems)
@@ -66,7 +66,7 @@ export async function convertInboxItem(formData: FormData): Promise<{ convertedT
   await requireAuth();
   const id = String(formData.get("id"));
   const target = String(formData.get("target"));
-  const item = await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, id)).get();
+  const [item] = await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, id)).limit(1);
   if (!item) return;
 
   const title = String(formData.get("content") ?? item.content).trim() || item.content;

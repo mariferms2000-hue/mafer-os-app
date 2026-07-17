@@ -176,9 +176,12 @@ export default async function RevisionDiariaPage({
       limit: 1,
     })[0];
     const primera = primerPaso ? all.find((c) => c.id === primerPaso.id) : undefined;
-    const movidas = (
-      await db.select({ id: schema.reviews.id, processed: schema.reviews.processed }).from(schema.reviews).where(eq(schema.reviews.id, session.id)).get()
-    )?.processed ?? 0;
+    const [movidasRow] = await db
+      .select({ id: schema.reviews.id, processed: schema.reviews.processed })
+      .from(schema.reviews)
+      .where(eq(schema.reviews.id, session.id))
+      .limit(1);
+    const movidas = movidasRow?.processed ?? 0;
 
     contenido = (
       <div className="flex flex-col gap-4" data-testid="daily-close">

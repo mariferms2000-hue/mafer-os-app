@@ -1,14 +1,14 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { pgTable, text, integer, boolean, jsonb, index } from "drizzle-orm/pg-core";
 
 /** Clave-valor para configuración local: hash de contraseña, nombre, energía del día,
  *  tokens de Google (solo servidor), estado del onboarding. */
-export const settings = sqliteTable("settings", {
+export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
-export const projects = sqliteTable("projects", {
+export const projects = pgTable("projects", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").default(""),
@@ -24,22 +24,22 @@ export const projects = sqliteTable("projects", {
   targetDate: text("target_date"),
   color: text("color").default("sage"),
   icon: text("icon").default("folder"),
-  links: text("links", { mode: "json" }).$type<{ label: string; url: string }[]>().default([]),
+  links: jsonb("links").$type<{ label: string; url: string }[]>().default([]),
   notes: text("notes").default(""),
-  isStarter: integer("is_starter", { mode: "boolean" }).default(false),
-  archived: integer("archived", { mode: "boolean" }).default(false),
+  isStarter: boolean("is_starter").default(false),
+  archived: boolean("archived").default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
-export const boards = sqliteTable("boards", {
+export const boards = pgTable("boards", {
   id: text("id").primaryKey(),
   projectId: text("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull().default("Tablero"),
-  prefs: text("prefs", { mode: "json" }).$type<{ density?: string }>().default({}),
+  prefs: jsonb("prefs").$type<{ density?: string }>().default({}),
 });
 
-export const columns = sqliteTable("columns", {
+export const columns = pgTable("columns", {
   id: text("id").primaryKey(),
   boardId: text("board_id").notNull().references(() => boards.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
@@ -49,7 +49,7 @@ export const columns = sqliteTable("columns", {
 
 export type ChecklistItem = { id: string; text: string; done: boolean };
 
-export const cards = sqliteTable("cards", {
+export const cards = pgTable("cards", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").default(""),
@@ -67,90 +67,90 @@ export const cards = sqliteTable("cards", {
   nextAction: text("next_action").default(""),
   blockedReason: text("blocked_reason").default(""),
   waitingFor: text("waiting_for").default(""),
-  tags: text("tags", { mode: "json" }).$type<string[]>().default([]),
-  checklist: text("checklist", { mode: "json" }).$type<ChecklistItem[]>().default([]),
-  links: text("links", { mode: "json" }).$type<{ label: string; url: string }[]>().default([]),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  checklist: jsonb("checklist").$type<ChecklistItem[]>().default([]),
+  links: jsonb("links").$type<{ label: string; url: string }[]>().default([]),
   gcalEventId: text("gcal_event_id"),
-  isStarter: integer("is_starter", { mode: "boolean" }).default(false),
-  archived: integer("archived", { mode: "boolean" }).default(false),
+  isStarter: boolean("is_starter").default(false),
+  archived: boolean("archived").default(false),
   completedAt: text("completed_at"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
 /** Las 3 prioridades del día. */
-export const todayPriorities = sqliteTable("today_priorities", {
+export const todayPriorities = pgTable("today_priorities", {
   id: text("id").primaryKey(),
   date: text("date").notNull(), // YYYY-MM-DD
   cardId: text("card_id").notNull().references(() => cards.id, { onDelete: "cascade" }),
   position: integer("position").notNull().default(0),
 });
 
-export const inboxItems = sqliteTable("inbox_items", {
+export const inboxItems = pgTable("inbox_items", {
   id: text("id").primaryKey(),
   content: text("content").notNull(),
   note: text("note").default(""),
   typeHint: text("type_hint"), // tarea|idea|proyecto|aprendizaje|journal|decision|recurso
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   date: text("date"),
-  processed: integer("processed", { mode: "boolean" }).default(false),
+  processed: boolean("processed").default(false),
   convertedTo: text("converted_to"), // "tipo:id"
-  isStarter: integer("is_starter", { mode: "boolean" }).default(false),
+  isStarter: boolean("is_starter").default(false),
   createdAt: text("created_at").notNull(),
 });
 
-export const journalEntries = sqliteTable("journal_entries", {
+export const journalEntries = pgTable("journal_entries", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   body: text("body").default(""),
   date: text("date").notNull(),
   mood: text("mood"), // opcional
   energy: text("energy"),
-  tags: text("tags", { mode: "json" }).$type<string[]>().default([]),
+  tags: jsonb("tags").$type<string[]>().default([]),
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   learningId: text("learning_id"),
   templateType: text("template_type").default("libre"), // libre|diaria|semanal|proyecto|decision|aprendizaje|gratitud
-  favorite: integer("favorite", { mode: "boolean" }).default(false),
+  favorite: boolean("favorite").default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
-export const learningTopics = sqliteTable("learning_topics", {
+export const learningTopics = pgTable("learning_topics", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   motivation: text("motivation").default(""),
   outcome: text("outcome").default(""), // qué significa "suficientemente bueno"
   depth: text("depth").default("exploracion"), // exploracion|fundamentos|aplicacion|dominio
   status: text("status").notNull().default("idea"), // idea|activo|pausado|terminado|archivado
-  keyQuestions: text("key_questions", { mode: "json" }).$type<string[]>().default([]),
-  sprint: text("sprint", { mode: "json" })
+  keyQuestions: jsonb("key_questions").$type<string[]>().default([]),
+  sprint: jsonb("sprint")
     .$type<{ goal?: string; start?: string; end?: string; steps?: ChecklistItem[] }>()
     .default({}),
   notes: text("notes").default(""),
-  exercises: text("exercises", { mode: "json" }).$type<ChecklistItem[]>().default([]),
+  exercises: jsonb("exercises").$type<ChecklistItem[]>().default([]),
   evidenceClass: text("evidence_class").default("sin-clasificar"),
   // evidencia-solida | evidencia-limitada | marco-tradicional | hipotesis | reflexion-personal | sin-clasificar
   result: text("result").default(""),
   progress: integer("progress").default(0), // 0-100
   reviewDate: text("review_date"),
-  isStarter: integer("is_starter", { mode: "boolean" }).default(false),
+  isStarter: boolean("is_starter").default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
-export const ideas = sqliteTable("ideas", {
+export const ideas = pgTable("ideas", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").default(""),
   category: text("category").default("general"), // proyecto|estudio|negocio|experimento|general
   status: text("status").notNull().default("incubando"), // incubando|algun-dia|graduada|archivada|rechazada
   graduatedTo: text("graduated_to"), // "tipo:id"
-  isStarter: integer("is_starter", { mode: "boolean" }).default(false),
+  isStarter: boolean("is_starter").default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
-export const prompts = sqliteTable("prompts", {
+export const prompts = pgTable("prompts", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   body: text("body").notNull(),
@@ -162,13 +162,13 @@ export const prompts = sqliteTable("prompts", {
   expectedOutput: text("expected_output").default(""),
   version: text("version").default("1.0"),
   notes: text("notes").default(""),
-  favorite: integer("favorite", { mode: "boolean" }).default(false),
-  isStarter: integer("is_starter", { mode: "boolean" }).default(false),
+  favorite: boolean("favorite").default(false),
+  isStarter: boolean("is_starter").default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
 
-export const aiTools = sqliteTable("ai_tools", {
+export const aiTools = pgTable("ai_tools", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   icon: text("icon").default("sparkles"),
@@ -176,14 +176,14 @@ export const aiTools = sqliteTable("ai_tools", {
   whenToUse: text("when_to_use").default(""),
   whenNotToUse: text("when_not_to_use").default(""),
   complexity: text("complexity").default("baja"), // baja|media|alta
-  needsFiles: integer("needs_files", { mode: "boolean" }).default(false),
-  involvesCode: integer("involves_code", { mode: "boolean" }).default(false),
+  needsFiles: boolean("needs_files").default(false),
+  involvesCode: boolean("involves_code").default(false),
   expectedOutput: text("expected_output").default(""),
-  examples: text("examples", { mode: "json" }).$type<string[]>().default([]),
+  examples: jsonb("examples").$type<string[]>().default([]),
   position: integer("position").default(0),
 });
 
-export const agentsSkills = sqliteTable("agents_skills", {
+export const agentsSkills = pgTable("agents_skills", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   kind: text("kind").notNull(), // agente|skill|comando
@@ -194,14 +194,14 @@ export const agentsSkills = sqliteTable("agents_skills", {
   whenToUse: text("when_to_use").default(""),
   whenNotToUse: text("when_not_to_use").default(""),
   command: text("command").default(""),
-  relationships: text("relationships", { mode: "json" }).$type<string[]>().default([]),
+  relationships: jsonb("relationships").$type<string[]>().default([]),
   sourcePath: text("source_path").default(""),
   status: text("status").default("activo"), // activo|experimental|planeado|deprecado|no-encontrado
   scope: text("scope").default("maca"), // maca|global|mafer-os|otro
   fileModified: text("file_modified"), // fecha de última modificación del archivo fuente
 });
 
-export const decisions = sqliteTable("decisions", {
+export const decisions = pgTable("decisions", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   date: text("date").notNull(),
@@ -215,7 +215,7 @@ export const decisions = sqliteTable("decisions", {
   createdAt: text("created_at").notNull(),
 });
 
-export const resources = sqliteTable("resources", {
+export const resources = pgTable("resources", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   type: text("type").default("articulo"), // video|articulo|sitio|libro|documento|curso|archivo|herramienta
@@ -225,13 +225,13 @@ export const resources = sqliteTable("resources", {
   learningId: text("learning_id"),
   notes: text("notes").default(""),
   status: text("status").default("pendiente"), // pendiente|en-proceso|revisado
-  favorite: integer("favorite", { mode: "boolean" }).default(false),
-  isStarter: integer("is_starter", { mode: "boolean" }).default(false),
+  favorite: boolean("favorite").default(false),
+  isStarter: boolean("is_starter").default(false),
   createdAt: text("created_at").notNull(),
 });
 
 /** Eventos de calendario propios (reuniones, fechas importantes) no ligados a una tarjeta. */
-export const events = sqliteTable("events", {
+export const events = pgTable("events", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   date: text("date").notNull(),
@@ -241,29 +241,29 @@ export const events = sqliteTable("events", {
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   notes: text("notes").default(""),
   gcalEventId: text("gcal_event_id"),
-  isStarter: integer("is_starter", { mode: "boolean" }).default(false),
+  isStarter: boolean("is_starter").default(false),
   createdAt: text("created_at").notNull(),
 });
 
 /** Sesiones de revisión (diaria/semanal): progreso guardado e historial simple. */
-export const reviews = sqliteTable("reviews", {
+export const reviews = pgTable("reviews", {
   id: text("id").primaryKey(),
   type: text("type").notNull(), // diaria | semanal
   date: text("date").notNull(), // YYYY-MM-DD de inicio
   startedAt: text("started_at").notNull(),
   finishedAt: text("finished_at"), // null = en curso / incompleta
-  completed: integer("completed", { mode: "boolean" }).default(false),
+  completed: boolean("completed").default(false),
   step: integer("step").notNull().default(1),
   processed: integer("processed").notNull().default(0),
   summary: text("summary").default(""),
-  meta: text("meta", { mode: "json" }).$type<{ inboxStart?: number }>().default({}),
+  meta: jsonb("meta").$type<{ inboxStart?: number }>().default({}),
 });
 
 /** Focus Garden (Fase 7B): sesiones de enfoque vinculadas (opcionalmente) a una
  *  tarea real. La fuente de verdad del tiempo son los timestamps persistidos
  *  (phase_started_at + segundos consolidados), nunca un contador en memoria.
  *  finished_at null = sesión abierta/recuperable (mismo patrón que reviews). */
-export const focusSessions = sqliteTable("focus_sessions", {
+export const focusSessions = pgTable("focus_sessions", {
   id: text("id").primaryKey(),
   cardId: text("card_id"), // referencia blanda a cards (como next_action_card_id)
   preset: text("preset").notNull(), // arranque|ligero|pomodoro|profundo|personalizado
@@ -287,7 +287,7 @@ export const focusSessions = sqliteTable("focus_sessions", {
  *  Identidad (7E.2): especie + visual_seed + renderer_version se fijan UNA vez al
  *  nacer (newPlantIdentity en plant-render.ts) y nunca se recalculan — la apariencia
  *  de una planta es estable para siempre. name/note sin interfaz en v1. */
-export const focusPlants = sqliteTable("focus_plants", {
+export const focusPlants = pgTable("focus_plants", {
   id: text("id").primaryKey(),
   species: text("species").notNull().default("brote-comun"), // helecho|monstera|suculenta|lavanda|olivo ('brote-comun' fue solo el placeholder pre-7E.2; el backfill lo reasignó)
   accumulatedMinutes: integer("accumulated_minutes").notNull().default(0),
@@ -305,15 +305,18 @@ export const focusPlants = sqliteTable("focus_plants", {
  *  después de la migración 0006, SUM(credited_minutes) de sus filas == el
  *  credited_minutes de la sesión. Las sesiones anteriores no tienen filas y quedan
  *  honestamente «sin planta asociada». Referencias blandas, como card_id. */
-export const focusSessionPlantAllocations = sqliteTable("focus_session_plant_allocations", {
+export const focusSessionPlantAllocations = pgTable("focus_session_plant_allocations", {
   id: text("id").primaryKey(),
   sessionId: text("session_id").notNull(), // referencia blanda a focus_sessions
   plantId: text("plant_id").notNull(), // referencia blanda a focus_plants
   creditedMinutes: integer("credited_minutes").notNull(),
   createdAt: text("created_at").notNull(),
-});
+}, (table) => [
+  index("idx_fspa_session").on(table.sessionId),
+  index("idx_fspa_plant").on(table.plantId),
+]);
 
-export const recentViews = sqliteTable("recent_views", {
+export const recentViews = pgTable("recent_views", {
   id: text("id").primaryKey(), // `${type}:${entityId}`
   entityType: text("entity_type").notNull(),
   entityId: text("entity_id").notNull(),

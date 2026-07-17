@@ -55,7 +55,7 @@ export async function createCardAction(formData: FormData): Promise<{ id: string
  *  guardan solas. null = «sin estimar». */
 export async function setTaskEstimatesAction(id: string, duration: string | null, energy: string | null) {
   await requireAuth();
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return;
   await db
     .update(schema.cards)
@@ -76,13 +76,13 @@ export type TaskDetailData = {
  *  las listas del tablero de su proyecto actual. */
 export async function getTaskDetailAction(cardId: string): Promise<TaskDetailData | null> {
   await requireAuth();
-  const row = await db
+  const [row] = await db
     .select({ card: schema.cards, projectTitle: schema.projects.title, columnKind: schema.columns.kind })
     .from(schema.cards)
     .leftJoin(schema.projects, eq(schema.cards.projectId, schema.projects.id))
     .leftJoin(schema.columns, eq(schema.cards.columnId, schema.columns.id))
     .where(eq(schema.cards.id, cardId))
-    .get();
+    .limit(1);
   if (!row) return null;
   const projects = await db
     .select({ id: schema.projects.id, title: schema.projects.title })
@@ -118,7 +118,7 @@ export async function getProjectColumnsAction(projectId: string) {
 export async function saveTaskAction(formData: FormData) {
   await requireAuth();
   const id = String(formData.get("id"));
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return;
 
   const str = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "") : undefined);
@@ -176,13 +176,13 @@ export async function saveTaskAction(formData: FormData) {
       position = columnId ? await endOf(columnId) : 0;
     }
   } else if (requestedColumn !== undefined && requestedColumn !== card.columnId && card.boardId) {
-    const col = requestedColumn
+    const [col] = requestedColumn
       ? await db
           .select()
           .from(schema.columns)
           .where(and(eq(schema.columns.id, requestedColumn), eq(schema.columns.boardId, card.boardId)))
-          .get()
-      : null;
+          .limit(1)
+      : [];
     if (col) {
       columnId = col.id;
       position = await endOf(col.id);
@@ -192,7 +192,7 @@ export async function saveTaskAction(formData: FormData) {
   // completedAt solo cambia si la tarjeta se movió de lista (a Terminado o fuera de él).
   let completedAt = card.completedAt;
   if (columnId && columnId !== card.columnId) {
-    const newCol = await db.select().from(schema.columns).where(eq(schema.columns.id, columnId)).get();
+    const [newCol] = await db.select().from(schema.columns).where(eq(schema.columns.id, columnId)).limit(1);
     completedAt = newCol?.kind === "terminado" ? (card.completedAt ?? now()) : null;
   }
 
@@ -237,7 +237,7 @@ export async function saveTaskAction(formData: FormData) {
 
 export async function setChecklistAction(id: string, checklist: { id: string; text: string; done: boolean }[]) {
   await requireAuth();
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return;
   await db.update(schema.cards).set({ checklist, updatedAt: now() }).where(eq(schema.cards.id, id));
   revalidateCardViews(card.projectId);
@@ -251,10 +251,10 @@ export async function moveCardAction(input: {
   fromOrderedIds?: string[]; // ids restantes en la columna origen (si cambió de columna)
 }) {
   await requireAuth();
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, input.cardId)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, input.cardId)).limit(1);
   if (!card) return;
 
-  const col = await db.select().from(schema.columns).where(eq(schema.columns.id, input.toColumnId)).get();
+  const [col] = await db.select().from(schema.columns).where(eq(schema.columns.id, input.toColumnId)).limit(1);
   if (!col) return;
 
   const done = col.kind === "terminado";
@@ -288,17 +288,17 @@ export async function completeCardAction(
   restorePriorityAt?: number | null
 ): Promise<{ freedPriorityAt: number | null }> {
   await requireAuth();
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return { freedPriorityAt: null };
 
   let freedPriorityAt: number | null = null;
   const d = today();
   if (complete) {
-    const row = await db
+    const [row] = await db
       .select()
       .from(schema.todayPriorities)
       .where(and(eq(schema.todayPriorities.date, d), eq(schema.todayPriorities.cardId, id)))
-      .get();
+      .limit(1);
     if (row) {
       freedPriorityAt = row.position;
       await db.delete(schema.todayPriorities).where(eq(schema.todayPriorities.id, row.id));
@@ -317,11 +317,11 @@ export async function completeCardAction(
   let position = card.position;
   if (card.boardId) {
     const targetKind = complete ? "terminado" : "proximo";
-    const col = await db
+    const [col] = await db
       .select()
       .from(schema.columns)
       .where(and(eq(schema.columns.boardId, card.boardId), eq(schema.columns.kind, targetKind)))
-      .get();
+      .limit(1);
     if (col && col.id !== card.columnId) {
       columnId = col.id;
       // al final de la lista destino, sin chocar con posiciones existentes
@@ -340,7 +340,7 @@ export async function completeCardAction(
 /** Reprograma la fecha límite (o la quita con null). */
 export async function rescheduleCardAction(id: string, dueDate: string | null) {
   await requireAuth();
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return;
   await db.update(schema.cards).set({ dueDate, updatedAt: now() }).where(eq(schema.cards.id, id));
   revalidateCardViews(card.projectId);
@@ -349,13 +349,13 @@ export async function rescheduleCardAction(id: string, dueDate: string | null) {
 /** Mueve la tarjeta a la lista de su tablero con ese kind (p. ej. «despues»). */
 export async function moveCardToKindAction(id: string, kind: string) {
   await requireAuth();
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card?.boardId) return;
-  const col = await db
+  const [col] = await db
     .select()
     .from(schema.columns)
     .where(and(eq(schema.columns.boardId, card.boardId), eq(schema.columns.kind, kind)))
-    .get();
+    .limit(1);
   if (!col || col.id === card.columnId) return;
   const siblings = await db.select({ id: schema.cards.id }).from(schema.cards).where(eq(schema.cards.columnId, col.id));
   await db
@@ -367,7 +367,7 @@ export async function moveCardToKindAction(id: string, kind: string) {
 
 export async function archiveCardAction(id: string, archived: boolean) {
   await requireAuth();
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return;
   await db.update(schema.cards).set({ archived, updatedAt: now() }).where(eq(schema.cards.id, id));
   revalidateCardViews(card.projectId);
@@ -375,7 +375,7 @@ export async function archiveCardAction(id: string, archived: boolean) {
 
 export async function deleteCardAction(id: string) {
   await requireAuth();
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return;
   await db.delete(schema.cards).where(eq(schema.cards.id, id));
   revalidateCardViews(card.projectId);
@@ -458,9 +458,9 @@ export async function createCardInColumnAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const columnId = String(formData.get("columnId") ?? "");
   if (!title || !columnId) return;
-  const col = await db.select().from(schema.columns).where(eq(schema.columns.id, columnId)).get();
+  const [col] = await db.select().from(schema.columns).where(eq(schema.columns.id, columnId)).limit(1);
   if (!col) return;
-  const board = await db.select().from(schema.boards).where(eq(schema.boards.id, col.boardId)).get();
+  const [board] = await db.select().from(schema.boards).where(eq(schema.boards.id, col.boardId)).limit(1);
   if (!board) return;
   const siblings = await db.select().from(schema.cards).where(eq(schema.cards.columnId, columnId));
   const t = now();

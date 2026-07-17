@@ -86,7 +86,7 @@ describe("migración 0002_estimates.sql sobre una base con datos antiguos", () =
     insert.run("f", "sin estimar", null, null);
     insert.run("g", "ya migrada", "over_60", "high");
 
-    const sql = fs.readFileSync(path.join(__dirname, "..", "drizzle", "0002_estimates.sql"), "utf8");
+    const sql = fs.readFileSync(path.join(__dirname, "..", "drizzle-sqlite-archive", "0002_estimates.sql"), "utf8");
     for (const stmt of sql.split("--> statement-breakpoint")) {
       const s = stmt.trim();
       if (s) db.exec(s);
