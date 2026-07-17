@@ -17,11 +17,11 @@ function revalidateReviews() {
 /** Retoma la sesión sin terminar del tipo, o crea una nueva. */
 export async function startReviewAction(type: "diaria" | "semanal"): Promise<{ id: string; step: number }> {
   await requireAuth();
-  const open = await db
+  const [open] = await db
     .select()
     .from(schema.reviews)
     .where(and(eq(schema.reviews.type, type), isNull(schema.reviews.finishedAt)))
-    .get();
+    .limit(1);
   if (open) return { id: open.id, step: open.step };
 
   const inboxStart = (
@@ -43,7 +43,7 @@ export async function startReviewAction(type: "diaria" | "semanal"): Promise<{ i
 /** Guarda el paso actual (el progreso persiste solo). */
 export async function goToReviewStepAction(id: string, step: number) {
   await requireAuth();
-  const r = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).get();
+  const [r] = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).limit(1);
   if (!r || r.finishedAt) return;
   const max = r.type === "diaria" ? DAILY_STEPS : WEEKLY_STEPS;
   const clamped = Math.min(Math.max(1, step), max);
@@ -54,7 +54,7 @@ export async function goToReviewStepAction(id: string, step: number) {
 /** Cuenta un elemento atendido durante la revisión. */
 export async function bumpReviewProcessedAction(id: string, n = 1) {
   await requireAuth();
-  const r = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).get();
+  const [r] = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).limit(1);
   if (!r || r.finishedAt) return;
   await db.update(schema.reviews).set({ processed: r.processed + n }).where(eq(schema.reviews.id, id));
 }
@@ -63,7 +63,7 @@ export async function bumpReviewProcessedAction(id: string, n = 1) {
  *  resumen honesto: qué se completó y qué quedó, calculado desde el inicio. */
 export async function finishReviewAction(id: string, completed: boolean) {
   await requireAuth();
-  const r = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).get();
+  const [r] = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).limit(1);
   if (!r || r.finishedAt) return;
 
   const doneSince = (
@@ -100,7 +100,7 @@ export async function finishReviewAction(id: string, completed: boolean) {
  *  aplicadas — solo archiva la sesión como incompleta y abre una nueva. */
 export async function resetReviewAction(id: string): Promise<{ id: string } | undefined> {
   await requireAuth();
-  const r = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).get();
+  const [r] = await db.select().from(schema.reviews).where(eq(schema.reviews.id, id)).limit(1);
   if (!r || r.finishedAt) return undefined;
   await db
     .update(schema.reviews)

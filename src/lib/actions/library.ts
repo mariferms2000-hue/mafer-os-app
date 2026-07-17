@@ -34,7 +34,7 @@ export async function updateResourceStatusAction(id: string, status: string) {
 
 export async function toggleResourceFavoriteAction(id: string) {
   await requireAuth();
-  const r = await db.select().from(schema.resources).where(eq(schema.resources.id, id)).get();
+  const [r] = await db.select().from(schema.resources).where(eq(schema.resources.id, id)).limit(1);
   if (!r) return;
   await db.update(schema.resources).set({ favorite: !r.favorite }).where(eq(schema.resources.id, id));
   revalidatePath("/biblioteca/recursos");
@@ -75,7 +75,7 @@ export async function createPromptAction(formData: FormData) {
 export async function updatePromptAction(formData: FormData) {
   await requireAuth();
   const id = String(formData.get("id"));
-  const p = await db.select().from(schema.prompts).where(eq(schema.prompts.id, id)).get();
+  const [p] = await db.select().from(schema.prompts).where(eq(schema.prompts.id, id)).limit(1);
   if (!p) return;
   const str = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "") : undefined);
   await db
@@ -98,7 +98,7 @@ export async function updatePromptAction(formData: FormData) {
 
 export async function duplicatePromptAction(id: string) {
   await requireAuth();
-  const p = await db.select().from(schema.prompts).where(eq(schema.prompts.id, id)).get();
+  const [p] = await db.select().from(schema.prompts).where(eq(schema.prompts.id, id)).limit(1);
   if (!p) return;
   const t = now();
   await db.insert(schema.prompts).values({
@@ -114,7 +114,7 @@ export async function duplicatePromptAction(id: string) {
 
 export async function togglePromptFavoriteAction(id: string) {
   await requireAuth();
-  const p = await db.select().from(schema.prompts).where(eq(schema.prompts.id, id)).get();
+  const [p] = await db.select().from(schema.prompts).where(eq(schema.prompts.id, id)).limit(1);
   if (!p) return;
   await db.update(schema.prompts).set({ favorite: !p.favorite }).where(eq(schema.prompts.id, id));
   revalidatePath("/biblioteca/prompts");

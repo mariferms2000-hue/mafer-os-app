@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function JournalEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const entry = await db.select().from(schema.journalEntries).where(eq(schema.journalEntries.id, id)).get();
+  const [entry] = await db.select().from(schema.journalEntries).where(eq(schema.journalEntries.id, id)).limit(1);
   if (!entry) notFound();
   await touchRecent("journal", id, entry.title, `/explorar/journal/${id}`);
 

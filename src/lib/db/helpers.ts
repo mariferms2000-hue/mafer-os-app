@@ -29,11 +29,11 @@ export async function createDefaultBoard(projectId: string): Promise<string> {
 }
 
 export async function getOrCreateBoard(projectId: string): Promise<string> {
-  const board = await db
+  const [board] = await db
     .select()
     .from(schema.boards)
     .where(eq(schema.boards.projectId, projectId))
-    .get();
+    .limit(1);
   return board?.id ?? createDefaultBoard(projectId);
 }
 
@@ -58,7 +58,7 @@ export async function createCardInColumnKind(input: {
 
   if (input.projectId) {
     boardId = await getOrCreateBoard(input.projectId);
-    const col = await db
+    const [col] = await db
       .select()
       .from(schema.columns)
       .where(
@@ -67,14 +67,14 @@ export async function createCardInColumnKind(input: {
           eq(schema.columns.kind, input.columnKind ?? "proximo")
         )
       )
-      .get();
+      .limit(1);
     columnId = col?.id ?? null;
     if (columnId) {
-      const m = await db
+      const [m] = await db
         .select({ m: max(schema.cards.position) })
         .from(schema.cards)
         .where(eq(schema.cards.columnId, columnId))
-        .get();
+        .limit(1);
       position = (m?.m ?? -1) + 1;
     }
   }

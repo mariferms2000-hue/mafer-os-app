@@ -64,7 +64,7 @@ export function CaptureFab({ projects }: { projects: ProjectOption[] }) {
         }}
         aria-label={enInbox ? "Nueva captura" : menu ? "Cerrar menú de creación" : "Crear algo nuevo"}
         aria-expanded={enInbox ? undefined : menu}
-        className={`fixed z-50 bottom-20 right-4 md:bottom-8 md:right-8 h-14 w-14 rounded-full bg-forest text-cream shadow-lift flex items-center justify-center hover:bg-forest-deep transition-transform ${
+        className={`fixed z-50 bottom-[calc(5rem+env(safe-area-inset-bottom))] right-4 md:bottom-[calc(2rem+env(safe-area-inset-bottom))] md:right-8 h-14 w-14 rounded-full bg-forest text-cream shadow-lift flex items-center justify-center hover:bg-forest-deep transition-transform ${
           menu ? "rotate-45" : ""
         }`}
         data-testid="capture-fab"
@@ -81,7 +81,7 @@ export function CaptureFab({ projects }: { projects: ProjectOption[] }) {
           <div
             role="menu"
             aria-label="Crear"
-            className="absolute bottom-36 right-4 md:bottom-24 md:right-8 card p-2 flex flex-col gap-0.5 w-64 shadow-lift"
+            className="absolute bottom-[calc(9rem+env(safe-area-inset-bottom))] right-4 md:bottom-[calc(6rem+env(safe-area-inset-bottom))] md:right-8 card p-2 flex flex-col gap-0.5 w-64 shadow-lift"
             onClick={(e) => e.stopPropagation()}
           >
             {ACTIONS.map(({ key, label, hint, icon: Icon, onClick, testid }) => (

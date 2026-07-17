@@ -135,7 +135,7 @@ export async function syncEventToGoogle(eventId: string): Promise<string | null>
   if (!auth) return null;
   const calendarId = await ensureMaferCalendar();
   if (!calendarId) return null;
-  const e = await db.select().from(schema.events).where(eq(schema.events.id, eventId)).get();
+  const [e] = await db.select().from(schema.events).where(eq(schema.events.id, eventId)).limit(1);
   if (!e) return null;
 
   const cal = google.calendar({ version: "v3", auth });
@@ -167,7 +167,7 @@ export async function syncEventToGoogle(eventId: string): Promise<string | null>
 export async function syncCardToGoogle(cardId: string): Promise<string | null> {
   const auth = await getAuthedClient();
   if (!auth) return null;
-  const card = await db.select().from(schema.cards).where(eq(schema.cards.id, cardId)).get();
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, cardId)).limit(1);
   if (!card) return null;
 
   // Sin recordatorio o sin fecha → si había evento en Google, se elimina.

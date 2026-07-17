@@ -52,10 +52,10 @@ export async function createProjectAction(formData: FormData) {
  *  Nunca se elige una automáticamente: siempre llega de una elección de Mafer. */
 export async function setProjectNextActionAction(projectId: string, cardId: string | null) {
   await requireAuth();
-  const p = await db.select().from(schema.projects).where(eq(schema.projects.id, projectId)).get();
+  const [p] = await db.select().from(schema.projects).where(eq(schema.projects.id, projectId)).limit(1);
   if (!p) return;
   if (cardId) {
-    const card = await db.select().from(schema.cards).where(eq(schema.cards.id, cardId)).get();
+    const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, cardId)).limit(1);
     if (!card || card.projectId !== projectId) return; // solo tareas del propio proyecto
   }
   await db
@@ -73,7 +73,7 @@ export async function createNextActionTaskAction(
   await requireAuth();
   const clean = title.trim();
   if (!clean) return undefined;
-  const p = await db.select().from(schema.projects).where(eq(schema.projects.id, projectId)).get();
+  const [p] = await db.select().from(schema.projects).where(eq(schema.projects.id, projectId)).limit(1);
   if (!p) return undefined;
   const cardId = await createCardInColumnKind({ title: clean, projectId, columnKind: "proximo" });
   await db
@@ -97,7 +97,7 @@ export async function saveResumeNoteAction(projectId: string, note: string) {
 export async function updateProjectAction(formData: FormData) {
   await requireAuth();
   const id = String(formData.get("id"));
-  const p = await db.select().from(schema.projects).where(eq(schema.projects.id, id)).get();
+  const [p] = await db.select().from(schema.projects).where(eq(schema.projects.id, id)).limit(1);
   if (!p) return;
   const str = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "") : undefined);
   await db

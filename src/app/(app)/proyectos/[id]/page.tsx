@@ -24,7 +24,7 @@ export default async function ProyectoPage({
   const { id } = await params;
   const { retomar } = await searchParams;
   const d = today();
-  const project = await db.select().from(schema.projects).where(eq(schema.projects.id, id)).get();
+  const [project] = await db.select().from(schema.projects).where(eq(schema.projects.id, id)).limit(1);
   if (!project) notFound();
 
   const boardId = await getOrCreateBoard(id);
