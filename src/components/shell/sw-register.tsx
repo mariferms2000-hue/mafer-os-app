@@ -32,7 +32,7 @@ export function PwaSetup() {
       role="status"
       className="fixed top-2 left-1/2 -translate-x-1/2 z-[60] chip chip-waiting !py-1.5 !px-3 shadow-lift"
     >
-      <WifiOff size={12} aria-hidden /> Sin conexión — tus cambios necesitan red con tu Mac
+      <WifiOff size={12} aria-hidden /> Sin conexión — tus cambios necesitan internet
     </p>
   );
 }

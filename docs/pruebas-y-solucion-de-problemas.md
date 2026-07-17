@@ -28,19 +28,21 @@ calendario, sin scroll horizontal.
 
 | Síntoma | Causa probable | Solución |
 |---|---|---|
-| La app no abre al doble clic | Node no instalado / dependencias | Instalar Node LTS; `npm install` en mafer-os-app |
-| «Falta AUTH_SECRET» | No existe .env.local | `npm run setup` |
-| Puerto ocupado | Otra instancia corriendo | Cerrar la ventanita anterior o `kill $(lsof -ti :3456)` |
-| iPhone no carga la app | Mac dormida u otra red Wi-Fi | Despertar la Mac, misma red, revisar IP en la ventanita |
+| La app no abre (local, solo dev) | Node no instalado / dependencias | Instalar Node LTS; `npm install` en mafer-os-app |
+| «Falta AUTH_SECRET» (local) | No existe .env.local | `npm run setup` |
+| «Falta DATABASE_URL» | No existe .env.local o falta la variable | Agregar el connection string de Supabase a `.env.local` |
+| iPhone no carga la app | Sin internet, o Vercel caído | Revisar conexión a internet; el hosting ya no depende de ninguna Mac ni red local |
 | Google: «app sin verificar» | Normal en apps personales | Avanzado → Continuar (es tu propia app) |
-| Google: redirect_uri_mismatch | URI distinta en Google Cloud | Debe ser exactamente `http://localhost:3456/api/google/callback` |
-| Datos «desaparecieron» | Base o carpeta movida | La base vive en `mafer-os-app/data/`; restaurar del respaldo |
-| Cambié el esquema y truena | Falta migración | `npx drizzle-kit generate` y reiniciar |
+| Google: redirect_uri_mismatch | URI distinta en Google Cloud | Debe coincidir con la URL de Vercel configurada en Google Cloud |
+| Datos «desaparecieron» | — | La base vive en Supabase (Postgres), no en un archivo local; revisar el dashboard de Supabase / sus backups |
+| Cambié el esquema y truena | Falta migración | `npx drizzle-kit generate` y redeploy |
 
-## Limitaciones conocidas (V1, honestas)
+## Limitaciones conocidas (honestas)
 
-1. **Sin nube todavía**: la app corre en la Mac; iPhone/iPad requieren la misma red.
-   El plan de despliegue está en `project-management/deployment-notes.md`.
+1. **En la nube**: la app vive en Vercel + Supabase (Postgres) — accesible desde cualquier
+   red con internet, en el navegador o instalada como PWA. El modo local-en-la-Mac (SQLite)
+   queda solo para desarrollo (`npm run dev`/`npm start` con SQLite ya no aplica: el driver
+   actual requiere `DATABASE_URL` de Postgres incluso en local).
 2. **Google Calendar probado con simulaciones**, no con OAuth vivo (requiere credenciales
    personales de Mafer). El código de la integración está completo y las rutas probadas.
 3. **Offline**: la PWA muestra un aviso amable sin conexión, pero no edita datos offline.
