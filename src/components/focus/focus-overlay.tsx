@@ -33,6 +33,8 @@ import {
   type StageKey,
 } from "@/lib/focus-logic";
 import { FocusPlant } from "./plant";
+import { useFocusAutoNotify } from "./use-focus-auto-notify";
+import { NotificationInvite } from "./notification-invite";
 
 /* «Jardín de enfoque» — Fase 7C.1: la habitación de enfoque de Mafer OS.
    Overlay amplio e inmersivo con el Marco vivo en el contenedor principal,
@@ -128,6 +130,10 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
   const completingRef = useRef(false);
 
   const session = overview?.openSession ?? null;
+
+  // Fase N1: aviso local de solo lectura, independiente del intervalo de abajo
+  // (que sigue siendo el único que cierra la fase). Ver use-focus-auto-notify.
+  useFocusAutoNotify(session);
 
   const refresh = useCallback(async () => {
     const o = await getFocusOverviewAction();
@@ -576,6 +582,7 @@ function ReadyView({
       >
         <Play size={16} aria-hidden /> {pending ? "Empezando…" : "Empezar"}
       </button>
+      <NotificationInvite />
       <p className="intro-italic text-[13px]">Una planta crece mientras trabajas. Sin prisa.</p>
     </div>
   );

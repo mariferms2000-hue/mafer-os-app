@@ -14,6 +14,7 @@ import {
   type StageKey,
 } from "@/lib/focus-logic";
 import { FocusPlant } from "@/components/focus/plant";
+import { useFocusAutoNotify } from "@/components/focus/use-focus-auto-notify";
 import type { FocusOverview } from "@/lib/queries/focus";
 
 /* Módulo compacto del Jardín de enfoque en Hoy — Fase 7D.
@@ -45,6 +46,11 @@ function GardenLink({ count }: { count: number }) {
 export function FocusModule({ overview }: { overview: FocusOverview }) {
   const s = overview.openSession;
   const [, tick] = useState(0);
+
+  // Fase N1: aviso local cuando el bloque/descanso llega a cero mientras se
+  // está en Hoy (overlay cerrado). Solo lectura — nunca toca la sesión; ver
+  // use-focus-auto-notify.
+  useFocusAutoNotify(s);
 
   // Solo pinta: recalcula el restante desde los timestamps persistidos.
   useEffect(() => {
