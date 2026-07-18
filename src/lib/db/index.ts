@@ -14,10 +14,14 @@ declare global {
 }
 
 function createDb() {
-  // max: 1 — cada instancia serverless mantiene una sola conexión; con la conexión
-  // directa de Supabase (no el pooler) evita agotar el límite de conexiones si
-  // Vercel escala a varias instancias concurrentes.
-  const sql = postgres(DATABASE_URL!, { max: 1 });
+  // max: 1 — cada instancia serverless mantiene una sola conexión, para no agotar
+  // el límite si Vercel escala a varias instancias concurrentes.
+  // prepare: false — DATABASE_URL apunta al Transaction pooler de Supabase
+  // (puerto 6543, aws-0-us-east-1.pooler.supabase.com), que rota la conexión
+  // física entre transacciones y no soporta prepared statements (default de
+  // postgres.js) — sin esto, las queries se cuelgan bajo uso real aunque una
+  // consulta suelta de prueba funcione (se cierra antes de que el pool rote).
+  const sql = postgres(DATABASE_URL!, { max: 1, prepare: false });
   const db = drizzle(sql, { schema });
   // Fire-and-forget: la tabla de tracking de Drizzle hace que correr esto en cada
   // cold start sea idempotente (no-op tras la primera vez). No se bloquea el
