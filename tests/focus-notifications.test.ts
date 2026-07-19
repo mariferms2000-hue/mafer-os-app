@@ -5,6 +5,7 @@ import {
   breakEndCopy,
   intentForAutomaticAction,
   buildNotificationPayload,
+  systemNotificationOptions,
   dedupKey,
   wasNotified,
   markNotified,
@@ -93,6 +94,47 @@ describe("intentForAutomaticAction — qué avisar y cuándo NO avisar", () => {
     const breakEnd: NotificationIntent = { kind: "break-end" };
     expect(buildNotificationPayload(focusEnd).title).toBe("Tu bloque de enfoque terminó");
     expect(buildNotificationPayload(breakEnd).title).toBe("Tu descanso terminó");
+  });
+});
+
+describe("opciones del sistema — sonido predeterminado en TODA notificación", () => {
+  it("las opciones comunes piden explícitamente el sonido del sistema (silent: false, jamás true ni undefined)", () => {
+    const opts = systemNotificationOptions("cuerpo");
+    expect(opts.silent).toBe(false);
+  });
+
+  it("final de enfoque: payload + opciones con silent: false y el tag de dedupe", () => {
+    const { body } = buildNotificationPayload({ kind: "focus-end", minutes: 25, taskTitle: "Tarea X" });
+    const opts = systemNotificationOptions(body, dedupKey("s1", "focus-end", "t0"));
+    expect(opts.silent).toBe(false);
+    expect(opts.body).toBe("Terminaste 25 minutos en Tarea X. Tu planta sigue creciendo.");
+    expect(opts.tag).toBe("s1:focus-end:t0");
+  });
+
+  it("final de descanso: payload + opciones con silent: false", () => {
+    const { body } = buildNotificationPayload({ kind: "break-end" });
+    const opts = systemNotificationOptions(body, dedupKey("s1", "break-end", "t1"));
+    expect(opts.silent).toBe(false);
+    expect(opts.body).toBe("Puedes comenzar otro bloque cuando estés lista.");
+  });
+
+  it("la notificación de prueba (sin tag) también pide sonido y conserva iconos", () => {
+    const opts = systemNotificationOptions("Así se verán tus avisos del Jardín de enfoque.");
+    expect(opts.silent).toBe(false);
+    expect(opts.tag).toBeUndefined();
+    expect(opts.icon).toBe("/icons/icon-192.png");
+    expect(opts.badge).toBe("/icons/icon-192.png");
+  });
+
+  it("con tag, iconos y cuerpo se conservan intactos (nada se pierde al pedir sonido)", () => {
+    const opts = systemNotificationOptions("cuerpo", "una:clave");
+    expect(opts).toEqual({
+      body: "cuerpo",
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      silent: false,
+      tag: "una:clave",
+    });
   });
 });
 

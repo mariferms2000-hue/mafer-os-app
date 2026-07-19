@@ -70,6 +70,24 @@ export function buildNotificationPayload(intent: NotificationIntent): Notificati
   return intent.kind === "focus-end" ? focusEndCopy(intent) : breakEndCopy();
 }
 
+// ── Opciones del sistema (sonido incluido) ──────────────────────────
+
+/** Opciones comunes de TODA notificación del Pomodoro (reales y de prueba).
+ *  `silent: false` solicita explícitamente el sonido predeterminado del
+ *  sistema — sin archivos de audio propios ni Audio() en paralelo (duplicaría
+ *  el sonido o fallaría en segundo plano). La autoridad final es del sistema:
+ *  si Safari, el modo de Concentración o los ajustes de la app silencian los
+ *  avisos, esa decisión se respeta — silent:false solo pide, no evade. */
+export function systemNotificationOptions(body: string, tag?: string): NotificationOptions {
+  return {
+    body,
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    silent: false,
+    ...(tag ? { tag } : {}),
+  };
+}
+
 // ── Deduplicación tras recargas o montajes concurrentes ──────────────
 
 /** Identifica de forma única «esta fase concreta de esta sesión concreta»:

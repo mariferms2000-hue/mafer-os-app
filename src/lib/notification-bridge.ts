@@ -6,6 +6,7 @@
 
 import {
   buildNotificationPayload,
+  systemNotificationOptions,
   dedupKey,
   markNotified,
   wasNotified,
@@ -100,12 +101,9 @@ export function fireFocusNotification(
   if (wasNotified(sent, key)) return false;
   const { title, body } = buildNotificationPayload(intent);
   try {
-    const n = new Notification(title, {
-      body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      tag: key, // el propio sistema operativo también deduplica por tag
-    });
+    // systemNotificationOptions fija silent:false (sonido predeterminado del
+    // sistema) y el tag deduplica también a nivel de sistema operativo.
+    const n = new Notification(title, systemNotificationOptions(body, key));
     n.onclick = () => {
       window.focus();
       n.close();
@@ -124,10 +122,10 @@ export function fireFocusNotification(
 export function fireTestNotification(): boolean {
   if (!notificationsSupported() || Notification.permission !== "granted") return false;
   try {
-    const n = new Notification("Notificación de prueba — Mafer OS", {
-      body: "Así se verán tus avisos del Jardín de enfoque.",
-      icon: "/icons/icon-192.png",
-    });
+    const n = new Notification(
+      "Notificación de prueba — Mafer OS",
+      systemNotificationOptions("Así se verán tus avisos del Jardín de enfoque.")
+    );
     n.onclick = () => {
       window.focus();
       n.close();
