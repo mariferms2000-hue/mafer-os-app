@@ -13,8 +13,8 @@
 - El sonido solo dispara en transiciones **en vivo** (dentro del `setInterval` de `focus-overlay.tsx`), nunca en la recuperación al reabrir (`recover()` de `focus-logic.ts`).
 - Sin archivo de audio nuevo: el tono se sintetiza en código.
 - Cualquier fallo de Web Audio o `localStorage` (SSR, navegador sin soporte, contexto bloqueado, modo privado) debe fallar en silencio — nunca lanzar ni romper el resto del overlay.
-- Sigue el precedente del repo: el componente análogo `src/components/garden/ambient-player.tsx` (también Web Audio/DOM) no tiene test unitario ni e2e porque el proyecto no tiene entorno jsdom en Vitest. `focus-sound.ts` solo lleva test unitario para su rama SSR/sin-`window` (que sí corre en Node sin jsdom); el resto se verifica a mano en el navegador.
-- Mismo patrón visual que el toggle de música ambiental (`Volume2`/`VolumeX` de `lucide-react`, `btn btn-ghost`).
+- `vitest.config.ts` no configura entorno jsdom (corre en Node puro): `focus-sound.ts` solo lleva test unitario para su rama SSR/sin-`window` (que sí corre en Node sin jsdom); la reproducción real de Web Audio no es probable en este harness y se verifica a mano en el navegador.
+- Iconos `Volume2`/`VolumeX` de `lucide-react`, mismo estilo `btn btn-ghost` que el resto de botones del header.
 
 ---
 
@@ -37,8 +37,8 @@ import { primeFocusAudio, playFocusChime, isFocusSoundMuted, setFocusSoundMuted 
 
 /* Vitest corre en Node sin jsdom en este repo — estas pruebas cubren la
    rama SSR/sin-`window`: deben ser no-ops seguros, nunca lanzar. La
-   reproducción real del tono se verifica a mano en el navegador (mismo
-   precedente que ambient-player.tsx, sin test unitario). */
+   reproducción real del tono no es probable en este harness (no hay
+   jsdom) y se verifica a mano en el navegador. */
 describe("focus-sound — sin entorno de navegador (SSR / Node)", () => {
   it("isFocusSoundMuted por defecto no está silenciado", () => {
     expect(isFocusSoundMuted()).toBe(false);

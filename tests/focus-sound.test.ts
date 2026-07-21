@@ -3,8 +3,8 @@ import { primeFocusAudio, playFocusChime, isFocusSoundMuted, setFocusSoundMuted 
 
 /* Vitest corre en Node sin jsdom en este repo — estas pruebas cubren la
    rama SSR/sin-`window`: deben ser no-ops seguros, nunca lanzar. La
-   reproducción real del tono se verifica a mano en el navegador (mismo
-   precedente que ambient-player.tsx, sin test unitario). */
+   reproducción real del tono no es probable en este harness (no hay
+   jsdom) y se verifica a mano en el navegador. */
 describe("focus-sound — sin entorno de navegador (SSR / Node)", () => {
   it("isFocusSoundMuted por defecto no está silenciado", () => {
     expect(isFocusSoundMuted()).toBe(false);

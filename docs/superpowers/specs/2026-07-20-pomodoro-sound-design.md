@@ -53,18 +53,18 @@ Nuevo módulo `src/lib/focus-sound.ts` (client-only):
 - `primeFocusAudio()` se llama al inicio de `act()` y de `begin()`
   (fire-and-forget) para desbloquear el audio en el primer gesto real de la
   sesión.
-- Botón nuevo en el header, junto al de cerrar: mismo patrón visual que el
-  toggle de música ambiental del jardín (`Volume2`/`VolumeX` de
-  `lucide-react`), `aria-pressed`, `data-testid="focus-sound-toggle"`.
+- Botón nuevo en el header, junto al de cerrar: iconos `Volume2`/`VolumeX`
+  de `lucide-react`, mismo estilo `btn btn-ghost` que el resto de botones
+  del header, `aria-pressed`, `data-testid="focus-sound-toggle"`.
 
 ## Testing
 
-El repo no tiene entorno jsdom configurado en Vitest — por eso el componente
-análogo ya existente (`ambient-player.tsx`, que también envuelve Web
-Audio/DOM) no tiene test unitario. `focus-sound.ts` sigue el mismo
-precedente: sin test unitario forzado para el glue de audio/DOM. No se tocan
-los specs e2e existentes de Jardín de enfoque — usan `data-testid`, no
-cuentan botones del header.
+`vitest.config.ts` no configura `environment: "jsdom"` (corre en Node
+puro) — por eso `focus-sound.ts` solo lleva test unitario para su rama
+SSR/sin-`window` (que sí corre en Node sin jsdom); no hay forma de probar
+la reproducción real de Web Audio en este harness sin añadir jsdom, y eso
+está fuera de alcance de esta feature. No se tocan los specs e2e existentes
+de Jardín de enfoque — usan `data-testid`, no cuentan botones del header.
 
 ## Fuera de alcance
 
