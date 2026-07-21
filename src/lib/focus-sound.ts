@@ -1,68 +1,118 @@
-/* Aviso sonoro del Jardín de enfoque — chime sintetizado con Web Audio API,
-   sin archivo de audio que mantener. Todas las funciones son no-ops
-   seguros fuera del navegador (SSR) o si Web Audio no está disponible:
-   el aviso simplemente no suena, nunca rompe el resto del overlay. */
+/* Aviso sonoro del Jardín de enfoque — reproduce uno de los ringtones de
+   `public/sounds/focus/`, elegible por el usuario. Todas las funciones son
+   no-ops seguros fuera del navegador (SSR) o si <audio> falla: el aviso
+   simplemente no suena, nunca rompe el resto del overlay. */
+
+export type FocusSoundOption = { id: string; label: string; src: string };
+
+export const FOCUS_SOUND_OPTIONS: FocusSoundOption[] = [
+  { id: "solo-os", label: "Solo OS", src: "/sounds/focus/solo-os.mp3" },
+  { id: "sweet-ringtone", label: "Sweet Ringtone", src: "/sounds/focus/sweet-ringtone.mp3" },
+  { id: "gta-san-andreas", label: "GTA San Andreas", src: "/sounds/focus/gta-san-andreas.mp3" },
+];
+
+const DEFAULT_SOUND_ID = FOCUS_SOUND_OPTIONS[0].id;
 
 const MUTE_STORAGE_KEY = "mafer-os:focus-sound-muted";
+const CHOICE_STORAGE_KEY = "mafer-os:focus-sound-choice";
 
-let sharedContext: AudioContext | null = null;
+// Algunos ringtones duran hasta 30s — para un aviso de pomodoro basta con
+// reconocerlo, no con la canción completa: se corta con un fundido corto.
+const MAX_PLAYBACK_MS = 6000;
+const FADE_MS = 400;
 
-function getAudioContextClass(): typeof AudioContext | null {
-  if (typeof window === "undefined") return null;
-  const w = window as typeof window & { webkitAudioContext?: typeof AudioContext };
-  return window.AudioContext ?? w.webkitAudioContext ?? null;
+let sharedAudio: HTMLAudioElement | null = null;
+let sharedAudioSrc: string | null = null;
+let fadeIntervalId: ReturnType<typeof setInterval> | null = null;
+let stopTimeoutId: ReturnType<typeof setTimeout> | null = null;
+let fadeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+function getSoundSrc(id: string): string {
+  return FOCUS_SOUND_OPTIONS.find((o) => o.id === id)?.src ?? FOCUS_SOUND_OPTIONS[0].src;
 }
 
-/** Crea (una sola vez) y reanuda el AudioContext compartido. Llamar desde
+/** Un solo <audio> reutilizado: en Safari el desbloqueo de autoplay es por
+ *  instancia de elemento, no por `src` — crear uno nuevo en cada aviso
+ *  perdería el desbloqueo logrado en `primeFocusAudio`. */
+function getSharedAudio(src: string): HTMLAudioElement | null {
+  if (typeof window === "undefined" || typeof Audio === "undefined") return null;
+  if (!sharedAudio) sharedAudio = new Audio();
+  if (sharedAudioSrc !== src) {
+    sharedAudio.src = src;
+    sharedAudioSrc = src;
+  }
+  return sharedAudio;
+}
+
+function clearPlaybackTimers(): void {
+  if (fadeIntervalId !== null) clearInterval(fadeIntervalId);
+  if (stopTimeoutId !== null) clearTimeout(stopTimeoutId);
+  if (fadeTimeoutId !== null) clearTimeout(fadeTimeoutId);
+  fadeIntervalId = null;
+  stopTimeoutId = null;
+  fadeTimeoutId = null;
+}
+
+function fadeOutAndStop(audio: HTMLAudioElement): void {
+  const steps = 10;
+  const startVolume = audio.volume;
+  let step = 0;
+  fadeIntervalId = setInterval(() => {
+    step += 1;
+    audio.volume = Math.max(0, startVolume * (1 - step / steps));
+    if (step >= steps && fadeIntervalId !== null) {
+      clearInterval(fadeIntervalId);
+      fadeIntervalId = null;
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, FADE_MS / steps);
+}
+
+/** Reproduce (y pausa de inmediato) el ringtone elegido en silencio, desde
  *  un gesto de usuario real (click) — las políticas de autoplay exigen eso
- *  para desbloquear audio; el chime en sí se dispara después, dentro de un
- *  setInterval, que no cuenta como gesto. */
+ *  para desbloquear el elemento; el aviso real se dispara después, dentro
+ *  de un setInterval, que no cuenta como gesto. */
 export function primeFocusAudio(): void {
-  const Ctor = getAudioContextClass();
-  if (!Ctor) return;
+  const audio = getSharedAudio(getSoundSrc(getFocusSoundChoice()));
+  if (!audio) return;
   try {
-    if (!sharedContext) sharedContext = new Ctor();
-    if (sharedContext.state === "suspended") sharedContext.resume().catch(() => {});
+    const prevMuted = audio.muted;
+    audio.muted = true;
+    const playPromise = audio.play();
+    const reset = () => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = prevMuted;
+    };
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise.then(reset).catch(() => {
+        audio.muted = prevMuted;
+      });
+    } else {
+      reset();
+    }
   } catch {
-    // Web Audio no disponible o bloqueada — el aviso no sonará esta vez.
+    // Audio no disponible o bloqueado — el aviso no sonará esta vez.
   }
 }
 
-/** Campana descendente de tres notas (G5 → E5 → C4), tipo cuenco tibetano:
- *  ataque lento (nunca un golpe seco), cola larga que se desvanece sola y
- *  un leve armónico a la octava para dar calidez, no brillo. Pensada para
- *  "aterrizar" al terminar el enfoque sin sobresaltar. */
+/** Suena el ringtone elegido por el usuario, cortado a los pocos segundos
+ *  con un fundido corto si es más largo (p. ej. el de 30s). */
 export function playFocusChime(): void {
-  const Ctor = getAudioContextClass();
-  if (!Ctor) return;
+  const audio = getSharedAudio(getSoundSrc(getFocusSoundChoice()));
+  if (!audio) return;
   try {
-    if (!sharedContext) sharedContext = new Ctor();
-    const ctx = sharedContext;
-    const notes = [783.99, 659.25, 523.25];
-    const noteSpacing = 0.42;
-    const tailDuration = 1.6;
-    const attack = 0.18;
-    const peakGain = 0.1;
-    const overtoneGain = 0.025;
-    notes.forEach((freq, i) => {
-      const start = ctx.currentTime + i * noteSpacing;
-      [
-        { freq, gain: peakGain },
-        { freq: freq * 2, gain: overtoneGain },
-      ].forEach(({ freq: f, gain: g }) => {
-        const osc = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = f;
-        gainNode.gain.setValueAtTime(0, start);
-        gainNode.gain.linearRampToValueAtTime(g, start + attack);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, start + attack + tailDuration);
-        osc.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        osc.start(start);
-        osc.stop(start + attack + tailDuration + 0.05);
-      });
-    });
+    clearPlaybackTimers();
+    audio.currentTime = 0;
+    audio.volume = 1;
+    audio.muted = false;
+    void audio.play().catch(() => {});
+    fadeTimeoutId = setTimeout(() => fadeOutAndStop(audio), Math.max(0, MAX_PLAYBACK_MS - FADE_MS));
+    stopTimeoutId = setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }, MAX_PLAYBACK_MS);
   } catch {
     // Igual que arriba: fallo silencioso.
   }
@@ -82,6 +132,28 @@ export function setFocusSoundMuted(muted: boolean): void {
   try {
     if (muted) window.localStorage.setItem(MUTE_STORAGE_KEY, "1");
     else window.localStorage.removeItem(MUTE_STORAGE_KEY);
+  } catch {
+    // localStorage puede fallar (modo privado, cuota) — la preferencia
+    // simplemente no persiste esta vez.
+  }
+}
+
+export function getFocusSoundChoice(): string {
+  if (typeof window === "undefined") return DEFAULT_SOUND_ID;
+  try {
+    const stored = window.localStorage.getItem(CHOICE_STORAGE_KEY);
+    if (stored && FOCUS_SOUND_OPTIONS.some((o) => o.id === stored)) return stored;
+    return DEFAULT_SOUND_ID;
+  } catch {
+    return DEFAULT_SOUND_ID;
+  }
+}
+
+export function setFocusSoundChoice(id: string): void {
+  if (typeof window === "undefined") return;
+  if (!FOCUS_SOUND_OPTIONS.some((o) => o.id === id)) return;
+  try {
+    window.localStorage.setItem(CHOICE_STORAGE_KEY, id);
   } catch {
     // localStorage puede fallar (modo privado, cuota) — la preferencia
     // simplemente no persiste esta vez.
