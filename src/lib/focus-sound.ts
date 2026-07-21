@@ -9,6 +9,7 @@ export const FOCUS_SOUND_OPTIONS: FocusSoundOption[] = [
   { id: "solo-os", label: "Solo OS", src: "/sounds/focus/solo-os.mp3" },
   { id: "sweet-ringtone", label: "Sweet Ringtone", src: "/sounds/focus/sweet-ringtone.mp3" },
   { id: "gta-san-andreas", label: "GTA San Andreas", src: "/sounds/focus/gta-san-andreas.mp3" },
+  { id: "waaaooow", label: "Waaaooow", src: "/sounds/focus/waaaooow.mp3" },
 ];
 
 const DEFAULT_SOUND_ID = FOCUS_SOUND_OPTIONS[0].id;
