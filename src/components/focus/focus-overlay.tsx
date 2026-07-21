@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { X, Play, Pause, CheckCircle2, SkipForward, Leaf, Sprout, ChevronDown } from "lucide-react";
+import { X, Play, Pause, CheckCircle2, SkipForward, Leaf, Sprout, ChevronDown, Volume2, VolumeX } from "lucide-react";
 import {
   getFocusOverviewAction,
   getFocusPickerAction,
@@ -32,6 +32,7 @@ import {
   type PresetKey,
   type StageKey,
 } from "@/lib/focus-logic";
+import { primeFocusAudio, playFocusChime, isFocusSoundMuted, setFocusSoundMuted } from "@/lib/focus-sound";
 import { FocusPlant } from "./plant";
 
 /* «Jardín de enfoque» — Fase 7C.1: la habitación de enfoque de Mafer OS.
@@ -126,6 +127,21 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
   const [, forceTick] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
   const completingRef = useRef(false);
+  const [soundMuted, setSoundMuted] = useState(false);
+  const soundMutedRef = useRef(false);
+
+  // Sincroniza la preferencia de silencio guardada — arranca en false para
+  // no desajustar la hidratación, se corrige al montar en cliente.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura de localStorage, solo resoluble tras montar (SSR-safe)
+    setSoundMuted(isFocusSoundMuted());
+  }, []);
+
+  // El intervalo de abajo captura closures viejos (sus dependencias no
+  // incluyen soundMuted); el ref le da el valor vigente sin reiniciarlo.
+  useEffect(() => {
+    soundMutedRef.current = soundMuted;
+  }, [soundMuted]);
 
   const session = overview?.openSession ?? null;
 
@@ -183,6 +199,7 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
         session.phase === "enfoque" ? focusRemainingSeconds(s, nowIso) <= 0 : breakRemainingSeconds(s, nowIso) <= 0;
       if (due && !completingRef.current) {
         completingRef.current = true;
+        if (!soundMutedRef.current) playFocusChime();
         const action: FocusAction = session.phase === "enfoque" ? "completar-enfoque" : "terminar-descanso";
         void applyAction(action).finally(() => {
           completingRef.current = false;
@@ -265,10 +282,12 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
   }
 
   function act(action: FocusAction) {
+    primeFocusAudio();
     start(() => applyAction(action));
   }
 
   function begin() {
+    primeFocusAudio();
     start(async () => {
       await startFocusAction({
         preset,
@@ -329,15 +348,31 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
           <h2 className="section-eyebrow !text-sage-deep flex items-center gap-1.5">
             <Sprout size={13} aria-hidden /> Jardín de enfoque
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={session && !closed ? "Cerrar — la sesión sigue corriendo" : "Cerrar"}
-            className="btn btn-ghost !p-1.5 absolute right-0 top-1/2 -translate-y-1/2"
-            data-testid="focus-close"
-          >
-            <X size={17} aria-hidden />
-          </button>
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                const next = !soundMuted;
+                setSoundMuted(next);
+                setFocusSoundMuted(next);
+              }}
+              aria-label={soundMuted ? "Activar aviso sonoro del pomodoro" : "Silenciar aviso sonoro del pomodoro"}
+              aria-pressed={!soundMuted}
+              className="btn btn-ghost !p-1.5"
+              data-testid="focus-sound-toggle"
+            >
+              {soundMuted ? <VolumeX size={16} aria-hidden /> : <Volume2 size={16} aria-hidden />}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={session && !closed ? "Cerrar — la sesión sigue corriendo" : "Cerrar"}
+              className="btn btn-ghost !p-1.5"
+              data-testid="focus-close"
+            >
+              <X size={17} aria-hidden />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center">
