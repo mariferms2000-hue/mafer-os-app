@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node scripts/seed.mjs",
+    "db:migrate": "node scripts/migrate.mjs",
     "sync:obsidian": "node scripts/sync-obsidian.mjs",
     "backup": "node scripts/backup.mjs",
     "setup": "node scripts/setup.mjs",

@@ -1,7 +1,5 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import path from "path";
 import * as schema from "./schema";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -14,20 +12,22 @@ declare global {
 }
 
 function createDb() {
-  // max: 1 — cada instancia serverless mantiene una sola conexión; con la conexión
-  // directa de Supabase (no el pooler) evita agotar el límite de conexiones si
-  // Vercel escala a varias instancias concurrentes.
-  const sql = postgres(DATABASE_URL!, { max: 1 });
-  const db = drizzle(sql, { schema });
-  // Fire-and-forget: la tabla de tracking de Drizzle hace que correr esto en cada
-  // cold start sea idempotente (no-op tras la primera vez). No se bloquea el
-  // arranque en ello — para una app de un solo usuario, el riesgo de que la
-  // primera petición justo después de un deploy nuevo choque con una migración
-  // en curso es aceptable.
-  migrate(db, { migrationsFolder: path.join(process.cwd(), "drizzle") }).catch((e) => {
-    console.error("[db] migración falló", e);
+  // DATABASE_URL apunta al pooler de Supabase en modo transacción (puerto 6543):
+  // - prepare: false es obligatorio ahí (Supavisor no soporta prepared statements).
+  // - max: 1 — una conexión por instancia serverless para no agotar el pool.
+  // - Timeouts acotados: sin ellos una conexión colgada retiene la única conexión
+  //   y la función entera espera hasta el límite de 300s de Vercel (504).
+  // Las migraciones NO corren aquí: DDL sobre el pooler de transacción se bloquea
+  // y encolaba todas las queries detrás. Corre `npm run db:migrate` (usa la
+  // conexión de sesión) cuando haya una migración nueva.
+  const sql = postgres(DATABASE_URL!, {
+    max: 1,
+    prepare: false,
+    connect_timeout: 10,
+    idle_timeout: 20,
+    max_lifetime: 60 * 5,
   });
-  return db;
+  return drizzle(sql, { schema });
 }
 
 // Reutiliza la conexión entre recargas de Next.js en desarrollo.
