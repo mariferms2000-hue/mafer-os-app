@@ -7,6 +7,7 @@ import {
   HardDriveDownload,
   Palette,
   FlaskConical,
+  Volume2,
 } from "lucide-react";
 import { getUserName, getSetting } from "@/lib/auth";
 import { googleStatus } from "@/lib/google/calendar";
@@ -17,6 +18,7 @@ import { disconnectGoogleAction } from "@/lib/actions/google";
 import { ThemeSelector } from "@/components/shell/theme";
 import { BackupButtons, DemoDataControls } from "@/components/settings/maintenance";
 import { WeeklyReviewDay } from "@/components/settings/weekly-review-day";
+import { FocusSoundSettings } from "@/components/settings/focus-sound-settings";
 import { AlertQaPanel } from "@/components/settings/alert-qa";
 import { getDemoCounts, qaToolsEnabled, alertQaCount } from "@/lib/actions/maintenance";
 
@@ -78,6 +80,14 @@ export default async function AjustesPage() {
           «Automático» sigue la preferencia de tu Mac o iPhone: claro de día, oscuro de noche.
         </p>
         <ThemeSelector />
+      </section>
+
+      {/* Sonido del pomodoro */}
+      <section className="card p-5 mb-5">
+        <h2 className="section-eyebrow mb-2 flex items-center gap-2">
+          <Volume2 size={13} className="text-sage-deep" aria-hidden /> Sonido del pomodoro
+        </h2>
+        <FocusSoundSettings />
       </section>
 
       {/* Google Calendar */}

@@ -32,15 +32,7 @@ import {
   type PresetKey,
   type StageKey,
 } from "@/lib/focus-logic";
-import {
-  primeFocusAudio,
-  playFocusChime,
-  isFocusSoundMuted,
-  setFocusSoundMuted,
-  getFocusSoundChoice,
-  setFocusSoundChoice,
-  FOCUS_SOUND_OPTIONS,
-} from "@/lib/focus-sound";
+import { primeFocusAudio, playFocusChime, isFocusSoundMuted, setFocusSoundMuted } from "@/lib/focus-sound";
 import { FocusPlant } from "./plant";
 
 /* «Jardín de enfoque» — Fase 7C.1: la habitación de enfoque de Mafer OS.
@@ -137,15 +129,12 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
   const completingRef = useRef(false);
   const [soundMuted, setSoundMuted] = useState(false);
   const soundMutedRef = useRef(false);
-  const [soundChoice, setSoundChoice] = useState(FOCUS_SOUND_OPTIONS[0].id);
 
-  // Sincroniza las preferencias de sonido guardadas — arrancan en el
-  // valor por defecto para no desajustar la hidratación, se corrigen al
-  // montar en cliente.
+  // Sincroniza la preferencia de silencio guardada — arranca en false para
+  // no desajustar la hidratación, se corrige al montar en cliente.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura de localStorage, solo resoluble tras montar (SSR-safe)
     setSoundMuted(isFocusSoundMuted());
-    setSoundChoice(getFocusSoundChoice());
   }, []);
 
   // El intervalo de abajo captura closures viejos (sus dependencias no
@@ -360,23 +349,6 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
             <Sprout size={13} aria-hidden /> Jardín de enfoque
           </h2>
           <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            <select
-              value={soundChoice}
-              onChange={(e) => {
-                setSoundChoice(e.target.value);
-                setFocusSoundChoice(e.target.value);
-              }}
-              disabled={soundMuted}
-              aria-label="Sonido de aviso al terminar el pomodoro"
-              className="text-xs rounded-lg border border-card-border bg-transparent px-1.5 py-1 text-stone-soft max-w-[104px] disabled:opacity-50"
-              data-testid="focus-sound-select"
-            >
-              {FOCUS_SOUND_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
             <button
               type="button"
               onClick={() => {
