@@ -22,7 +22,7 @@ export function primeFocusAudio(): void {
   if (!Ctor) return;
   try {
     if (!sharedContext) sharedContext = new Ctor();
-    if (sharedContext.state === "suspended") void sharedContext.resume();
+    if (sharedContext.state === "suspended") sharedContext.resume().catch(() => {});
   } catch {
     // Web Audio no disponible o bloqueada — el aviso no sonará esta vez.
   }
