@@ -28,30 +28,40 @@ export function primeFocusAudio(): void {
   }
 }
 
-/** Chime de dos notas ascendentes (D5 → G5), suave y corto (~1s),
- *  ganancia baja para no competir ni sobresaltar. */
+/** Campana descendente de tres notas (G5 → E5 → C4), tipo cuenco tibetano:
+ *  ataque lento (nunca un golpe seco), cola larga que se desvanece sola y
+ *  un leve armónico a la octava para dar calidez, no brillo. Pensada para
+ *  "aterrizar" al terminar el enfoque sin sobresaltar. */
 export function playFocusChime(): void {
   const Ctor = getAudioContextClass();
   if (!Ctor) return;
   try {
     if (!sharedContext) sharedContext = new Ctor();
     const ctx = sharedContext;
-    const notes = [587.33, 783.99];
-    const noteDuration = 0.5;
-    const peakGain = 0.15;
+    const notes = [783.99, 659.25, 523.25];
+    const noteSpacing = 0.42;
+    const tailDuration = 1.6;
+    const attack = 0.18;
+    const peakGain = 0.1;
+    const overtoneGain = 0.025;
     notes.forEach((freq, i) => {
-      const start = ctx.currentTime + i * noteDuration * 0.85;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(peakGain, start + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + noteDuration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + noteDuration + 0.05);
+      const start = ctx.currentTime + i * noteSpacing;
+      [
+        { freq, gain: peakGain },
+        { freq: freq * 2, gain: overtoneGain },
+      ].forEach(({ freq: f, gain: g }) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = f;
+        gainNode.gain.setValueAtTime(0, start);
+        gainNode.gain.linearRampToValueAtTime(g, start + attack);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, start + attack + tailDuration);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + attack + tailDuration + 0.05);
+      });
     });
   } catch {
     // Igual que arriba: fallo silencioso.
