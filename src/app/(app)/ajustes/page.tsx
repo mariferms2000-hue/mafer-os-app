@@ -20,6 +20,7 @@ import { BackupButtons, DemoDataControls } from "@/components/settings/maintenan
 import { WeeklyReviewDay } from "@/components/settings/weekly-review-day";
 import { FocusSoundSettings } from "@/components/settings/focus-sound-settings";
 import { AlertQaPanel } from "@/components/settings/alert-qa";
+import { NotificationsPanel } from "@/components/settings/notifications-panel";
 import { getDemoCounts, qaToolsEnabled, alertQaCount } from "@/lib/actions/maintenance";
 
 export const dynamic = "force-dynamic";
@@ -161,7 +162,7 @@ export default async function AjustesPage() {
       </section>
 
       {/* Instalación */}
-      <section className="card p-5">
+      <section className="card p-5 mb-5">
         <h2 className="section-eyebrow mb-2 flex items-center gap-2">
           <Smartphone size={13} className="text-sage-deep" aria-hidden /> Instalación en dispositivos
         </h2>
@@ -174,6 +175,9 @@ export default async function AjustesPage() {
           iPad: mismos pasos. Mac: Safari → Archivo → Agregar a Dock. Guía completa: manual «Instalar en iPhone».
         </p>
       </section>
+
+      {/* Notificaciones del Pomodoro (Fase N1) */}
+      <NotificationsPanel />
 
       {/* Herramientas QA — solo existen fuera de producción */}
       {qaTools && <div className="mt-5"><AlertQaPanel initialCount={qaCount} /></div>}
