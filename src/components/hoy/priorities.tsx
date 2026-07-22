@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Star, X, Plus, CheckCircle2, Circle } from "lucide-react";
+import { Star, X, Plus, CheckCircle2, Circle, MoreHorizontal, Trash2 } from "lucide-react";
 import {
   addTodayPriority,
   removeTodayPriority,
   completeCardAction,
+  deleteCardAction,
   setEnergyTodayAction,
 } from "@/lib/actions/cards";
 import { openTaskUrl } from "@/components/tasks/task-detail";
@@ -74,15 +75,18 @@ export function Priorities({
                 >
                   {i + 1}
                 </span>
-                <button
-                  type="button"
-                  aria-label={`Quitar «${card.title}» de prioridades`}
-                  onClick={() => start(() => removeTodayPriority(card.id))}
-                  disabled={pending}
-                  className="text-stone-soft hover:text-blocked shrink-0 -mr-1 -mt-1 p-1"
-                >
-                  <X size={15} aria-hidden />
-                </button>
+                <span className="flex items-center gap-0.5 shrink-0 -mr-1 -mt-1">
+                  <button
+                    type="button"
+                    aria-label={`Quitar «${card.title}» de prioridades`}
+                    onClick={() => start(() => removeTodayPriority(card.id))}
+                    disabled={pending}
+                    className="text-stone-soft hover:text-blocked p-1"
+                  >
+                    <X size={15} aria-hidden />
+                  </button>
+                  <PriorityCardMenu cardId={card.id} title={card.title} />
+                </span>
               </div>
               <button
                 type="button"
@@ -167,6 +171,67 @@ export function Priorities({
         </div>
       )}
     </section>
+  );
+}
+
+function PriorityCardMenu({ cardId, title }: { cardId: string; title: string }) {
+  const [menu, setMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pending, start] = useTransition();
+  const toast = useToast();
+
+  return (
+    <span className="relative">
+      <button
+        type="button"
+        aria-label={`Menú de «${title}»`}
+        className="text-stone-soft hover:text-forest p-1"
+        onClick={() => {
+          setMenu((m) => !m);
+          setConfirmDelete(false);
+        }}
+        data-testid={`priority-menu-${cardId}`}
+      >
+        <MoreHorizontal size={15} aria-hidden />
+      </button>
+      {menu && (
+        <div className="absolute right-0 z-20 mt-1 card p-1.5 flex flex-col min-w-40 text-sm text-left">
+          {confirmDelete ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+              <span className="text-xs text-stone">¿Eliminar?</span>
+              <button
+                type="button"
+                disabled={pending}
+                className="btn btn-danger !py-1 !px-2 text-xs"
+                data-testid={`priority-menu-delete-confirm-${cardId}`}
+                onClick={() =>
+                  start(async () => {
+                    await deleteCardAction(cardId);
+                    setMenu(false);
+                    toast.show({ tone: "info", message: "Tarea eliminada." });
+                  })
+                }
+              >
+                Sí, eliminar
+              </button>
+              <button type="button" className="btn btn-ghost !py-1 !px-2 text-xs" onClick={() => setConfirmDelete(false)}>
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={pending}
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-blocked hover:bg-blocked-soft"
+              data-testid={`priority-menu-delete-${cardId}`}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 size={14} aria-hidden /> Eliminar tarea
+            </button>
+          )}
+        </div>
+      )}
+    </span>
   );
 }
 

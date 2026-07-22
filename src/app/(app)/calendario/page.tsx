@@ -1,20 +1,10 @@
 import Link from "next/link";
 import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  Unplug,
-  Users,
-  Flag,
-  Bell,
-  CircleCheckBig,
-  type LucideIcon,
-} from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, Unplug } from "lucide-react";
 import { db, today, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { NewEventButton } from "@/components/calendar/new-event";
+import { MonthChip, WeekChip, OccLine, type Occurrence } from "@/components/calendar/occurrence";
 import { googleStatus } from "@/lib/google/calendar";
 import { disconnectGoogleAction } from "@/lib/actions/google";
 
@@ -23,26 +13,6 @@ export const metadata = { title: "Calendario" };
 
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DIAS_CORTOS = ["Lu","Ma","Mi","Ju","Vi","Sá","Do"];
-
-type Occurrence = {
-  id: string;
-  date: string;
-  time: string | null;
-  endTime?: string | null;
-  title: string;
-  kind: "evento" | "tarea";
-  type: string; // reunion|deadline|recordatorio|evento|tarea
-  projectId: string | null;
-  href?: string;
-};
-
-const TYPE_META: Record<string, { icon: LucideIcon; label: string; chip: string }> = {
-  reunion: { icon: Users, label: "Reunión", chip: "chip-sage" },
-  deadline: { icon: Flag, label: "Deadline", chip: "chip-blocked" },
-  recordatorio: { icon: Bell, label: "Recordatorio", chip: "chip-waiting" },
-  evento: { icon: CalendarDays, label: "Evento", chip: "chip-sage" },
-  tarea: { icon: CircleCheckBig, label: "Tarea", chip: "" },
-};
 
 function iso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -57,23 +27,6 @@ function addDays(s: string, n: number) {
 }
 function fechaLegible(s: string, opts: Intl.DateTimeFormatOptions) {
   return parseIso(s).toLocaleDateString("es-MX", opts);
-}
-
-function OccLine({ o }: { o: Occurrence }) {
-  const meta = TYPE_META[o.type] ?? TYPE_META.evento;
-  const Icon = meta.icon;
-  return (
-    <div className="flex items-center gap-2 text-sm py-1 min-w-0">
-      <span className={`chip shrink-0 ${meta.chip}`} title={meta.label}>
-        <Icon size={11} aria-hidden /> {o.time ?? "Día"}
-      </span>
-      {o.href ? (
-        <Link href={o.href} className="truncate hover:underline underline-offset-4">{o.title}</Link>
-      ) : (
-        <span className="truncate">{o.title}</span>
-      )}
-    </div>
-  );
 }
 
 export default async function CalendarioPage({
@@ -120,7 +73,6 @@ export default async function CalendarioPage({
       kind: "tarea" as const,
       type: "tarea",
       projectId: c.projectId,
-      href: c.projectId ? `/proyectos/${c.projectId}` : "/tareas?fecha=vencidas&v=todas",
     })),
   ];
   if (proyecto) occ = occ.filter((o) => o.projectId === proyecto);
@@ -268,23 +220,9 @@ export default async function CalendarioPage({
                         {Number(date.slice(8))}
                       </Link>
                       <ul className="flex flex-col gap-0.5">
-                        {(byDate.get(date) ?? []).slice(0, 4).map((o) => {
-                          const meta = TYPE_META[o.type] ?? TYPE_META.evento;
-                          const Icon = meta.icon;
-                          return (
-                            <li
-                              key={o.id}
-                              className={`flex items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] leading-tight ${
-                                o.kind === "evento" ? "bg-sage-soft text-forest-deep" : "bg-beige text-ink-green"
-                              }`}
-                              title={`${meta.label}: ${o.title}`}
-                            >
-                              <Icon size={10} className="shrink-0" aria-hidden />
-                              {o.time && <span className="font-semibold shrink-0">{o.time}</span>}
-                              <span className="truncate">{o.title}</span>
-                            </li>
-                          );
-                        })}
+                        {(byDate.get(date) ?? []).slice(0, 4).map((o) => (
+                          <MonthChip key={o.id} o={o} />
+                        ))}
                         {(byDate.get(date)?.length ?? 0) > 4 && (
                           <li className="text-[10px] text-stone-soft px-1">+{byDate.get(date)!.length - 4} más</li>
                         )}
@@ -313,24 +251,9 @@ export default async function CalendarioPage({
                     {fechaLegible(d, { weekday: "short", day: "numeric" })}
                   </Link>
                   <div className="flex flex-col gap-1">
-                    {(byDate.get(d) ?? []).map((o) => {
-                      const meta = TYPE_META[o.type] ?? TYPE_META.evento;
-                      const Icon = meta.icon;
-                      return (
-                        <div
-                          key={o.id}
-                          className={`rounded-md px-1.5 py-1 text-[11px] leading-tight ${
-                            o.kind === "evento" ? "bg-sage-soft text-forest-deep" : "bg-beige text-ink-green"
-                          }`}
-                          title={`${meta.label}: ${o.title}`}
-                        >
-                          <span className="flex items-center gap-1 font-semibold">
-                            <Icon size={10} aria-hidden /> {o.time ?? "Día"}
-                          </span>
-                          <span className="block truncate">{o.title}</span>
-                        </div>
-                      );
-                    })}
+                    {(byDate.get(d) ?? []).map((o) => (
+                      <WeekChip key={o.id} o={o} />
+                    ))}
                   </div>
                 </div>
               ))}

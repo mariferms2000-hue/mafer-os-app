@@ -23,8 +23,8 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Clock, Ban, Hourglass, CalendarClock, ListChecks } from "lucide-react";
-import { moveCardAction, createCardInColumnAction } from "@/lib/actions/cards";
+import { Plus, Clock, Ban, Hourglass, CalendarClock, ListChecks, MoreHorizontal, Trash2 } from "lucide-react";
+import { moveCardAction, createCardInColumnAction, deleteCardAction } from "@/lib/actions/cards";
 import { useToast } from "@/components/ui/toast";
 import { openTaskUrl } from "@/components/tasks/task-detail";
 import { durationShort } from "@/lib/estimates";
@@ -323,15 +323,22 @@ function SortableCard({
       {...listeners}
       className={isDragging || dimmed ? "opacity-40" : ""}
     >
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onOpen(card)}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+            e.preventDefault();
+            onOpen(card);
+          }
+        }}
         className="w-full text-left"
         data-testid={`card-${card.id}`}
         aria-label={`Abrir tarjeta «${card.title}»`}
       >
         <CardFace card={card} isNext={isNext} />
-      </button>
+      </div>
     </div>
   );
 }
@@ -349,11 +356,14 @@ function CardFace({ card, isNext = false }: { card: BoardCard; isNext?: boolean 
   const checklist = card.checklist ?? [];
   const doneCount = checklist.filter((i) => i.done).length;
   return (
-    <div className="card !rounded-xl p-3 hover:shadow-lift transition-shadow cursor-grab active:cursor-grabbing">
-      <p className="text-sm leading-snug">
-        {TYPE_EMOJI[card.type] && <span className="mr-1" aria-hidden>{TYPE_EMOJI[card.type]}</span>}
-        {card.title}
-      </p>
+    <div className="card !rounded-xl p-3 hover:shadow-lift transition-shadow cursor-grab active:cursor-grabbing relative">
+      <div className="flex items-start justify-between gap-1.5">
+        <p className="text-sm leading-snug min-w-0">
+          {TYPE_EMOJI[card.type] && <span className="mr-1" aria-hidden>{TYPE_EMOJI[card.type]}</span>}
+          {card.title}
+        </p>
+        <CardMenu cardId={card.id} title={card.title} />
+      </div>
       {(isNext || card.duration || card.dueDate || card.blockedReason || card.waitingFor || checklist.length > 0 || card.priority === "alta") && (
         <div className="flex flex-wrap gap-1 mt-2">
           {isNext && <span className="chip chip-sage" data-testid="board-next-chip">→ Siguiente acción</span>}
@@ -372,6 +382,71 @@ function CardFace({ card, isNext = false }: { card: BoardCard; isNext?: boolean 
           )}
           {checklist.length > 0 && (
             <span className="chip"><ListChecks size={10} aria-hidden />{doneCount}/{checklist.length}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Menú de tres puntos de la tarjeta: eliminar con confirmación.
+ *  Detiene la propagación del clic para no abrir el detalle ni disparar el
+ *  drag-and-drop del tablero (dnd-kit solo activa el arrastre tras moverse
+ *  8px, así que un clic simple aquí siempre llega como clic). */
+function CardMenu({ cardId, title }: { cardId: string; title: string }) {
+  const [menu, setMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pending, start] = useTransition();
+  const toast = useToast();
+
+  return (
+    <div className="relative shrink-0" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        aria-label={`Menú de «${title}»`}
+        className="btn btn-ghost !p-1 -mt-0.5 -mr-0.5"
+        onClick={() => {
+          setMenu((m) => !m);
+          setConfirmDelete(false);
+        }}
+        data-testid={`card-menu-${cardId}`}
+      >
+        <MoreHorizontal size={14} aria-hidden />
+      </button>
+      {menu && (
+        <div className="absolute right-0 z-20 mt-1 card p-1.5 flex flex-col min-w-40 text-sm">
+          {confirmDelete ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+              <span className="text-xs text-stone">¿Eliminar?</span>
+              <button
+                type="button"
+                disabled={pending}
+                className="btn btn-danger !py-1 !px-2 text-xs"
+                data-testid={`card-menu-delete-confirm-${cardId}`}
+                onClick={() =>
+                  start(async () => {
+                    await deleteCardAction(cardId);
+                    setMenu(false);
+                    toast.show({ tone: "info", message: "Tarea eliminada." });
+                  })
+                }
+              >
+                Sí, eliminar
+              </button>
+              <button type="button" className="btn btn-ghost !py-1 !px-2 text-xs" onClick={() => setConfirmDelete(false)}>
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={pending}
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-blocked hover:bg-blocked-soft"
+              data-testid={`card-menu-delete-${cardId}`}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 size={14} aria-hidden /> Eliminar tarea
+            </button>
           )}
         </div>
       )}
