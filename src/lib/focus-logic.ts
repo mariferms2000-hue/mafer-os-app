@@ -65,7 +65,7 @@ export function nextStageInfo(accumulatedMinutes: number): { key: StageKey; miss
 }
 
 /** Abona minutos a la planta actual. Si cruza el umbral, la planta se completa
- *  (se guarda con exactamente 300) y el excedente pasa a la semilla nueva:
+ *  (se guarda con exactamente 150) y el excedente pasa a la semilla nueva:
  *  ningún minuto se pierde jamás. */
 export function applyMinutesToPlant(
   accumulatedMinutes: number,

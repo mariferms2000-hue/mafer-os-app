@@ -95,6 +95,7 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
                 className="mt-4 flex justify-center sm:justify-start"
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
               >
                 <GardenFocusButton testid="garden-focus" />
               </div>
