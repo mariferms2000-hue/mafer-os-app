@@ -181,12 +181,12 @@ describe("límites seguros", () => {
 describe("etapas y crecimiento", () => {
   it("las cinco etapas se derivan de los minutos con los umbrales aprobados", () => {
     expect(plantStage(0)).toBe("semilla");
-    expect(plantStage(24)).toBe("semilla");
-    expect(plantStage(25)).toBe("brote");
-    expect(plantStage(75)).toBe("hojas");
-    expect(plantStage(150)).toBe("planta-joven");
-    expect(plantStage(299)).toBe("planta-joven");
-    expect(plantStage(300)).toBe("planta-completa");
+    expect(plantStage(14)).toBe("semilla");
+    expect(plantStage(15)).toBe("brote");
+    expect(plantStage(40)).toBe("hojas");
+    expect(plantStage(80)).toBe("planta-joven");
+    expect(plantStage(149)).toBe("planta-joven");
+    expect(plantStage(150)).toBe("planta-completa");
     expect(Object.keys(STAGE_GROWTH).sort()).toEqual([...ALL_STAGES].sort());
   });
 

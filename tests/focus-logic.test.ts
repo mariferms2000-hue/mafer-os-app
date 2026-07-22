@@ -207,29 +207,29 @@ describe("cambios de reloj y límites de tiempo", () => {
 });
 
 describe("crecimiento de la planta", () => {
-  it("las cinco etapas aprobadas: 0/25/75/150/300", () => {
-    expect(STAGES.map((s) => s.minMinutes)).toEqual([0, 25, 75, 150, 300]);
+  it("las cinco etapas aprobadas: 0/15/40/80/150", () => {
+    expect(STAGES.map((s) => s.minMinutes)).toEqual([0, 15, 40, 80, 150]);
     expect(plantStage(0)).toBe("semilla");
-    expect(plantStage(24)).toBe("semilla");
-    expect(plantStage(25)).toBe("brote");
-    expect(plantStage(75)).toBe("hojas");
-    expect(plantStage(149)).toBe("hojas");
-    expect(plantStage(150)).toBe("planta-joven");
-    expect(plantStage(300)).toBe("planta-completa");
+    expect(plantStage(14)).toBe("semilla");
+    expect(plantStage(15)).toBe("brote");
+    expect(plantStage(40)).toBe("hojas");
+    expect(plantStage(79)).toBe("hojas");
+    expect(plantStage(80)).toBe("planta-joven");
+    expect(plantStage(150)).toBe("planta-completa");
     expect(plantStage(9999)).toBe("planta-completa");
   });
 
   it("explica con transparencia cuánto falta para la siguiente etapa", () => {
-    expect(nextStageInfo(0)).toEqual({ key: "brote", missingMinutes: 25 });
-    expect(nextStageInfo(110)).toEqual({ key: "planta-joven", missingMinutes: 40 });
-    expect(nextStageInfo(300)).toBeNull();
+    expect(nextStageInfo(0)).toEqual({ key: "brote", missingMinutes: 15 });
+    expect(nextStageInfo(60)).toEqual({ key: "planta-joven", missingMinutes: 20 });
+    expect(nextStageInfo(150)).toBeNull();
   });
 
   it("acumula sin reiniciar: el progreso nunca retrocede ni caduca", () => {
     let acc = 0;
     for (const add of [10, 0, 40, 5]) acc = applyMinutesToPlant(acc, add).accumulated;
     expect(acc).toBe(55);
-    expect(plantStage(acc)).toBe("brote");
+    expect(plantStage(acc)).toBe("hojas");
   });
 
   it("los minutos negativos o fraccionales no corrompen la planta", () => {
@@ -254,31 +254,31 @@ describe("formatClock (presentación del contador)", () => {
 });
 
 describe("planta completa y semilla nueva", () => {
-  it("al llegar a 300 se completa y nace una semilla con el excedente", () => {
-    const res = applyMinutesToPlant(290, 25);
+  it("al llegar a 150 se completa y nace una semilla con el excedente", () => {
+    const res = applyMinutesToPlant(140, 25);
     expect(res.completed).toBe(true);
-    expect(res.accumulated).toBe(PLANT_COMPLETE_MINUTES); // se guarda con exactamente 300
+    expect(res.accumulated).toBe(PLANT_COMPLETE_MINUTES); // se guarda con exactamente 150
     expect(res.overflow).toBe(15); // ningún minuto se pierde: pasa a la nueva
   });
 
-  it("llegar exacto a 300 completa con excedente cero", () => {
-    const res = applyMinutesToPlant(275, 25);
+  it("llegar exacto a 150 completa con excedente cero", () => {
+    const res = applyMinutesToPlant(125, 25);
     expect(res.completed).toBe(true);
     expect(res.overflow).toBe(0);
   });
 
   it("por debajo del umbral no se completa", () => {
-    const res = applyMinutesToPlant(200, 99);
+    const res = applyMinutesToPlant(100, 49);
     expect(res.completed).toBe(false);
-    expect(res.accumulated).toBe(299);
+    expect(res.accumulated).toBe(149);
   });
 });
 
 describe("reparto sesión→planta (splitCreditedMinutes, 7E.2)", () => {
-  it("el ejemplo canónico: 25 min con la planta en 290 → 10 cierran, 15 a la semilla", () => {
-    const res = splitCreditedMinutes(290, 25);
+  it("el ejemplo canónico: 25 min con la planta en 140 → 10 cierran, 15 a la semilla", () => {
+    const res = splitCreditedMinutes(140, 25);
     expect(res.completed).toBe(true);
-    expect(res.accumulated).toBe(300);
+    expect(res.accumulated).toBe(150);
     expect(res.toCurrent).toBe(10);
     expect(res.toNext).toBe(15);
     expect(res.overflow).toBe(15);
@@ -292,28 +292,28 @@ describe("reparto sesión→planta (splitCreditedMinutes, 7E.2)", () => {
   });
 
   it("cierre exacto: completa sin excedente (la semilla nueva nace en cero)", () => {
-    const res = splitCreditedMinutes(275, 25);
+    const res = splitCreditedMinutes(125, 25);
     expect(res.completed).toBe(true);
     expect(res.toCurrent).toBe(25);
     expect(res.toNext).toBe(0);
   });
 
   it("invariante: toCurrent + toNext == minutos abonados, en toda la malla", () => {
-    for (let acc = 0; acc <= 300; acc += 10) {
+    for (let acc = 0; acc <= PLANT_COMPLETE_MINUTES; acc += 10) {
       for (let add = 0; add <= 90; add += 7) {
         const res = splitCreditedMinutes(acc, add);
         expect(res.toCurrent + res.toNext).toBe(add);
         expect(res.toCurrent).toBeGreaterThanOrEqual(0);
         expect(res.toNext).toBeGreaterThanOrEqual(0);
         // ningún minuto se pierde ni se duplica: lo abonado crece exactamente add
-        const grown = res.accumulated - Math.min(acc, 300) + (res.completed ? res.overflow : 0);
+        const grown = res.accumulated - Math.min(acc, PLANT_COMPLETE_MINUTES) + (res.completed ? res.overflow : 0);
         expect(grown).toBe(add);
       }
     }
   });
 
-  it("entradas corruptas no inventan minutos: acumulado > 300 no acredita de más", () => {
-    const res = splitCreditedMinutes(305, 10);
+  it("entradas corruptas no inventan minutos: acumulado > 150 no acredita de más", () => {
+    const res = splitCreditedMinutes(155, 10);
     expect(res.toCurrent + res.toNext).toBe(10);
     expect(res.toCurrent).toBe(0);
     expect(res.toNext).toBe(10);
