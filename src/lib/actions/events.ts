@@ -1,10 +1,33 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db, now, uid, schema } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { syncEventToGoogle, deleteGoogleEvent } from "@/lib/google/calendar";
+
+export type EventDetailData = {
+  event: typeof schema.events.$inferSelect & { projectTitle: string | null };
+  projects: { id: string; title: string }[];
+};
+
+/** Datos frescos para abrir el detalle de un evento del calendario. */
+export async function getEventDetailAction(eventId: string): Promise<EventDetailData | null> {
+  await requireAuth();
+  const [row] = await db
+    .select({ event: schema.events, projectTitle: schema.projects.title })
+    .from(schema.events)
+    .leftJoin(schema.projects, eq(schema.events.projectId, schema.projects.id))
+    .where(eq(schema.events.id, eventId))
+    .limit(1);
+  if (!row) return null;
+  const projects = await db
+    .select({ id: schema.projects.id, title: schema.projects.title })
+    .from(schema.projects)
+    .where(eq(schema.projects.archived, false))
+    .orderBy(asc(schema.projects.title));
+  return { event: { ...row.event, projectTitle: row.projectTitle }, projects };
+}
 
 export async function createEventAction(formData: FormData) {
   await requireAuth();
@@ -42,6 +65,7 @@ export async function updateEventAction(formData: FormData) {
       startTime: (formData.get("startTime") as string) || null,
       endTime: (formData.get("endTime") as string) || null,
       type: String(formData.get("type") ?? e.type),
+      projectId: formData.has("projectId") ? (formData.get("projectId") as string) || null : e.projectId,
       notes: String(formData.get("notes") ?? e.notes),
     })
     .where(eq(schema.events.id, id));

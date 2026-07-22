@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass, MoreHorizontal, PencilLine } from "lucide-react";
+import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass, MoreHorizontal, PencilLine, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { completeCardAction } from "@/lib/actions/cards";
+import { completeCardAction, deleteCardAction } from "@/lib/actions/cards";
 import { openTaskUrl } from "@/components/tasks/task-detail";
 import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
@@ -16,8 +16,14 @@ import type { CardRow } from "@/lib/queries/today";
 export function TaskLine({ card, showProject = true }: { card: CardRow; showProject?: boolean }) {
   const [pending, start] = useTransition();
   const [menu, setMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const toast = useToast();
   const done = Boolean(card.completedAt);
+
+  function toggleMenu() {
+    setMenu((m) => !m);
+    setConfirmDelete(false);
+  }
 
   function toggle() {
     start(async () => {
@@ -125,7 +131,7 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
           type="button"
           aria-label={`Menú de «${card.title}»`}
           className="btn btn-ghost !p-1.5 opacity-60 group-hover:opacity-100"
-          onClick={() => setMenu((m) => !m)}
+          onClick={toggleMenu}
           data-testid="task-menu"
         >
           <MoreHorizontal size={15} aria-hidden />
@@ -143,6 +149,43 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
             >
               <PencilLine size={14} aria-hidden /> Abrir tarea
             </button>
+            {confirmDelete ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+                <span className="text-xs text-stone">¿Eliminar?</span>
+                <button
+                  type="button"
+                  disabled={pending}
+                  className="btn btn-danger !py-1 !px-2 text-xs"
+                  data-testid="task-menu-delete-confirm"
+                  onClick={() =>
+                    start(async () => {
+                      await deleteCardAction(card.id);
+                      setMenu(false);
+                      toast.show({ tone: "info", message: "Tarea eliminada." });
+                    })
+                  }
+                >
+                  Sí, eliminar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost !py-1 !px-2 text-xs"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={pending}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-blocked hover:bg-blocked-soft"
+                data-testid="task-menu-delete"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 size={14} aria-hidden /> Eliminar tarea
+              </button>
+            )}
           </div>
         )}
       </div>
