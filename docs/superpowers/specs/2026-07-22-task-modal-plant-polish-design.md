@@ -4,9 +4,9 @@
 
 Un pase de pulido sobre el modal de detalle de tarea, la interacción con la
 planta del Jardín de enfoque, y el ritmo de crecimiento de la planta. Son
-siete cambios acotados dentro de código ya existente, sin infraestructura
-nueva (a diferencia del editor de descripción enriquecido, que queda como un
-spec aparte porque requiere agregar storage de archivos).
+cambios acotados dentro de código ya existente, sin infraestructura nueva (a
+diferencia del editor de descripción enriquecido, que queda como un spec
+aparte porque requiere agregar storage de archivos).
 
 ## Alcance
 
@@ -19,9 +19,12 @@ spec aparte porque requiere agregar storage de archivos).
    detalle).
 5. "Marcar como completada/pendiente" en el menú de tres puntos de Proyectos.
 6. Escala de crecimiento reducida a 150 minutos totales.
+7. Mejorar la transición de apertura del modal de tarea (hoy salta de
+   chiquito a grande mientras carga).
 
 (La numeración original del pedido tenía 8 puntos; el punto 4 original —
-editor de descripción enriquecido — se excluyó de este spec.)
+editor de descripción enriquecido — se excluyó de este spec. El punto 7 de
+este spec se agregó después, a pedido de Jorge, sobre el mismo modal.)
 
 **Fuera de alcance:** columna derecha del modal, layout general, modos
 claro/oscuro, funcionamiento en computadora e iPhone, datos y tareas
@@ -108,6 +111,41 @@ ese tipo — se verifica al implementar.
   `tests/focus-logic.test.ts`, `tests/plant-render.test.ts` (y los que
   toquen indirectamente esos números).
 
+## 7. Transición de apertura del modal de tarea
+
+Hoy `TaskDetailModal` (`task-detail.tsx`) pinta primero un diálogo mínimo
+("Abriendo tarea…", una sola línea) y cuando llega `getTaskDetailAction` lo
+reemplaza por `TaskDetailEditor`, el formulario completo con
+`max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto` — de ahí el salto de
+tamaño perceptible, sin importar si se entra desde el tablero, un enlace
+directo, o el botón atrás (todos pasan por el mismo componente).
+
+No existe hoy ninguna animación de entrada en el sitio (`globals.css` no
+tiene `@keyframes`), pero sí existe ya un guard global de
+`prefers-reduced-motion` (`globals.css`, forzando `transition-duration` y
+`animation-duration` a `0.01ms`) que cualquier animación nueva respeta
+automáticamente, sin trabajo extra.
+
+Cambios:
+
+- **Skeleton en vez de texto plano:** el estado de carga de
+  `TaskDetailModal` pasa a usar el mismo footprint que el formulario ya
+  cargado (`max-h-[94dvh] md:max-h-[88dvh]`, mismo ancho), con placeholders
+  pulsantes imitando título / checklist / columna lateral, en vez de una
+  sola línea de texto. Esto reduce casi a cero el salto de tamaño entre el
+  estado de carga y el cargado, sea cual sea el punto de entrada.
+- **Animación de entrada**, coherente con el tratamiento responsive que ya
+  existe en el modal (en móvil ya se comporta como hoja inferior —
+  `items-end`, `rounded-b-none`; en desktop está centrado — `items-center`,
+  `rounded-b-[18px]`):
+  - Móvil: desliza desde abajo + fade, ~200ms ease-out.
+  - Desktop: fade + escala sutil de 0.97 a 1, ~180ms ease-out (mismo
+    timing que ya usan los botones, 150-200ms).
+  - Implementado con `@keyframes` nuevos en `globals.css` + una clase
+    aplicada al montar el modal (tanto en el estado de carga como en el
+    cargado, para que la sensación de apertura sea la misma
+    independientemente de cuánto tarde la carga). Sin librería nueva.
+
 ## Verificación
 
 Gap conocido: `npm run test:e2e` corre contra la base Postgres real desde
@@ -119,6 +157,8 @@ verifica con:
 - Suite unitaria (`vitest`) actualizada para los nuevos umbrales de
   `focus-logic.ts` y `plant-render.ts`.
 - Pase manual en `npm run dev`: abrir el modal de tarea (checklist, barra
-  de progreso, orden de campos, que "Próxima acción" ya no aparece),
-  completar/reabrir una tarea desde Proyectos, tocar la planta en Hoy y en
-  Mi jardín (tarjeta actual y completadas).
+  de progreso, orden de campos, que "Próxima acción" ya no aparece, que la
+  apertura ya no salta de tamaño y la animación se ve bien en móvil y
+  desktop, con y sin `prefers-reduced-motion`), completar/reabrir una tarea
+  desde Proyectos, tocar la planta en Hoy y en Mi jardín (tarjeta actual y
+  completadas).
