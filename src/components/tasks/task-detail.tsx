@@ -47,6 +47,41 @@ function ChecklistProgress({ checklist }: { checklist: ChecklistItem[] }) {
   );
 }
 
+/** Mismo footprint que el formulario cargado (max-h/overflow/padding) para
+ *  que la apertura no salte de tamaño mientras llegan los datos. */
+function TaskDetailSkeleton() {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Cargando tarea"
+      className="card card-raised w-full md:max-w-3xl max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 md:p-6 pb-safe task-modal-enter"
+      data-testid="card-detail"
+    >
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="h-8 w-40 rounded-lg bg-beige animate-pulse" />
+        <div className="h-8 w-8 rounded-lg bg-beige animate-pulse" />
+      </div>
+      <div className="md:grid md:grid-cols-[1fr_252px] md:gap-6 flex flex-col gap-5">
+        <div className="flex flex-col gap-4 min-w-0">
+          <div className="h-9 w-full rounded-xl bg-beige animate-pulse" />
+          <div className="flex flex-col gap-2">
+            <div className="h-4 w-24 rounded bg-beige animate-pulse" />
+            <div className="h-5 w-full rounded bg-beige animate-pulse" />
+            <div className="h-5 w-5/6 rounded bg-beige animate-pulse" />
+          </div>
+          <div className="h-24 w-full rounded-xl bg-beige animate-pulse" />
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="h-16 w-full rounded-xl bg-beige animate-pulse" />
+          <div className="h-16 w-full rounded-xl bg-beige animate-pulse" />
+          <div className="h-9 w-full rounded-xl bg-beige animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Detalle editable de tarea, abrible desde cualquier vista.
  *  Carga sus datos frescos al abrirse (no depende de lo que la lista tenía en memoria). */
 export function TaskDetailModal({ cardId, onClose }: { cardId: string; onClose: () => void }) {
@@ -73,9 +108,7 @@ export function TaskDetailModal({ cardId, onClose }: { cardId: string; onClose: 
   if (!data) {
     return (
       <div className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6" role="presentation">
-        <div role="dialog" aria-modal="true" aria-label="Cargando tarea" className="card card-raised w-full md:max-w-3xl p-6 rounded-b-none md:rounded-b-[18px]" data-testid="card-detail">
-          <p className="text-sm text-stone">Abriendo tarea…</p>
-        </div>
+        <TaskDetailSkeleton />
       </div>
     );
   }
@@ -230,7 +263,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle de «${card.title}»`}
-        className="card card-raised w-full md:max-w-3xl max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 md:p-6 pb-safe"
+        className="card card-raised w-full md:max-w-3xl max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 md:p-6 pb-safe task-modal-enter"
         data-testid="card-detail"
       >
         <div className="flex items-start justify-between gap-3 mb-4">

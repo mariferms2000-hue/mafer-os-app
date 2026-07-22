@@ -405,6 +405,26 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 .pt-safe { padding-top: env(safe-area-inset-top); }
 
+/* Entrada del modal de tarea: hoja en móvil (refuerza el patrón ya usado de
+   items-end/rounded-b-none), aparición suave centrada en desktop. El guard
+   global de prefers-reduced-motion de aquí abajo la anula automáticamente. */
+@keyframes task-modal-in-mobile {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes task-modal-in-desktop {
+  from { transform: scale(0.97); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.task-modal-enter {
+  animation: task-modal-in-mobile 200ms ease-out;
+}
+@media (min-width: 768px) {
+  .task-modal-enter {
+    animation: task-modal-in-desktop 180ms ease-out;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
