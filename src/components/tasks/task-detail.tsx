@@ -22,6 +22,31 @@ import { useToast } from "@/components/ui/toast";
 
 type ColumnOption = { id: string; title: string; kind: string };
 
+/** Progreso de la checklist: porcentaje + conteo, oculto si no hay ítems.
+ *  Llegar a 100% es puramente visual — no completa la tarea. */
+function ChecklistProgress({ checklist }: { checklist: ChecklistItem[] }) {
+  if (checklist.length === 0) return null;
+  const done = checklist.filter((i) => i.done).length;
+  const pct = Math.round((done / checklist.length) * 100);
+  return (
+    <div className="flex items-center gap-2.5 mb-2" data-testid="checklist-progress">
+      <div
+        className="progress-track flex-1"
+        role="progressbar"
+        aria-valuenow={done}
+        aria-valuemin={0}
+        aria-valuemax={checklist.length}
+        aria-label="Pasos completados de la checklist"
+      >
+        <div className="progress-fill" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-stone tabular-nums shrink-0">
+        {pct}% · {done} de {checklist.length}
+      </span>
+    </div>
+  );
+}
+
 /** Detalle editable de tarea, abrible desde cualquier vista.
  *  Carga sus datos frescos al abrirse (no depende de lo que la lista tenía en memoria). */
 export function TaskDetailModal({ cardId, onClose }: { cardId: string; onClose: () => void }) {
@@ -254,18 +279,11 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                 <label className="label" htmlFor="cd-title">Título</label>
                 <input id="cd-title" name="title" className="input font-medium" defaultValue={card.title} required data-testid="card-title-input" />
               </div>
-              <div>
-                <label className="label" htmlFor="cd-desc">Descripción</label>
-                <textarea id="cd-desc" name="description" className="textarea" rows={4} defaultValue={card.description ?? ""} data-testid="card-desc-input" placeholder="Notas, contexto, lo que haga falta…" />
-              </div>
-              <div>
-                <label className="label" htmlFor="cd-next">Próxima acción concreta</label>
-                <input id="cd-next" name="nextAction" className="input" defaultValue={card.nextAction ?? ""} placeholder="¿Cuál es el siguiente paso físico y visible?" />
-              </div>
 
               {/* Checklist: se guarda sola, no marca el formulario como sucio */}
               <div onChange={(e) => e.stopPropagation()}>
                 <p className="label">Checklist</p>
+                <ChecklistProgress checklist={checklist} />
                 {checklist.length > 0 && (
                   <ul className="flex flex-col gap-1.5 mb-2" data-testid="checklist">
                     {checklist.map((item) => (
@@ -339,6 +357,11 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                     <Plus size={15} aria-hidden />
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <label className="label" htmlFor="cd-desc">Descripción</label>
+                <textarea id="cd-desc" name="description" className="textarea" rows={4} defaultValue={card.description ?? ""} data-testid="card-desc-input" placeholder="Notas, contexto, lo que haga falta…" />
               </div>
 
               {/* Enlaces / referencias */}
