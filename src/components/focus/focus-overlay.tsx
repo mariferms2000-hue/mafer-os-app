@@ -32,7 +32,8 @@ import {
   type PresetKey,
   type StageKey,
 } from "@/lib/focus-logic";
-import { primeFocusAudio, playFocusChime, isFocusSoundMuted, setFocusSoundMuted } from "@/lib/focus-sound";
+import { primeFocusAudio, isFocusSoundMuted, setFocusSoundMuted } from "@/lib/focus-sound";
+import { notifyFocusDue, requestFocusNotifyPermission } from "@/lib/focus-notify";
 import { FocusPlant } from "./plant";
 
 /* «Jardín de enfoque» — Fase 7C.1: la habitación de enfoque de Mafer OS.
@@ -128,7 +129,6 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
   const dialogRef = useRef<HTMLDivElement>(null);
   const completingRef = useRef(false);
   const [soundMuted, setSoundMuted] = useState(false);
-  const soundMutedRef = useRef(false);
 
   // Sincroniza la preferencia de silencio guardada — arranca en false para
   // no desajustar la hidratación, se corrige al montar en cliente.
@@ -136,12 +136,6 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
     // eslint-disable-next-line react-hooks/set-state-in-effect -- lectura de localStorage, solo resoluble tras montar (SSR-safe)
     setSoundMuted(isFocusSoundMuted());
   }, []);
-
-  // El intervalo de abajo captura closures viejos (sus dependencias no
-  // incluyen soundMuted); el ref le da el valor vigente sin reiniciarlo.
-  useEffect(() => {
-    soundMutedRef.current = soundMuted;
-  }, [soundMuted]);
 
   const session = overview?.openSession ?? null;
 
@@ -199,7 +193,7 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
         session.phase === "enfoque" ? focusRemainingSeconds(s, nowIso) <= 0 : breakRemainingSeconds(s, nowIso) <= 0;
       if (due && !completingRef.current) {
         completingRef.current = true;
-        if (!soundMutedRef.current) playFocusChime();
+        notifyFocusDue(session.id, session.phase as "enfoque" | "descanso", session.phaseStartedAt, session.cardTitle ?? "");
         const action: FocusAction = session.phase === "enfoque" ? "completar-enfoque" : "terminar-descanso";
         void applyAction(action).finally(() => {
           completingRef.current = false;
@@ -288,6 +282,7 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
 
   function begin() {
     primeFocusAudio();
+    requestFocusNotifyPermission();
     start(async () => {
       await startFocusAction({
         preset,
