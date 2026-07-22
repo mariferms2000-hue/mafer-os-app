@@ -6,6 +6,7 @@ import { PwaSetup } from "@/components/shell/sw-register";
 import { TaskDetailFromUrl } from "@/components/tasks/task-detail";
 import { EventDetailFromUrl } from "@/components/calendar/event-detail";
 import { FocusOverlayFromUrl } from "@/components/focus/focus-overlay";
+import { FocusWatcher } from "@/components/focus/focus-watcher";
 import { ToastProvider } from "@/components/ui/toast";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
@@ -37,6 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Suspense fallback={null}>
           <FocusOverlayFromUrl />
         </Suspense>
+        <FocusWatcher />
         <PwaSetup />
       </div>
     </ToastProvider>
