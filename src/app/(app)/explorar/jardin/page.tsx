@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExplorarTabs } from "@/components/explore/tabs";
 import { GardenFocusButton } from "@/components/explore/garden-focus-button";
+import { PlantCardTrigger } from "@/components/explore/plant-card-trigger";
 import { PlantArt } from "@/components/focus/plant-art";
 import { getGarden } from "@/lib/queries/focus";
 import { STAGES, type StageKey } from "@/lib/focus-logic";
@@ -58,8 +59,13 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
         className="card p-5 md:p-7 mb-10 !border-border-focus/40"
         data-testid="garden-current"
       >
-        <div className="flex flex-col sm:flex-row items-center gap-5 md:gap-9">
-          {c ? (
+        {c ? (
+          <PlantCardTrigger
+            plant={c}
+            label={`Ver detalle de tu ${SPECIES_LABEL[c.species] ?? c.species}`}
+            testid="garden-current-open"
+            className="flex flex-col sm:flex-row items-center gap-5 md:gap-9 cursor-pointer"
+          >
             <PlantArt
               species={asSpecies(c.species)}
               visualSeed={c.visualSeed}
@@ -67,7 +73,36 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
               rendererVersion={c.rendererVersion}
               className="h-40 w-40 md:h-48 md:w-48 shrink-0 text-sage-deep"
             />
-          ) : (
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <p id="planta-actual" className="section-eyebrow">
+                Planta actual
+              </p>
+              <h2 className="text-2xl md:text-3xl text-forest-deep mt-1" data-testid="garden-current-species">
+                {SPECIES_LABEL[c.species] ?? c.species}
+              </h2>
+              <p className="text-sm text-stone mt-0.5" data-testid="garden-current-stage">
+                {STAGE_LABEL[c.stage]}
+              </p>
+              <p className="text-sm text-stone mt-2" data-testid="garden-current-progress">
+                {c.next
+                  ? `${c.accumulatedMinutes} de ${c.accumulatedMinutes + c.next.missingMinutes} min para ${STAGE_LABEL[c.next.key].toLowerCase()}`
+                  : "Tu planta está completa"}
+              </p>
+              <p className="text-xs text-stone-soft mt-1">
+                La cuidas desde el {fecha(c.startedAt)} · {c.accumulatedMinutes} min de enfoque
+              </p>
+              <div
+                className="mt-4 flex justify-center sm:justify-start"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <GardenFocusButton testid="garden-focus" />
+              </div>
+            </div>
+          </PlantCardTrigger>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-center gap-5 md:gap-9">
             <PlantArt
               species="helecho"
               visualSeed={0}
@@ -75,34 +110,25 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
               rendererVersion={1}
               className="h-40 w-40 md:h-48 md:w-48 shrink-0 text-sage-deep"
             />
-          )}
-          <div className="min-w-0 flex-1 text-center sm:text-left">
-            <p id="planta-actual" className="section-eyebrow">
-              Planta actual
-            </p>
-            <h2 className="text-2xl md:text-3xl text-forest-deep mt-1" data-testid="garden-current-species">
-              {c ? SPECIES_LABEL[c.species] ?? c.species : "Semilla nueva"}
-            </h2>
-            <p className="text-sm text-stone mt-0.5" data-testid="garden-current-stage">
-              {c ? STAGE_LABEL[c.stage] : STAGE_LABEL.semilla}
-            </p>
-            <p className="text-sm text-stone mt-2" data-testid="garden-current-progress">
-              {c
-                ? c.next
-                  ? `${c.accumulatedMinutes} de ${c.accumulatedMinutes + c.next.missingMinutes} min para ${STAGE_LABEL[c.next.key].toLowerCase()}`
-                  : "Tu planta está completa"
-                : "Tu primera sesión de enfoque la hará nacer"}
-            </p>
-            {c && (
-              <p className="text-xs text-stone-soft mt-1">
-                La cuidas desde el {fecha(c.startedAt)} · {c.accumulatedMinutes} min de enfoque
+            <div className="min-w-0 flex-1 text-center sm:text-left">
+              <p id="planta-actual" className="section-eyebrow">
+                Planta actual
               </p>
-            )}
-            <div className="mt-4 flex justify-center sm:justify-start">
-              <GardenFocusButton testid="garden-focus" />
+              <h2 className="text-2xl md:text-3xl text-forest-deep mt-1" data-testid="garden-current-species">
+                Semilla nueva
+              </h2>
+              <p className="text-sm text-stone mt-0.5" data-testid="garden-current-stage">
+                {STAGE_LABEL.semilla}
+              </p>
+              <p className="text-sm text-stone mt-2" data-testid="garden-current-progress">
+                Tu primera sesión de enfoque la hará nacer
+              </p>
+              <div className="mt-4 flex justify-center sm:justify-start">
+                <GardenFocusButton testid="garden-focus" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* Plantas completadas */}
@@ -122,7 +148,14 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
           <>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="garden-grid">
               {garden.completed.map((p) => (
-                <li key={p.id} className="card p-4 flex flex-col items-center text-center" data-testid="garden-plant">
+                <PlantCardTrigger
+                  key={p.id}
+                  as="li"
+                  plant={{ ...p, stage: "planta-completa", next: null }}
+                  label={`Ver detalle de tu ${SPECIES_LABEL[p.species] ?? p.species} completada`}
+                  testid="garden-plant"
+                  className="card p-4 flex flex-col items-center text-center cursor-pointer"
+                >
                   <PlantArt
                     species={asSpecies(p.species)}
                     visualSeed={p.visualSeed}
@@ -133,7 +166,7 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
                   <p className="font-display text-lg text-forest-deep mt-2">{SPECIES_LABEL[p.species] ?? p.species}</p>
                   <p className="text-xs text-stone mt-0.5">Completada el {fecha(p.completedAt)}</p>
                   <p className="text-xs text-stone-soft">{p.accumulatedMinutes} min de enfoque</p>
-                </li>
+                </PlantCardTrigger>
               ))}
             </ul>
             {garden.totalCompleted > garden.completed.length && (

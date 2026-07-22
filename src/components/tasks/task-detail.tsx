@@ -22,6 +22,66 @@ import { useToast } from "@/components/ui/toast";
 
 type ColumnOption = { id: string; title: string; kind: string };
 
+/** Progreso de la checklist: porcentaje + conteo, oculto si no hay ítems.
+ *  Llegar a 100% es puramente visual — no completa la tarea. */
+function ChecklistProgress({ checklist }: { checklist: ChecklistItem[] }) {
+  if (checklist.length === 0) return null;
+  const done = checklist.filter((i) => i.done).length;
+  const pct = Math.round((done / checklist.length) * 100);
+  return (
+    <div className="flex items-center gap-2.5 mb-2" data-testid="checklist-progress">
+      <div
+        className="progress-track flex-1"
+        role="progressbar"
+        aria-valuenow={done}
+        aria-valuemin={0}
+        aria-valuemax={checklist.length}
+        aria-label="Pasos completados de la checklist"
+      >
+        <div className="progress-fill" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-stone tabular-nums shrink-0">
+        {pct}% · {done} de {checklist.length}
+      </span>
+    </div>
+  );
+}
+
+/** Mismo footprint que el formulario cargado (max-h/overflow/padding) para
+ *  que la apertura no salte de tamaño mientras llegan los datos. */
+function TaskDetailSkeleton() {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Cargando tarea"
+      className="card card-raised w-full md:max-w-3xl max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 md:p-6 pb-safe task-modal-enter"
+      data-testid="card-detail"
+    >
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="h-8 w-40 rounded-lg bg-beige animate-pulse" />
+        <div className="h-8 w-8 rounded-lg bg-beige animate-pulse" />
+      </div>
+      <div className="md:grid md:grid-cols-[1fr_252px] md:gap-6 flex flex-col gap-5">
+        <div className="flex flex-col gap-4 min-w-0">
+          <div className="h-9 w-full rounded-xl bg-beige animate-pulse" />
+          <div className="flex flex-col gap-2">
+            <div className="h-4 w-24 rounded bg-beige animate-pulse" />
+            <div className="h-5 w-full rounded bg-beige animate-pulse" />
+            <div className="h-5 w-5/6 rounded bg-beige animate-pulse" />
+          </div>
+          <div className="h-24 w-full rounded-xl bg-beige animate-pulse" />
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="h-16 w-full rounded-xl bg-beige animate-pulse" />
+          <div className="h-16 w-full rounded-xl bg-beige animate-pulse" />
+          <div className="h-9 w-full rounded-xl bg-beige animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Detalle editable de tarea, abrible desde cualquier vista.
  *  Carga sus datos frescos al abrirse (no depende de lo que la lista tenía en memoria). */
 export function TaskDetailModal({ cardId, onClose }: { cardId: string; onClose: () => void }) {
@@ -48,9 +108,7 @@ export function TaskDetailModal({ cardId, onClose }: { cardId: string; onClose: 
   if (!data) {
     return (
       <div className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6" role="presentation">
-        <div role="dialog" aria-modal="true" aria-label="Cargando tarea" className="card card-raised w-full md:max-w-3xl p-6 rounded-b-none md:rounded-b-[18px]" data-testid="card-detail">
-          <p className="text-sm text-stone">Abriendo tarea…</p>
-        </div>
+        <TaskDetailSkeleton />
       </div>
     );
   }
@@ -205,7 +263,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle de «${card.title}»`}
-        className="card card-raised w-full md:max-w-3xl max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 md:p-6 pb-safe"
+        className="card card-raised w-full md:max-w-3xl max-h-[94dvh] md:max-h-[88dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 md:p-6 pb-safe task-modal-enter"
         data-testid="card-detail"
       >
         <div className="flex items-start justify-between gap-3 mb-4">
@@ -254,18 +312,11 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                 <label className="label" htmlFor="cd-title">Título</label>
                 <input id="cd-title" name="title" className="input font-medium" defaultValue={card.title} required data-testid="card-title-input" />
               </div>
-              <div>
-                <label className="label" htmlFor="cd-desc">Descripción</label>
-                <textarea id="cd-desc" name="description" className="textarea" rows={4} defaultValue={card.description ?? ""} data-testid="card-desc-input" placeholder="Notas, contexto, lo que haga falta…" />
-              </div>
-              <div>
-                <label className="label" htmlFor="cd-next">Próxima acción concreta</label>
-                <input id="cd-next" name="nextAction" className="input" defaultValue={card.nextAction ?? ""} placeholder="¿Cuál es el siguiente paso físico y visible?" />
-              </div>
 
               {/* Checklist: se guarda sola, no marca el formulario como sucio */}
               <div onChange={(e) => e.stopPropagation()}>
                 <p className="label">Checklist</p>
+                <ChecklistProgress checklist={checklist} />
                 {checklist.length > 0 && (
                   <ul className="flex flex-col gap-1.5 mb-2" data-testid="checklist">
                     {checklist.map((item) => (
@@ -339,6 +390,11 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                     <Plus size={15} aria-hidden />
                   </button>
                 </div>
+              </div>
+
+              <div>
+                <label className="label" htmlFor="cd-desc">Descripción</label>
+                <textarea id="cd-desc" name="description" className="textarea" rows={4} defaultValue={card.description ?? ""} data-testid="card-desc-input" placeholder="Notas, contexto, lo que haga falta…" />
               </div>
 
               {/* Enlaces / referencias */}

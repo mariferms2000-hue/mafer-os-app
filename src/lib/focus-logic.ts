@@ -36,16 +36,16 @@ export function clampCustomFocus(min: number): number {
 
 export type StageKey = "semilla" | "brote" | "hojas" | "planta-joven" | "planta-completa";
 
-/** Umbrales aprobados: 0 · 25 · 75 · 150 · 300 minutos de enfoque real. */
+/** Umbrales aprobados: 0 · 15 · 40 · 80 · 150 minutos de enfoque real. */
 export const STAGES: { key: StageKey; minMinutes: number; label: string }[] = [
   { key: "semilla", minMinutes: 0, label: "Semilla" },
-  { key: "brote", minMinutes: 25, label: "Brote" },
-  { key: "hojas", minMinutes: 75, label: "Hojas" },
-  { key: "planta-joven", minMinutes: 150, label: "Planta joven" },
-  { key: "planta-completa", minMinutes: 300, label: "Planta completa" },
+  { key: "brote", minMinutes: 15, label: "Brote" },
+  { key: "hojas", minMinutes: 40, label: "Hojas" },
+  { key: "planta-joven", minMinutes: 80, label: "Planta joven" },
+  { key: "planta-completa", minMinutes: 150, label: "Planta completa" },
 ];
 
-export const PLANT_COMPLETE_MINUTES = 300;
+export const PLANT_COMPLETE_MINUTES = 150;
 
 export function plantStage(accumulatedMinutes: number): StageKey {
   const m = Math.max(0, accumulatedMinutes);
@@ -65,7 +65,7 @@ export function nextStageInfo(accumulatedMinutes: number): { key: StageKey; miss
 }
 
 /** Abona minutos a la planta actual. Si cruza el umbral, la planta se completa
- *  (se guarda con exactamente 300) y el excedente pasa a la semilla nueva:
+ *  (se guarda con exactamente 150) y el excedente pasa a la semilla nueva:
  *  ningún minuto se pierde jamás. */
 export function applyMinutesToPlant(
   accumulatedMinutes: number,

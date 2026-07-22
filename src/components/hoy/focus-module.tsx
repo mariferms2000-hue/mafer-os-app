@@ -112,7 +112,9 @@ export function FocusModule({ overview }: { overview: FocusOverview }) {
         <Sprout size={13} className="text-sage-deep" aria-hidden /> Jardín de enfoque
       </h2>
       <div className="flex items-center gap-3">
-        <FocusPlant stage={stage} className="h-14 w-14 shrink-0 text-sage-deep" />
+        <Link href="/explorar/jardin" aria-label="Ver mi jardín" data-testid="focus-module-plant-link">
+          <FocusPlant stage={stage} className="h-14 w-14 shrink-0 text-sage-deep" />
+        </Link>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-charcoal">{STAGE_LABEL[stage]}</p>
           <p className="text-xs text-stone" data-testid="focus-module-progress">

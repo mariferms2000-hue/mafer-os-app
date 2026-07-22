@@ -23,8 +23,8 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Clock, Ban, Hourglass, CalendarClock, ListChecks, MoreHorizontal, Trash2 } from "lucide-react";
-import { moveCardAction, createCardInColumnAction, deleteCardAction } from "@/lib/actions/cards";
+import { Plus, Clock, Ban, Hourglass, CalendarClock, ListChecks, MoreHorizontal, Trash2, CheckCircle2 } from "lucide-react";
+import { moveCardAction, createCardInColumnAction, deleteCardAction, completeCardAction } from "@/lib/actions/cards";
 import { useToast } from "@/components/ui/toast";
 import { openTaskUrl } from "@/components/tasks/task-detail";
 import { durationShort } from "@/lib/estimates";
@@ -362,7 +362,7 @@ function CardFace({ card, isNext = false }: { card: BoardCard; isNext?: boolean 
           {TYPE_EMOJI[card.type] && <span className="mr-1" aria-hidden>{TYPE_EMOJI[card.type]}</span>}
           {card.title}
         </p>
-        <CardMenu cardId={card.id} title={card.title} />
+        <CardMenu cardId={card.id} title={card.title} completed={Boolean(card.completedAt)} />
       </div>
       {(isNext || card.duration || card.dueDate || card.blockedReason || card.waitingFor || checklist.length > 0 || card.priority === "alta") && (
         <div className="flex flex-wrap gap-1 mt-2">
@@ -389,15 +389,48 @@ function CardFace({ card, isNext = false }: { card: BoardCard; isNext?: boolean 
   );
 }
 
-/** Menú de tres puntos de la tarjeta: eliminar con confirmación.
+/** Menú de tres puntos de la tarjeta: completar/reabrir y eliminar con confirmación.
  *  Detiene la propagación del clic para no abrir el detalle ni disparar el
  *  drag-and-drop del tablero (dnd-kit solo activa el arrastre tras moverse
  *  8px, así que un clic simple aquí siempre llega como clic). */
-function CardMenu({ cardId, title }: { cardId: string; title: string }) {
+function CardMenu({ cardId, title, completed }: { cardId: string; title: string; completed: boolean }) {
   const [menu, setMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
   const toast = useToast();
+
+  function toggleComplete() {
+    start(async () => {
+      let freedAt: number | null = null;
+      try {
+        const res = await completeCardAction(cardId, !completed);
+        freedAt = res.freedPriorityAt;
+      } catch {
+        toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
+        return;
+      }
+      setMenu(false);
+      if (!completed) {
+        toast.show({
+          message: "Tarea completada ✓",
+          action: {
+            label: "Deshacer",
+            onClick: async () => {
+              try {
+                await completeCardAction(cardId, false, freedAt);
+              } catch {
+                toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
+              }
+            },
+          },
+          link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
+          duration: 8000,
+        });
+      } else {
+        toast.show({ tone: "info", message: "Tarea reabierta — volvió a Próximo." });
+      }
+    });
+  }
 
   return (
     <div className="relative shrink-0" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
@@ -415,6 +448,16 @@ function CardMenu({ cardId, title }: { cardId: string; title: string }) {
       </button>
       {menu && (
         <div className="absolute right-0 z-20 mt-1 card p-1.5 flex flex-col min-w-40 text-sm">
+          <button
+            type="button"
+            disabled={pending}
+            className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-sand"
+            data-testid={`card-menu-complete-${cardId}`}
+            onClick={toggleComplete}
+          >
+            <CheckCircle2 size={14} aria-hidden /> {completed ? "Marcar como pendiente" : "Marcar como completada"}
+          </button>
+          <div className="my-1 border-t border-beige" />
           {confirmDelete ? (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5">
               <span className="text-xs text-stone">¿Eliminar?</span>
