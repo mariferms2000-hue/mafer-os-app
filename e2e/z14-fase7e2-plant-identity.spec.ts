@@ -141,7 +141,7 @@ test("recargar y reabrir no cambia la identidad: especie y seed guardados, jamá
 test("una sesión que completa la planta conserva ambas contribuciones: cierre + excedente", async ({ page }) => {
   await login(page);
   // escenario aprobado: la planta actual está a 10 minutos de completarse
-  run("UPDATE focus_plants SET accumulated_minutes = 290 WHERE completed_at IS NULL");
+  run("UPDATE focus_plants SET accumulated_minutes = 140 WHERE completed_at IS NULL");
   const oldPlant = activePlant();
 
   await page.goto("/?focus=1");
@@ -158,10 +158,10 @@ test("una sesión que completa la planta conserva ambas contribuciones: cierre +
   const session = lastClosedSession();
   expect(session.credited_minutes).toBe(25);
 
-  // la planta anterior quedó completa con exactamente 300, ni un minuto más
+  // la planta anterior quedó completa con exactamente 150, ni un minuto más
   const oldAfter = q<PlantRow>(`SELECT * FROM focus_plants WHERE id = '${oldPlant.id}'`)[0];
   expect(oldAfter.completed_at).not.toBeNull();
-  expect(oldAfter.accumulated_minutes).toBe(300);
+  expect(oldAfter.accumulated_minutes).toBe(150);
 
   // la semilla nueva nació con el excedente y con identidad propia y completa
   const seedling = activePlant();

@@ -110,7 +110,7 @@ function seedCompletedFixtures() {
   for (let i = 0; i < 15; i++) {
     const day = String(1 + i).padStart(2, "0");
     rows.push(
-      `('z15-planta-${String(i + 1).padStart(2, "0")}', '${SPECIES[i % SPECIES.length]}', 300, ${1000003 * (i + 1)}, 1, NULL, NULL, '2026-05-${day}T09:00:00.000Z', '2026-06-${day}T09:00:00.000Z')`
+      `('z15-planta-${String(i + 1).padStart(2, "0")}', '${SPECIES[i % SPECIES.length]}', 150, ${1000003 * (i + 1)}, 1, NULL, NULL, '2026-05-${day}T09:00:00.000Z', '2026-06-${day}T09:00:00.000Z')`
     );
   }
   run(
@@ -205,7 +205,7 @@ test("cuadrícula: más reciente primero, 12 iniciales y «Ver más» solo cuand
     await expect(svg).toHaveAttribute("data-seed", String(p.visual_seed));
   }
   await expect(cards.first()).toContainText(SPECIES_LABEL[all[0].species]);
-  await expect(cards.first()).toContainText("300 min de enfoque");
+  await expect(cards.first()).toContainText("150 min de enfoque");
 
   // «Ver más» dice cuántas faltan, y al expandir muestra todas y desaparece
   const more = page.getByTestId("garden-more");
@@ -231,14 +231,18 @@ test("el SVG es determinista: recargar produce exactamente los mismos trazos", a
 test("«Enfocarme» abre el overlay existente; cerrarlo devuelve al jardín sin tocar nada", async ({ page }) => {
   await login(page);
   await page.goto("/explorar/jardin");
+  // «Enfocarme» vive dentro de la tarjeta clickeable de la planta actual: el clic
+  // no debe burbujear y abrir también el popup de detalle de la planta.
   await page.getByTestId("garden-focus").click();
   await expect(page.getByTestId("focus-overlay")).toBeVisible();
   expect(page.url()).toContain("focus=1");
+  await expect(page.getByTestId("plant-detail-modal")).toHaveCount(0);
 
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("focus-overlay")).toHaveCount(0);
   expect(page.url()).toContain("/explorar/jardin");
   await expect(page.getByTestId("garden-current")).toBeVisible();
+  await expect(page.getByTestId("plant-detail-modal")).toHaveCount(0);
 });
 
 test("desde Hoy: el enlace discreto «Ver mi jardín» llega a la vista, con y sin sesión", async ({ page }) => {
