@@ -57,6 +57,7 @@ export const viewport: Viewport = {
 
 import { THEME_INIT_SCRIPT } from "@/components/shell/theme-script";
 import { ThemeWatcher } from "@/components/shell/theme";
+import { FONT_SIZE_INIT_SCRIPT } from "@/components/shell/font-size-script";
 
 export default function RootLayout({
   children,
@@ -65,6 +66,7 @@ export default function RootLayout({
     <html lang="es" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: FONT_SIZE_INIT_SCRIPT }} />
       </head>
       <body>
         <ThemeWatcher />

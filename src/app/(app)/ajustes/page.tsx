@@ -6,6 +6,7 @@ import {
   Smartphone,
   HardDriveDownload,
   Palette,
+  ALargeSmall,
   FlaskConical,
   Volume2,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { updateNameAction } from "@/lib/actions/settings";
 import { PasswordForm } from "@/components/settings/password-form";
 import { disconnectGoogleAction } from "@/lib/actions/google";
 import { ThemeSelector } from "@/components/shell/theme";
+import { FontSizeSettings } from "@/components/settings/font-size-settings";
 import { BackupButtons, DemoDataControls } from "@/components/settings/maintenance";
 import { WeeklyReviewDay } from "@/components/settings/weekly-review-day";
 import { FocusSoundSettings } from "@/components/settings/focus-sound-settings";
@@ -80,6 +82,18 @@ export default async function AjustesPage() {
           «Automático» sigue la preferencia de tu Mac o iPhone: claro de día, oscuro de noche.
         </p>
         <ThemeSelector />
+      </section>
+
+      {/* Tamaño de texto */}
+      <section className="card p-5 mb-5">
+        <h2 className="section-eyebrow mb-1 flex items-center gap-2">
+          <ALargeSmall size={13} className="text-sage-deep" aria-hidden /> Tamaño de texto
+        </h2>
+        <p className="text-sm text-stone mb-3">
+          Ajusta el tamaño por tipo de texto. «Normal» es el tamaño de siempre — se guarda en este
+          dispositivo, no viaja a otros.
+        </p>
+        <FontSizeSettings />
       </section>
 
       {/* Sonido del pomodoro */}
