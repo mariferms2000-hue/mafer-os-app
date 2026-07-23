@@ -43,7 +43,7 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle de tu ${SPECIES_LABEL[plant.species] ?? plant.species}`}
-        className="card card-raised w-full md:max-w-md max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-6 pb-safe"
+        className="card card-raised w-full md:max-w-[500px] max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-[27px] pb-safe"
         data-testid="plant-detail-modal"
       >
         <div className="flex items-start justify-between gap-3 mb-2">
@@ -58,7 +58,7 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
             visualSeed={plant.visualSeed}
             stage={plant.stage}
             rendererVersion={plant.rendererVersion}
-            className="h-40 w-40 text-sage-deep"
+            className="h-[180px] w-[180px] text-sage-deep"
           />
           <h2 className="text-2xl font-display text-forest-deep mt-2">
             {SPECIES_LABEL[plant.species] ?? plant.species}
