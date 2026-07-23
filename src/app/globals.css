@@ -361,6 +361,19 @@ input[type="date"], input[type="time"] {
 }
 .input::placeholder, .textarea::placeholder { color: var(--color-stone-soft); }
 
+/* Editor visual (WYSIWYG) de la descripción de tareas: el textarea de siempre
+   sigue guardando Markdown, pero esto es lo que Mafer ve y toca al escribir. */
+.rich-text-editor { min-height: 90px; height: auto; line-height: 1.5; cursor: text; }
+.rich-text-editor:empty::before { content: attr(data-placeholder); color: var(--color-stone-soft); }
+.rich-text-editor p, .rich-text-editor div { margin: 0 0 0.5em; }
+.rich-text-editor p:last-child, .rich-text-editor div:last-child { margin-bottom: 0; }
+.rich-text-editor h1 { font-size: 1.2rem; margin: 0.2em 0 0.35em; color: var(--color-forest-deep); }
+.rich-text-editor h2 { font-size: 1.03rem; margin: 0.2em 0 0.3em; color: var(--color-forest-deep); }
+.rich-text-editor ul, .rich-text-editor ol { margin: 0 0 0.5em; padding-left: 1.3em; }
+.rich-text-editor li { margin: 0.15em 0; }
+.rich-text-editor a { color: var(--color-link); text-decoration: underline; }
+.rich-text-editor strong { font-weight: 700; }
+
 .label {
   display: block;
   font-size: var(--label-font-size, 0.75rem);
