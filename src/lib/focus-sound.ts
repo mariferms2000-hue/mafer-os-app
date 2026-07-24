@@ -16,6 +16,8 @@ const DEFAULT_SOUND_ID = FOCUS_SOUND_OPTIONS[0].id;
 
 const MUTE_STORAGE_KEY = "mafer-os:focus-sound-muted";
 const CHOICE_STORAGE_KEY = "mafer-os:focus-sound-choice";
+const VOLUME_STORAGE_KEY = "mafer-os:focus-sound-volume";
+const DEFAULT_VOLUME = 1;
 
 // Algunos ringtones duran hasta 30s — para un aviso de pomodoro basta con
 // reconocerlo, no con la canción completa: se corta con un fundido corto.
@@ -106,7 +108,7 @@ export function playFocusChime(): void {
   try {
     clearPlaybackTimers();
     audio.currentTime = 0;
-    audio.volume = 1;
+    audio.volume = getFocusSoundVolume();
     audio.muted = false;
     void audio.play().catch(() => {});
     fadeTimeoutId = setTimeout(() => fadeOutAndStop(audio), Math.max(0, MAX_PLAYBACK_MS - FADE_MS));
@@ -155,6 +157,34 @@ export function setFocusSoundChoice(id: string): void {
   if (!FOCUS_SOUND_OPTIONS.some((o) => o.id === id)) return;
   try {
     window.localStorage.setItem(CHOICE_STORAGE_KEY, id);
+  } catch {
+    // localStorage puede fallar (modo privado, cuota) — la preferencia
+    // simplemente no persiste esta vez.
+  }
+}
+
+/** Volumen del chime del Pomodoro (0 a 1), guardado en este navegador. Solo
+ *  controla el <audio> propio del aviso — nunca las notificaciones del
+ *  sistema, esas las silencia/ajusta el propio SO y son responsabilidad
+ *  del usuario ahí, no de esta app. */
+export function getFocusSoundVolume(): number {
+  if (typeof window === "undefined") return DEFAULT_VOLUME;
+  try {
+    const stored = window.localStorage.getItem(VOLUME_STORAGE_KEY);
+    if (stored === null) return DEFAULT_VOLUME;
+    const parsed = Number(stored);
+    if (!Number.isFinite(parsed)) return DEFAULT_VOLUME;
+    return Math.min(1, Math.max(0, parsed));
+  } catch {
+    return DEFAULT_VOLUME;
+  }
+}
+
+export function setFocusSoundVolume(volume: number): void {
+  if (typeof window === "undefined") return;
+  const clamped = Math.min(1, Math.max(0, volume));
+  try {
+    window.localStorage.setItem(VOLUME_STORAGE_KEY, String(clamped));
   } catch {
     // localStorage puede fallar (modo privado, cuota) — la preferencia
     // simplemente no persiste esta vez.
