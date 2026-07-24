@@ -15,6 +15,7 @@ import {
   type TaskDetailData,
 } from "@/lib/actions/cards";
 import { MarkPriorityButton } from "./priority-button";
+import { DescriptionEditor } from "./description-editor";
 import type { ChecklistItem } from "@/lib/db/schema";
 import { suggestEstimates, normalizeDuration, normalizeEnergy, DURATION_LABEL, ENERGY_LABEL } from "@/lib/estimates";
 import { DurationChips, EnergyChips } from "./estimate-chips";
@@ -394,7 +395,13 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
 
               <div>
                 <label className="label" htmlFor="cd-desc">Descripción</label>
-                <textarea id="cd-desc" name="description" className="textarea" rows={4} defaultValue={card.description ?? ""} data-testid="card-desc-input" placeholder="Notas, contexto, lo que haga falta…" />
+                <DescriptionEditor
+                  id="cd-desc"
+                  name="description"
+                  defaultValue={card.description ?? ""}
+                  placeholder="Notas, contexto, lo que haga falta…"
+                  testid="card-desc-input"
+                />
               </div>
 
               {/* Enlaces / referencias */}

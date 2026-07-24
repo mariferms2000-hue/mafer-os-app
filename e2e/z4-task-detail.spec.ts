@@ -79,7 +79,7 @@ test("abrir desde Tareas, editar título y descripción, y sobrevivir al refresh
   await page.reload();
   await expect(page.getByTestId("task-groups").getByText(editada, { exact: true })).toBeVisible();
   await openFromList(page, editada);
-  await expect(page.getByTestId("card-desc-input")).toHaveValue("Descripción escrita desde el detalle.");
+  await expect(page.getByTestId("card-desc-input")).toHaveText("Descripción escrita desde el detalle.");
   await page.getByTestId("card-cancel").click();
 });
 
@@ -159,7 +159,7 @@ test("cambiar la tarea de MACA a Proyecto Beta conservando sus datos", async ({ 
   // conservó la descripción
   await page.goto("/tareas?v=todas");
   await openFromList(page, editada);
-  await expect(page.getByTestId("card-desc-input")).toHaveValue("Descripción escrita desde el detalle.");
+  await expect(page.getByTestId("card-desc-input")).toHaveText("Descripción escrita desde el detalle.");
   await page.getByTestId("card-cancel").click();
 });
 

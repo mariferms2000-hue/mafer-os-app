@@ -35,7 +35,7 @@ function fecha(iso: string | null): string {
 export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center px-3 pb-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="presentation"
     >
@@ -43,33 +43,30 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle de tu ${SPECIES_LABEL[plant.species] ?? plant.species}`}
-        className="card card-raised w-full md:max-w-md max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-6 pb-safe"
+        className="card card-raised w-full md:max-w-[450px] max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-6 plant-modal-pb-safe"
         data-testid="plant-detail-modal"
       >
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <p className="section-eyebrow">{plant.completedAt ? "Planta completada" : "Planta actual"}</p>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="btn btn-ghost !p-2">
-            <X size={18} aria-hidden />
-          </button>
-        </div>
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center gap-3.5">
+          <div className="w-full flex items-center justify-between gap-3">
+            <p className="section-eyebrow">{plant.completedAt ? "Planta completada" : "Planta actual"}</p>
+            <button type="button" onClick={onClose} aria-label="Cerrar" className="btn btn-ghost !p-1.5 -mr-1.5">
+              <X size={16} aria-hidden />
+            </button>
+          </div>
           <PlantArt
             species={asSpecies(plant.species)}
             visualSeed={plant.visualSeed}
             stage={plant.stage}
             rendererVersion={plant.rendererVersion}
-            className="h-40 w-40 text-sage-deep"
+            className="h-44 w-44 text-sage-deep"
           />
-          <h2 className="text-2xl font-display text-forest-deep mt-2">
-            {SPECIES_LABEL[plant.species] ?? plant.species}
-          </h2>
-          <p className="text-sm text-stone mt-0.5">{STAGE_LABEL[plant.stage]}</p>
-          <p className="text-sm text-stone mt-2">
+          <h2 className="text-2xl font-display text-forest-deep">{SPECIES_LABEL[plant.species] ?? plant.species}</h2>
+          <p className="text-sm text-stone">
             {plant.next
-              ? `${plant.accumulatedMinutes} de ${plant.accumulatedMinutes + plant.next.missingMinutes} min para ${STAGE_LABEL[plant.next.key].toLowerCase()}`
-              : "Planta completa"}
+              ? `${STAGE_LABEL[plant.stage]} · ${plant.accumulatedMinutes} de ${plant.accumulatedMinutes + plant.next.missingMinutes} min`
+              : STAGE_LABEL[plant.stage]}
           </p>
-          <p className="text-xs text-stone-soft mt-1">
+          <p className="text-xs text-stone-soft">
             {plant.completedAt
               ? `Completada el ${fecha(plant.completedAt)} · ${plant.accumulatedMinutes} min de enfoque`
               : `La cuidas desde el ${fecha(plant.startedAt)} · ${plant.accumulatedMinutes} min de enfoque`}

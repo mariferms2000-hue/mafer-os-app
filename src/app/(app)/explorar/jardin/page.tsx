@@ -6,6 +6,7 @@ import { ExplorarTabs } from "@/components/explore/tabs";
 import { GardenFocusButton } from "@/components/explore/garden-focus-button";
 import { PlantCardTrigger } from "@/components/explore/plant-card-trigger";
 import { PlantArt } from "@/components/focus/plant-art";
+import { StopPropagation } from "@/components/ui/stop-propagation";
 import { getGarden } from "@/lib/queries/focus";
 import { STAGES, type StageKey } from "@/lib/focus-logic";
 import { SPECIES_LABEL } from "@/lib/plant-svg";
@@ -91,14 +92,9 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
               <p className="text-xs text-stone-soft mt-1">
                 La cuidas desde el {fecha(c.startedAt)} · {c.accumulatedMinutes} min de enfoque
               </p>
-              <div
-                className="mt-4 flex justify-center sm:justify-start"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
+              <StopPropagation className="mt-4 flex justify-center sm:justify-start">
                 <GardenFocusButton testid="garden-focus" />
-              </div>
+              </StopPropagation>
             </div>
           </PlantCardTrigger>
         ) : (
