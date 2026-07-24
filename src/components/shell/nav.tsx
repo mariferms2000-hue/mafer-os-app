@@ -175,10 +175,44 @@ function BottomNavInner() {
   );
 }
 
+function MobileTopBarInner() {
+  const pathname = usePathname();
+  const active = isActive(pathname, "/ajustes");
+  return (
+    <header className="md:hidden fixed top-0 inset-x-0 z-40 sidebar-surface backdrop-blur border-b border-sand pt-safe">
+      <div className="flex items-center justify-between px-4 py-2.5">
+        <Link href="/" className="flex items-center gap-2">
+          <LeafLogo className="h-7 w-7" />
+          <span className="font-display text-base text-forest-deep">Mafer OS</span>
+        </Link>
+        <Link
+          href="/ajustes"
+          aria-label="Ajustes"
+          aria-current={active ? "page" : undefined}
+          data-testid="mobile-settings-link"
+          className={`flex items-center justify-center h-9 w-9 rounded-full ${
+            active ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+          }`}
+        >
+          <Settings size={19} aria-hidden />
+        </Link>
+      </div>
+    </header>
+  );
+}
+
 export function Sidebar() {
   return (
     <Suspense fallback={null}>
       <SidebarInner />
+    </Suspense>
+  );
+}
+
+export function MobileTopBar() {
+  return (
+    <Suspense fallback={null}>
+      <MobileTopBarInner />
     </Suspense>
   );
 }
