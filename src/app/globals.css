@@ -420,6 +420,13 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 .pt-safe { padding-top: env(safe-area-inset-top); }
 
+/* .pb-safe reemplaza el padding-bottom en vez de sumarlo: en cualquier
+   pantalla sin recorte de cámara (escritorio, la mayoría de Android, iPhone
+   sin home indicator) env(safe-area-inset-bottom) vale 0 y el padding-bottom
+   del p-6 del popup de planta desaparece por completo, dejando la metadata
+   pegada al borde. Este selector suma el safe area sobre el padding real. */
+.plant-modal-pb-safe { padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 0px)); }
+
 /* Entrada del modal de tarea: hoja en móvil (refuerza el patrón ya usado de
    items-end/rounded-b-none), aparición suave centrada en desktop. El guard
    global de prefers-reduced-motion de aquí abajo la anula automáticamente. */

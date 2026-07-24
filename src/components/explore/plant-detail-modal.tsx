@@ -43,7 +43,7 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle de tu ${SPECIES_LABEL[plant.species] ?? plant.species}`}
-        className="card card-raised w-full md:max-w-[450px] max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-6 pb-safe"
+        className="card card-raised w-full md:max-w-[450px] max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-6 plant-modal-pb-safe"
         data-testid="plant-detail-modal"
       >
         <div className="flex flex-col items-center text-center gap-3.5">
