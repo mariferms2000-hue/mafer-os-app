@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Heading1, Heading2, Bold, Italic, Strikethrough, List, ListOrdered, Link2, Pilcrow, Check, X } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Heading1, Heading2, Bold, Italic, Strikethrough, List, ListOrdered, Pilcrow } from "lucide-react";
 import { markdownToHtml, htmlToMarkdown } from "@/lib/markdown-html";
 
 /** Editor visual (WYSIWYG) de la descripción de tareas — Fase de reemplazo
@@ -41,10 +41,6 @@ const TOOLS: ToolAction[] = [
   { key: "numbered", label: "Lista numerada", icon: ListOrdered, run: () => document.execCommand("insertOrderedList") },
 ];
 
-function escapeAttr(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-}
-
 export function DescriptionEditor({
   id,
   name,
@@ -60,9 +56,6 @@ export function DescriptionEditor({
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const hiddenRef = useRef<HTMLInputElement>(null);
-  const savedRangeRef = useRef<Range | null>(null);
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linkUrl, setLinkUrl] = useState("");
 
   useEffect(() => {
     if (editorRef.current) editorRef.current.innerHTML = markdownToHtml(defaultValue);
@@ -84,42 +77,6 @@ export function DescriptionEditor({
     editor.focus();
     action.run(editor);
     sync();
-  }
-
-  function openLinkPopover() {
-    const editor = editorRef.current;
-    if (!editor) return;
-    const sel = window.getSelection();
-    savedRangeRef.current = sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode) ? sel.getRangeAt(0).cloneRange() : null;
-    setLinkUrl("https://");
-    setLinkOpen(true);
-  }
-
-  function applyLink() {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.focus();
-    const sel = window.getSelection();
-    if (sel && savedRangeRef.current) {
-      sel.removeAllRanges();
-      sel.addRange(savedRangeRef.current);
-    }
-    const url = linkUrl.trim();
-    if (url.length > 0) {
-      if (sel && !sel.isCollapsed) {
-        document.execCommand("createLink", false, url);
-      } else {
-        document.execCommand("insertHTML", false, `<a href="${escapeAttr(url)}">texto</a>`);
-      }
-    }
-    setLinkOpen(false);
-    setLinkUrl("");
-    sync();
-  }
-
-  function cancelLink() {
-    setLinkOpen(false);
-    setLinkUrl("");
   }
 
   return (
@@ -144,53 +101,7 @@ export function DescriptionEditor({
             <tool.icon size={15} aria-hidden />
           </button>
         ))}
-        <button
-          type="button"
-          className="btn btn-ghost !p-2 !min-h-9 !min-w-9"
-          aria-label="Enlace"
-          title="Enlace"
-          data-testid={testid ? `${testid}-tool-link` : undefined}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={openLinkPopover}
-        >
-          <Link2 size={15} aria-hidden />
-        </button>
       </div>
-
-      {linkOpen && (
-        <div className="flex items-center gap-1.5" data-testid={testid ? `${testid}-link-popover` : undefined}>
-          <input
-            type="text"
-            className="input !min-h-9 text-sm flex-1"
-            placeholder="https://…"
-            value={linkUrl}
-            autoFocus
-            onChange={(e) => setLinkUrl(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                applyLink();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                cancelLink();
-              }
-            }}
-            data-testid={testid ? `${testid}-link-input` : undefined}
-          />
-          <button
-            type="button"
-            className="btn btn-primary !p-2 !min-h-9 !min-w-9"
-            aria-label="Aplicar enlace"
-            onClick={applyLink}
-            data-testid={testid ? `${testid}-link-apply` : undefined}
-          >
-            <Check size={15} aria-hidden />
-          </button>
-          <button type="button" className="btn btn-ghost !p-2 !min-h-9 !min-w-9" aria-label="Cancelar enlace" onClick={cancelLink}>
-            <X size={15} aria-hidden />
-          </button>
-        </div>
-      )}
 
       <div
         ref={editorRef}

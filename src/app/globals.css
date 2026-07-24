@@ -370,7 +370,9 @@ input[type="date"], input[type="time"] {
 .rich-text-editor h1 { font-size: 1.2rem; margin: 0.2em 0 0.35em; color: var(--color-forest-deep); }
 .rich-text-editor h2 { font-size: 1.03rem; margin: 0.2em 0 0.3em; color: var(--color-forest-deep); }
 .rich-text-editor ul, .rich-text-editor ol { margin: 0 0 0.5em; padding-left: 1.3em; }
-.rich-text-editor li { margin: 0.15em 0; }
+.rich-text-editor ul { list-style: disc; }
+.rich-text-editor ol { list-style: decimal; }
+.rich-text-editor li { margin: 0.15em 0; list-style: inherit; }
 .rich-text-editor a { color: var(--color-link); text-decoration: underline; }
 .rich-text-editor strong { font-weight: 700; }
 

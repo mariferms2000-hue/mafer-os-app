@@ -46,9 +46,9 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
         className="card card-raised w-full md:max-w-[500px] max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-[27px] pb-safe"
         data-testid="plant-detail-modal"
       >
-        <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex items-start justify-between gap-3">
           <p className="section-eyebrow">{plant.completedAt ? "Planta completada" : "Planta actual"}</p>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="btn btn-ghost !p-2">
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="btn btn-ghost !p-2 -mt-1 -mr-1">
             <X size={18} aria-hidden />
           </button>
         </div>
@@ -58,18 +58,18 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
             visualSeed={plant.visualSeed}
             stage={plant.stage}
             rendererVersion={plant.rendererVersion}
-            className="h-[180px] w-[180px] text-sage-deep"
+            className="h-52 w-52 text-sage-deep"
           />
-          <h2 className="text-2xl font-display text-forest-deep mt-2">
+          <h2 className="text-2xl font-display text-forest-deep mt-1">
             {SPECIES_LABEL[plant.species] ?? plant.species}
           </h2>
           <p className="text-sm text-stone mt-0.5">{STAGE_LABEL[plant.stage]}</p>
-          <p className="text-sm text-stone mt-2">
-            {plant.next
-              ? `${plant.accumulatedMinutes} de ${plant.accumulatedMinutes + plant.next.missingMinutes} min para ${STAGE_LABEL[plant.next.key].toLowerCase()}`
-              : "Planta completa"}
-          </p>
-          <p className="text-xs text-stone-soft mt-1">
+          {plant.next && (
+            <p className="text-sm text-stone mt-2">
+              {`${plant.accumulatedMinutes} de ${plant.accumulatedMinutes + plant.next.missingMinutes} min para ${STAGE_LABEL[plant.next.key].toLowerCase()}`}
+            </p>
+          )}
+          <p className="text-xs text-stone-soft mt-5 pt-3 border-t border-beige w-full">
             {plant.completedAt
               ? `Completada el ${fecha(plant.completedAt)} · ${plant.accumulatedMinutes} min de enfoque`
               : `La cuidas desde el ${fecha(plant.startedAt)} · ${plant.accumulatedMinutes} min de enfoque`}

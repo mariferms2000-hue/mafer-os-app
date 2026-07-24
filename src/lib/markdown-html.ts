@@ -46,7 +46,11 @@ function inlineMarkdownToHtml(text: string): string {
 }
 
 export function markdownToHtml(markdown: string): string {
-  const text = markdown ?? "";
+  // El envío del formulario normaliza saltos de línea a CRLF (regla estándar
+  // de los navegadores al serializar cualquier campo de formulario) — sin
+  // esto, un \r suelto rompe el split de bloques/líneas de más abajo y una
+  // lista guardada junto a un párrafo deja de reconocerse al reabrir.
+  const text = (markdown ?? "").replace(/\r\n?/g, "\n");
   if (text.trim().length === 0) return "";
 
   const blocks = text.split(/\n{2,}/);
@@ -184,6 +188,70 @@ function flushInlineRun(tokens: Token[], pos: { i: number }, blocks: string[]): 
   if (trimmed) blocks.push(trimmed);
 }
 
+/** Consume una lista (ul/ol) ya posicionada justo después de su apertura y
+ *  devuelve su Markdown, o null si quedó vacía (sin items con texto). */
+function parseList(tokens: Token[], pos: { i: number }, tag: string): string | null {
+  const items: string[] = [];
+  let n = 0;
+  while (pos.i < tokens.length && !(tokens[pos.i].kind === "close" && (tokens[pos.i] as { tag: string }).tag === tag)) {
+    const cur = tokens[pos.i];
+    if (cur.kind === "open" && cur.tag === "li") {
+      pos.i++;
+      const content = parseInline(tokens, pos, "li").trim();
+      if (content.length) {
+        n += 1;
+        items.push(tag === "ul" ? `- ${content}` : `${n}. ${content}`);
+      }
+    } else {
+      pos.i++;
+    }
+  }
+  if (pos.i < tokens.length && tokens[pos.i].kind === "close") pos.i++;
+  return items.length ? items.join("\n") : null;
+}
+
+/** Contenido de un párrafo/div — normalmente solo texto y marcas inline, pero
+ *  Chrome deja `<p><ul>…</ul></p>` al activar viñetas sobre un párrafo vacío
+ *  (la lista queda anidada dentro del párrafo en vez de reemplazarlo). Una
+ *  lista encontrada aquí se separa en su propio bloque; el texto antes/después
+ *  se conserva como párrafo(s) separados en vez de perderse fundido con ella. */
+function parseContainer(tokens: Token[], pos: { i: number }, stopTag: string, blocks: string[]): void {
+  let out = "";
+  const flush = () => {
+    const trimmed = out.trim();
+    if (trimmed) blocks.push(trimmed);
+    out = "";
+  };
+  while (pos.i < tokens.length) {
+    const t = tokens[pos.i];
+    if (t.kind === "close") {
+      pos.i++;
+      if (t.tag === stopTag) break;
+      continue; // cierre huérfano/desalineado dentro del contenedor
+    }
+    if (t.kind === "text") {
+      out += t.text;
+      pos.i++;
+      continue;
+    }
+    if (t.tag === "ul" || t.tag === "ol") {
+      flush();
+      pos.i++;
+      const list = parseList(tokens, pos, t.tag);
+      if (list) blocks.push(list);
+      continue;
+    }
+    pos.i++; // abre una marca inline (b, strong, em, i, s, strike, a, br…)
+    if (t.tag === "br") {
+      out += "\n";
+      continue;
+    }
+    const inner = parseInline(tokens, pos, t.tag);
+    out += wrapInline(t.tag, inner, t.attrs);
+  }
+  flush();
+}
+
 function parseBlocks(tokens: Token[]): string[] {
   const blocks: string[] = [];
   const pos = { i: 0 };
@@ -200,31 +268,20 @@ function parseBlocks(tokens: Token[]): string[] {
     pos.i++;
 
     if (t.tag === "ul" || t.tag === "ol") {
-      const items: string[] = [];
-      let n = 0;
-      while (pos.i < tokens.length && !(tokens[pos.i].kind === "close" && (tokens[pos.i] as { tag: string }).tag === t.tag)) {
-        const cur = tokens[pos.i];
-        if (cur.kind === "open" && cur.tag === "li") {
-          pos.i++;
-          const content = parseInline(tokens, pos, "li").trim();
-          if (content.length) {
-            n += 1;
-            items.push(t.tag === "ul" ? `- ${content}` : `${n}. ${content}`);
-          }
-        } else {
-          pos.i++;
-        }
-      }
-      if (pos.i < tokens.length && tokens[pos.i].kind === "close") pos.i++;
-      if (items.length) blocks.push(items.join("\n"));
+      const list = parseList(tokens, pos, t.tag);
+      if (list) blocks.push(list);
+      continue;
+    }
+
+    if (t.tag === "p" || t.tag === "div") {
+      parseContainer(tokens, pos, t.tag, blocks);
       continue;
     }
 
     const content = parseInline(tokens, pos, t.tag).trim();
     if (!content) continue;
     if (t.tag === "h1") blocks.push(`# ${content}`);
-    else if (t.tag === "h2") blocks.push(`## ${content}`);
-    else blocks.push(content); // p, div y cualquier otro contenedor de línea
+    else blocks.push(`## ${content}`); // h2
   }
   return blocks;
 }

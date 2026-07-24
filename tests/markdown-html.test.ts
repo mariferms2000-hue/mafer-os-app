@@ -36,6 +36,12 @@ describe("markdownToHtml", () => {
     expect(markdownToHtml("")).toBe("");
     expect(markdownToHtml("   \n\n  ")).toBe("");
   });
+
+  it("normaliza CRLF (el envío del formulario los introduce) antes de separar bloques y líneas", () => {
+    expect(markdownToHtml("# Título\r\n\r\n**fuerte**")).toBe("<h1>Título</h1><p><strong>fuerte</strong></p>");
+    expect(markdownToHtml("Notas:\r\n\r\n- uno\r\n- dos\r\n- tres")).toBe("<p>Notas:</p><ul><li>uno</li><li>dos</li><li>tres</li></ul>");
+    expect(markdownToHtml("1. uno\r\n2. dos\r\n3. tres")).toBe("<ol><li>uno</li><li>dos</li><li>tres</li></ol>");
+  });
 });
 
 describe("htmlToMarkdown", () => {
@@ -56,6 +62,34 @@ describe("htmlToMarkdown", () => {
   it("convierte viñetas y numerada de vuelta, renumerando secuencialmente", () => {
     expect(htmlToMarkdown("<ul><li>uno</li><li>dos</li></ul>")).toBe("- uno\n- dos");
     expect(htmlToMarkdown("<ol><li>uno</li><li>dos</li></ol>")).toBe("1. uno\n2. dos");
+  });
+
+  it("convierte listas de varios elementos (más de dos) de vuelta", () => {
+    expect(htmlToMarkdown("<ul><li>uno</li><li>dos</li><li>tres</li><li>cuatro</li></ul>")).toBe(
+      "- uno\n- dos\n- tres\n- cuatro"
+    );
+    expect(htmlToMarkdown("<ol><li>uno</li><li>dos</li><li>tres</li><li>cuatro</li></ol>")).toBe(
+      "1. uno\n2. dos\n3. tres\n4. cuatro"
+    );
+  });
+
+  it("una lista vacía (sin items o con items sin texto) no produce basura en el Markdown", () => {
+    expect(htmlToMarkdown("<ul></ul>")).toBe("");
+    expect(htmlToMarkdown("<ul><li><br></li></ul>")).toBe("");
+    expect(htmlToMarkdown("<ol><li></li><li></li></ol>")).toBe("");
+  });
+
+  it("una lista con algunos items vacíos conserva solo los que tienen texto", () => {
+    expect(htmlToMarkdown("<ul><li>uno</li><li><br></li><li>tres</li></ul>")).toBe("- uno\n- tres");
+  });
+
+  it("reconoce una lista anidada dentro de un párrafo (Chrome deja <p><ul>…</ul></p> al activar viñetas sobre un párrafo vacío)", () => {
+    expect(htmlToMarkdown("<p><ul><li>uno</li><li>dos</li><li>tres</li></ul></p>")).toBe("- uno\n- dos\n- tres");
+    expect(htmlToMarkdown("<p><ol><li>uno</li><li>dos</li></ol></p>")).toBe("1. uno\n2. dos");
+  });
+
+  it("conserva el texto antes y después de una lista anidada en un párrafo", () => {
+    expect(htmlToMarkdown("<p>Notas:<ul><li>uno</li><li>dos</li></ul>fin</p>")).toBe("Notas:\n\n- uno\n- dos\n\nfin");
   });
 
   it("acepta las etiquetas reales que produce execCommand en distintos navegadores", () => {
