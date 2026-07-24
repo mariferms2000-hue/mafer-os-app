@@ -108,6 +108,15 @@ describe("htmlToMarkdown", () => {
     expect(htmlToMarkdown("<p>uno<br>dos</p>")).toBe("uno\ndos");
   });
 
+  it("Shift+Enter (br) seguido de Enter (nuevo bloque) produce salto simple + párrafo nuevo", () => {
+    // Estructura real que deja Chrome: texto suelto con <br> a nivel superior
+    // (Shift+Enter antes del primer párrafo formal) y un <div> para el bloque
+    // siguiente (Enter).
+    expect(htmlToMarkdown("primer parrafo<br>linea simple dentro del mismo parrafo<div>segundo parrafo</div>")).toBe(
+      "primer parrafo\nlinea simple dentro del mismo parrafo\n\nsegundo parrafo"
+    );
+  });
+
   it("desescapa entidades HTML", () => {
     expect(htmlToMarkdown("<p>a &lt; b &amp; c &gt; d</p>")).toBe("a < b & c > d");
   });

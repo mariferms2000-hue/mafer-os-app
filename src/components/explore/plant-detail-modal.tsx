@@ -43,38 +43,38 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle de tu ${SPECIES_LABEL[plant.species] ?? plant.species}`}
-        className="card card-raised w-full md:max-w-[500px] max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-[27px] pb-safe"
+        className="card card-raised w-full md:max-w-[480px] max-h-[90dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-6 pb-safe"
         data-testid="plant-detail-modal"
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <p className="section-eyebrow">{plant.completedAt ? "Planta completada" : "Planta actual"}</p>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="btn btn-ghost !p-2 -mt-1 -mr-1">
-            <X size={18} aria-hidden />
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="btn btn-ghost !p-1.5 -mr-1.5">
+            <X size={16} aria-hidden />
           </button>
         </div>
-        <div className="flex flex-col items-center text-center">
+        <div className="flex flex-col items-center text-center mt-2">
           <PlantArt
             species={asSpecies(plant.species)}
             visualSeed={plant.visualSeed}
             stage={plant.stage}
             rendererVersion={plant.rendererVersion}
-            className="h-52 w-52 text-sage-deep"
+            className="h-[180px] w-[180px] text-sage-deep"
           />
-          <h2 className="text-2xl font-display text-forest-deep mt-1">
+          <h2 className="text-2xl font-display text-forest-deep mt-2">
             {SPECIES_LABEL[plant.species] ?? plant.species}
           </h2>
           <p className="text-sm text-stone mt-0.5">{STAGE_LABEL[plant.stage]}</p>
           {plant.next && (
-            <p className="text-sm text-stone mt-2">
+            <p className="text-sm text-stone mt-1.5">
               {`${plant.accumulatedMinutes} de ${plant.accumulatedMinutes + plant.next.missingMinutes} min para ${STAGE_LABEL[plant.next.key].toLowerCase()}`}
             </p>
           )}
-          <p className="text-xs text-stone-soft mt-5 pt-3 border-t border-beige w-full">
-            {plant.completedAt
-              ? `Completada el ${fecha(plant.completedAt)} · ${plant.accumulatedMinutes} min de enfoque`
-              : `La cuidas desde el ${fecha(plant.startedAt)} · ${plant.accumulatedMinutes} min de enfoque`}
-          </p>
         </div>
+        <p className="text-xs text-stone-soft text-center mt-4 pt-3 border-t border-beige">
+          {plant.completedAt
+            ? `Completada el ${fecha(plant.completedAt)} · ${plant.accumulatedMinutes} min de enfoque`
+            : `La cuidas desde el ${fecha(plant.startedAt)} · ${plant.accumulatedMinutes} min de enfoque`}
+        </p>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Heading1, Heading2, Bold, Italic, Strikethrough, List, ListOrdered, Pilcrow } from "lucide-react";
+import { Heading1, Heading2, Bold, Italic, Strikethrough, List, ListOrdered } from "lucide-react";
 import { markdownToHtml, htmlToMarkdown } from "@/lib/markdown-html";
 
 /** Editor visual (WYSIWYG) de la descripción de tareas — Fase de reemplazo
@@ -24,14 +24,7 @@ function toggleHeading(level: 1 | 2) {
   document.execCommand("formatBlock", false, currentBlockTag() === tag ? "<p>" : `<${tag}>`);
 }
 
-function toNormalText() {
-  if (document.queryCommandState("insertUnorderedList")) document.execCommand("insertUnorderedList");
-  if (document.queryCommandState("insertOrderedList")) document.execCommand("insertOrderedList");
-  document.execCommand("formatBlock", false, "<p>");
-}
-
 const TOOLS: ToolAction[] = [
-  { key: "normal", label: "Texto normal", icon: Pilcrow, run: () => toNormalText() },
   { key: "titulo", label: "Título", icon: Heading1, run: () => toggleHeading(1) },
   { key: "subtitulo", label: "Subtítulo", icon: Heading2, run: () => toggleHeading(2) },
   { key: "bold", label: "Negrita", icon: Bold, run: () => document.execCommand("bold") },
@@ -79,6 +72,17 @@ export function DescriptionEditor({
     sync();
   }
 
+  /** Enter: párrafo nuevo (comportamiento nativo del navegador). Shift+Enter:
+   *  salto de línea simple dentro del mismo párrafo — se fuerza explícitamente
+   *  porque el comportamiento nativo de insertLineBreak es inconsistente entre
+   *  navegadores dentro de un contentEditable sin <br> ya presente. */
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "Enter" || !e.shiftKey) return;
+    e.preventDefault();
+    document.execCommand("insertLineBreak");
+    sync();
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <div
@@ -114,6 +118,7 @@ export function DescriptionEditor({
         data-placeholder={placeholder}
         onInput={sync}
         onBlur={sync}
+        onKeyDown={handleKeyDown}
         data-testid={testid}
       />
       <input ref={hiddenRef} type="hidden" id={id} name={name} data-testid={testid ? `${testid}-markdown` : undefined} />
