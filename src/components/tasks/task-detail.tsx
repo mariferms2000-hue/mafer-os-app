@@ -321,7 +321,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                 {checklist.length > 0 && (
                   <ul className="flex flex-col gap-1.5 mb-2" data-testid="checklist">
                     {checklist.map((item) => (
-                      <li key={item.id} className="flex items-center gap-2">
+                      <li key={item.id} className="flex items-start gap-2">
                         <input
                           type="checkbox"
                           aria-label={`Marcar «${item.text}»`}
@@ -329,12 +329,24 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                           onChange={() =>
                             saveChecklist(checklist.map((i) => (i.id === item.id ? { ...i, done: !i.done } : i)))
                           }
-                          className="h-4 w-4 shrink-0"
+                          className="h-4 w-4 shrink-0 mt-1.5"
                         />
-                        <input
-                          className={`text-sm flex-1 bg-transparent border-0 focus:outline-none focus:bg-beige/60 rounded px-1 -mx-1 ${item.done ? "line-through text-stone-soft" : ""}`}
+                        <textarea
+                          className={`text-sm flex-1 bg-transparent border-0 focus:outline-none focus:bg-beige/60 rounded px-1 -mx-1 resize-none overflow-hidden leading-snug py-1 ${item.done ? "line-through text-stone-soft" : ""}`}
                           defaultValue={item.text}
                           aria-label={`Editar «${item.text}»`}
+                          rows={1}
+                          ref={(el) => {
+                            if (el) {
+                              el.style.height = "auto";
+                              el.style.height = `${el.scrollHeight}px`;
+                            }
+                          }}
+                          onInput={(e) => {
+                            const el = e.currentTarget;
+                            el.style.height = "auto";
+                            el.style.height = `${el.scrollHeight}px`;
+                          }}
                           onBlur={(e) => {
                             const text = e.target.value.trim();
                             if (text && text !== item.text) {
@@ -346,14 +358,14 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
-                              (e.target as HTMLInputElement).blur();
+                              (e.target as HTMLTextAreaElement).blur();
                             }
                           }}
                         />
                         <button
                           type="button"
                           aria-label={`Eliminar «${item.text}»`}
-                          className="text-stone-soft hover:text-blocked shrink-0"
+                          className="text-stone-soft hover:text-blocked shrink-0 mt-1.5"
                           onClick={() => saveChecklist(checklist.filter((i) => i.id !== item.id))}
                         >
                           <X size={14} aria-hidden />
