@@ -14,7 +14,7 @@
     "backup": "node scripts/backup.mjs",
     "setup": "node scripts/setup.mjs",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "node scripts/reset-test-db.mjs && playwright test",
     "inventory": "node scripts/inventory-agents.mjs"
   },
   "dependencies": {
