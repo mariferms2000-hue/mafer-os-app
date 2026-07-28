@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import Link from "next/link";
-import { Download, HardDriveDownload, BookOpen, Trash2, Wand2 } from "lucide-react";
+import { Download, HardDriveDownload, BookOpen, Wand2 } from "lucide-react";
 import {
   createBackupAction,
   syncObsidianAction,
   convertDemoToRealAction,
-  deleteDemoDataAction,
   type DemoCounts,
 } from "@/lib/actions/maintenance";
 import { useToast } from "@/components/ui/toast";
@@ -77,7 +76,6 @@ export function BackupButtons({
 }
 
 export function DemoDataControls({ counts }: { counts: DemoCounts }) {
-  const [confirming, setConfirming] = useState(false);
   const [pending, start] = useTransition();
   const toast = useToast();
 
@@ -117,36 +115,6 @@ export function DemoDataControls({ counts }: { counts: DemoCounts }) {
         >
           <Wand2 size={14} aria-hidden /> Convertir en datos reales
         </button>
-        {confirming ? (
-          <span className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-stone">
-              Se eliminarán <strong className="text-blocked">{counts.total} elementos de ejemplo</strong>. Tus datos
-              reales, tu configuración y tus agentes no se tocan. ¿Segura?
-            </span>
-            <button
-              type="button"
-              className="btn btn-danger text-sm"
-              disabled={pending}
-              data-testid="confirm-delete-demo"
-              onClick={() =>
-                start(async () => {
-                  await deleteDemoDataAction();
-                  setConfirming(false);
-                  toast.show({ message: `${counts.total} elementos de ejemplo eliminados.` });
-                })
-              }
-            >
-              Sí, eliminar ejemplos
-            </button>
-            <button type="button" className="btn btn-ghost text-sm" onClick={() => setConfirming(false)}>
-              Cancelar
-            </button>
-          </span>
-        ) : (
-          <button type="button" className="btn btn-danger text-sm" onClick={() => setConfirming(true)} data-testid="delete-demo">
-            <Trash2 size={14} aria-hidden /> Eliminar todos los ejemplos
-          </button>
-        )}
       </div>
     </div>
   );

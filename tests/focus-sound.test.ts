@@ -6,6 +6,8 @@ import {
   setFocusSoundMuted,
   getFocusSoundChoice,
   setFocusSoundChoice,
+  getFocusSoundVolume,
+  setFocusSoundVolume,
   FOCUS_SOUND_OPTIONS,
 } from "../src/lib/focus-sound";
 
@@ -36,6 +38,16 @@ describe("focus-sound — sin entorno de navegador (SSR / Node)", () => {
 
   it("setFocusSoundChoice no truena sin `window`", () => {
     expect(() => setFocusSoundChoice(FOCUS_SOUND_OPTIONS[1].id)).not.toThrow();
+  });
+
+  it("getFocusSoundVolume por defecto devuelve volumen máximo (1)", () => {
+    expect(getFocusSoundVolume()).toBe(1);
+  });
+
+  it("setFocusSoundVolume no truena sin `window`", () => {
+    expect(() => setFocusSoundVolume(0.5)).not.toThrow();
+    expect(() => setFocusSoundVolume(-1)).not.toThrow();
+    expect(() => setFocusSoundVolume(5)).not.toThrow();
   });
 
   it("FOCUS_SOUND_OPTIONS trae los cuatro ringtones con id, label y src únicos", () => {

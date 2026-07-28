@@ -321,7 +321,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                 {checklist.length > 0 && (
                   <ul className="flex flex-col gap-1.5 mb-2" data-testid="checklist">
                     {checklist.map((item) => (
-                      <li key={item.id} className="flex items-center gap-2">
+                      <li key={item.id} className="flex items-start gap-2">
                         <input
                           type="checkbox"
                           aria-label={`Marcar «${item.text}»`}
@@ -329,31 +329,43 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                           onChange={() =>
                             saveChecklist(checklist.map((i) => (i.id === item.id ? { ...i, done: !i.done } : i)))
                           }
-                          className="h-4 w-4 shrink-0"
+                          className="h-4 w-4 shrink-0 mt-1.5"
                         />
-                        <input
-                          className={`text-sm flex-1 bg-transparent border-0 focus:outline-none focus:bg-beige/60 rounded px-1 -mx-1 ${item.done ? "line-through text-stone-soft" : ""}`}
-                          defaultValue={item.text}
-                          aria-label={`Editar «${item.text}»`}
-                          onBlur={(e) => {
-                            const text = e.target.value.trim();
-                            if (text && text !== item.text) {
-                              saveChecklist(checklist.map((i) => (i.id === item.id ? { ...i, text } : i)));
-                            } else {
-                              e.target.value = item.text;
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              (e.target as HTMLInputElement).blur();
-                            }
-                          }}
-                        />
+                        <div
+                          className="grow-wrap flex-1 text-sm leading-snug px-1 -mx-1 py-1 rounded focus-within:bg-beige/60"
+                          data-replicated-value={item.text}
+                        >
+                          <textarea
+                            className={`w-full bg-transparent border-0 focus:outline-none text-sm leading-snug ${item.done ? "line-through text-stone-soft" : ""}`}
+                            defaultValue={item.text}
+                            aria-label={`Editar «${item.text}»`}
+                            rows={1}
+                            onInput={(e) => {
+                              const wrap = e.currentTarget.parentElement;
+                              if (wrap) wrap.dataset.replicatedValue = e.currentTarget.value;
+                            }}
+                            onBlur={(e) => {
+                              const text = e.target.value.trim();
+                              const wrap = e.currentTarget.parentElement;
+                              if (text && text !== item.text) {
+                                saveChecklist(checklist.map((i) => (i.id === item.id ? { ...i, text } : i)));
+                              } else {
+                                e.target.value = item.text;
+                                if (wrap) wrap.dataset.replicatedValue = item.text;
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                (e.target as HTMLTextAreaElement).blur();
+                              }
+                            }}
+                          />
+                        </div>
                         <button
                           type="button"
                           aria-label={`Eliminar «${item.text}»`}
-                          className="text-stone-soft hover:text-blocked shrink-0"
+                          className="text-stone-soft hover:text-blocked shrink-0 mt-1.5"
                           onClick={() => saveChecklist(checklist.filter((i) => i.id !== item.id))}
                         >
                           <X size={14} aria-hidden />

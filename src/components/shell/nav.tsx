@@ -6,7 +6,6 @@ import { Suspense, useEffect } from "react";
 import {
   Sun,
   Inbox,
-  CircleCheckBig,
   SquareKanban,
   CalendarDays,
   Compass,
@@ -22,7 +21,6 @@ import { SidebarPlant } from "@/components/ui/botanical";
 const NAV = [
   { href: "/", label: "Hoy", icon: Sun },
   { href: "/inbox", label: "Inbox", icon: Inbox },
-  { href: "/tareas", label: "Tareas", icon: CircleCheckBig },
   { href: "/proyectos", label: "Proyectos", icon: SquareKanban },
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
   { href: "/explorar", label: "Explorar", icon: Compass },
@@ -150,7 +148,7 @@ function BottomNavInner() {
       aria-label="Navegación principal"
       className="md:hidden fixed bottom-0 inset-x-0 z-40 sidebar-surface backdrop-blur border-t border-sand pb-safe"
     >
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-6">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (
@@ -159,12 +157,12 @@ function BottomNavInner() {
               href={href}
               onClick={onNavClick(href)}
               aria-current={active ? "page" : undefined}
-              className={`flex flex-col items-center gap-0.5 py-2 text-[9.5px] font-medium ${
+              className={`flex flex-col items-center gap-1 py-2.5 text-[10.5px] font-medium ${
                 active ? "text-forest-deep" : "text-stone-soft"
               }`}
             >
-              <span className={`rounded-full px-2.5 py-0.5 ${active ? "bg-sage-soft" : ""}`}>
-                <Icon size={19} strokeWidth={active ? 2.2 : 1.8} aria-hidden />
+              <span className={`rounded-full px-3 py-1 ${active ? "bg-sage-soft" : ""}`}>
+                <Icon size={20} strokeWidth={active ? 2.2 : 1.8} aria-hidden />
               </span>
               {label}
             </Link>
@@ -172,6 +170,36 @@ function BottomNavInner() {
         })}
       </div>
     </nav>
+  );
+}
+
+/** usePathname() no necesita Suspense (a diferencia de useSearchParams(), que
+ *  sí usan Sidebar/BottomNav vía useSectionMemory) — se renderiza directo,
+ *  sin boundary, para que nunca dependa de un fallback que pueda quedarse
+ *  en null. */
+export function MobileTopBar() {
+  const pathname = usePathname();
+  const active = isActive(pathname, "/ajustes");
+  return (
+    <header className="md:hidden fixed top-0 inset-x-0 z-50 sidebar-surface backdrop-blur border-b border-sand pt-safe">
+      <div className="flex items-center justify-between px-4 py-2.5">
+        <Link href="/" className="flex items-center gap-2">
+          <LeafLogo className="h-7 w-7" />
+          <span className="font-display text-base text-forest-deep">Mafer OS</span>
+        </Link>
+        <Link
+          href="/ajustes"
+          aria-label="Ajustes"
+          aria-current={active ? "page" : undefined}
+          data-testid="mobile-settings-link"
+          className={`flex items-center justify-center h-9 w-9 rounded-full ${
+            active ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+          }`}
+        >
+          <Settings size={19} aria-hidden />
+        </Link>
+      </div>
+    </header>
   );
 }
 

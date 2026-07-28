@@ -173,21 +173,6 @@ export async function convertDemoToRealAction() {
   revalidatePath("/", "layout");
 }
 
-/** Elimina SOLO los datos de ejemplo. No toca datos reales, configuración, ni agentes/skills. */
-export async function deleteDemoDataAction() {
-  await requireAuth();
-  // Proyectos de ejemplo (sus tableros/columnas/tarjetas caen en cascada)
-  await db.delete(schema.projects).where(eq(schema.projects.isStarter, true));
-  await db.delete(schema.cards).where(eq(schema.cards.isStarter, true));
-  await db.delete(schema.inboxItems).where(eq(schema.inboxItems.isStarter, true));
-  await db.delete(schema.learningTopics).where(eq(schema.learningTopics.isStarter, true));
-  await db.delete(schema.ideas).where(eq(schema.ideas.isStarter, true));
-  await db.delete(schema.prompts).where(eq(schema.prompts.isStarter, true));
-  await db.delete(schema.resources).where(eq(schema.resources.isStarter, true));
-  await db.delete(schema.events).where(eq(schema.events.isStarter, true));
-  revalidatePath("/", "layout");
-}
-
 /* ── Pruebas de alertas antiolvido (solo desarrollo) ─────────────────
    Crea datos temporales con el prefijo visible «QA ALERTA» para validar los
    seis escenarios sin esperar días reales. Nunca toca datos reales y todo se

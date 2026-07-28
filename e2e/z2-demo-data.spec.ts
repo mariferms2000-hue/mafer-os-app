@@ -12,7 +12,7 @@ async function login(page: Page) {
   await page.waitForURL("/");
 }
 
-test("datos de demostración: sembrar, contar y eliminar sin tocar lo real", async ({ page }) => {
+test("datos de demostración: sembrar, contar, convertir en reales sin tocar lo real", async ({ page }) => {
   // sembrar datos de ejemplo en la base de prueba
   execSync("node scripts/seed.mjs", {
     cwd: path.join(__dirname, ".."),
@@ -23,20 +23,22 @@ test("datos de demostración: sembrar, contar y eliminar sin tocar lo real", asy
   await page.goto("/ajustes");
   await expect(page.getByText(/elementos de ejemplo/)).toBeVisible();
 
+  // la acción destructiva "eliminar todos los ejemplos" ya no existe (Fase 2)
+  await expect(page.getByTestId("delete-demo")).toHaveCount(0);
+  await expect(page.getByTestId("confirm-delete-demo")).toHaveCount(0);
+
   // lo real creado en tests anteriores existe antes…
   await page.goto("/tareas?v=todas");
   await expect(page.getByText("Tarea creada desde Tareas")).toBeVisible();
 
-  // eliminar ejemplos con confirmación
+  // convertir ejemplos en datos reales (la única acción que queda, no destructiva)
   await page.goto("/ajustes");
-  await page.getByTestId("delete-demo").click();
-  await expect(page.getByText(/Se eliminarán/)).toBeVisible();
-  await page.getByTestId("confirm-delete-demo").click();
-  await expect(page.getByText(/eliminados/)).toBeVisible();
+  await page.getByRole("button", { name: "Convertir en datos reales" }).click();
+  await expect(page.getByText("Listo: los ejemplos ahora son datos tuyos (sin etiqueta).")).toBeVisible();
 
-  // los ejemplos ya no están
+  // los ejemplos ya no llevan la etiqueta, pero siguen existiendo
   await page.goto("/proyectos?f=todos");
-  await expect(page.getByText("Aprender Mafer OS")).toHaveCount(0);
+  await expect(page.getByText("Aprender Mafer OS")).toBeVisible();
 
   // …y lo real sigue intacto después
   await page.goto("/tareas?v=todas");
