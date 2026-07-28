@@ -1,14 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
-import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import { q, run } from "./lib/test-db";
 
 /** Fase 7D — integración del Jardín de enfoque con Hoy y las tareas.
  *  Nadie escribe ?focus=1: todos los accesos son botones reales. */
 
 const QA_DIR = path.join(__dirname, "..", "docs", "qa", "phase-7d-focus-integration");
 const PASSWORD = "prueba-mafer-123";
-const TEST_DB = path.join(__dirname, ".test-db", "mafer-test.db");
 
 test.describe.configure({ mode: "serial" });
 
@@ -26,16 +25,9 @@ async function login(page: Page) {
   await page.waitForURL("/");
 }
 
-function backdateOpenSession(minutes: number) {
+async function backdateOpenSession(minutes: number) {
   const iso = new Date(Date.now() - minutes * 60_000).toISOString();
-  execSync(
-    `node --input-type=module --eval "
-import Database from 'better-sqlite3';
-const db = new Database(process.env.TEST_DB);
-db.prepare(\\"UPDATE focus_sessions SET phase_started_at = ? WHERE finished_at IS NULL\\").run('${iso}');
-"`,
-    { cwd: path.join(__dirname, ".."), env: { ...process.env, TEST_DB } }
-  );
+  await run(`UPDATE focus_sessions SET phase_started_at = '${iso}' WHERE finished_at IS NULL`);
 }
 
 async function crearTarea(page: Page, titulo: string) {
@@ -169,16 +161,10 @@ test("detalle de tarea: Enfocar esta tarea preselecciona; nunca dos sesiones a l
   await expect(page.getByTestId("focus-clock")).toBeVisible(); // sigue la sesión original
 
   // solo hay UNA sesión abierta en la base
-  const salida = execSync(
-    `node --input-type=module --eval "
-import Database from 'better-sqlite3';
-const db = new Database(process.env.TEST_DB);
-console.log('ABIERTAS=' + db.prepare('SELECT COUNT(*) c FROM focus_sessions WHERE finished_at IS NULL').get().c);
-"`,
-    { cwd: path.join(__dirname, ".."), env: { ...process.env, TEST_DB } }
-  ).toString();
-  const abiertas = Number(/ABIERTAS=(\d+)/.exec(salida)?.[1] ?? "-1");
-  expect(abiertas).toBe(1);
+  const [{ c: abiertas }] = await q<{ c: number }>(
+    "SELECT COUNT(*) c FROM focus_sessions WHERE finished_at IS NULL"
+  );
+  expect(Number(abiertas)).toBe(1);
 
   // cerrarla correctamente deja elegir la nueva (queda preseleccionada)
   await terminarSesionAbierta(page);
@@ -193,7 +179,7 @@ test("cierre con decisión: «Sigue en curso» no toca la tarea", async ({ page 
   await page.getByTestId("focus-start").click();
   await expect(page.getByTestId("focus-clock")).toBeVisible();
 
-  backdateOpenSession(30);
+  await backdateOpenSession(30);
   await page.reload();
   await expect(page.getByTestId("focus-done-minutes")).toBeVisible();
   await page.getByTestId("focus-skip-break").click();
