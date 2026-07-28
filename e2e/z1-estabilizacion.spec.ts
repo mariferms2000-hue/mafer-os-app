@@ -72,13 +72,16 @@ test("deshacer inmediato desde el toast", async ({ page }) => {
 
 test("los filtros se recuerdan al navegar entre secciones", async ({ page }) => {
   await login(page);
-  await page.goto("/tareas?f=terminadas");
-  await expect(page).toHaveURL(/f=terminadas/);
+  // Tareas ya no vive en la navegación principal (Fase 2) — la sección de
+  // referencia para esta prueba pasa a ser Proyectos, que sigue en el menú
+  // y también acepta un filtro por query param.
+  await page.goto("/proyectos?f=terminados");
+  await expect(page).toHaveURL(/f=terminados/);
   // ir a otra sección y volver por la navegación principal
   await page.getByRole("navigation", { name: "Navegación principal" }).first().getByRole("link", { name: "Hoy" }).click();
   await page.waitForURL("/");
-  await page.getByRole("navigation", { name: "Navegación principal" }).first().getByRole("link", { name: "Tareas" }).click();
-  await expect(page).toHaveURL(/f=terminadas/);
+  await page.getByRole("navigation", { name: "Navegación principal" }).first().getByRole("link", { name: "Proyectos" }).click();
+  await expect(page).toHaveURL(/f=terminados/);
 });
 
 test("calendario: vista Día con horario y persistencia de vista", async ({ page }) => {
