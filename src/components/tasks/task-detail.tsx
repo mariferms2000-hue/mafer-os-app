@@ -331,37 +331,37 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                           }
                           className="h-4 w-4 shrink-0 mt-1.5"
                         />
-                        <textarea
-                          className={`text-sm flex-1 bg-transparent border-0 focus:outline-none focus:bg-beige/60 rounded px-1 -mx-1 resize-none overflow-hidden leading-snug py-1 ${item.done ? "line-through text-stone-soft" : ""}`}
-                          defaultValue={item.text}
-                          aria-label={`Editar «${item.text}»`}
-                          rows={1}
-                          ref={(el) => {
-                            if (el) {
-                              el.style.height = "auto";
-                              el.style.height = `${el.scrollHeight}px`;
-                            }
-                          }}
-                          onInput={(e) => {
-                            const el = e.currentTarget;
-                            el.style.height = "auto";
-                            el.style.height = `${el.scrollHeight}px`;
-                          }}
-                          onBlur={(e) => {
-                            const text = e.target.value.trim();
-                            if (text && text !== item.text) {
-                              saveChecklist(checklist.map((i) => (i.id === item.id ? { ...i, text } : i)));
-                            } else {
-                              e.target.value = item.text;
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              (e.target as HTMLTextAreaElement).blur();
-                            }
-                          }}
-                        />
+                        <div
+                          className="grow-wrap flex-1 text-sm leading-snug px-1 -mx-1 py-1 rounded focus-within:bg-beige/60"
+                          data-replicated-value={item.text}
+                        >
+                          <textarea
+                            className={`w-full bg-transparent border-0 focus:outline-none text-sm leading-snug ${item.done ? "line-through text-stone-soft" : ""}`}
+                            defaultValue={item.text}
+                            aria-label={`Editar «${item.text}»`}
+                            rows={1}
+                            onInput={(e) => {
+                              const wrap = e.currentTarget.parentElement;
+                              if (wrap) wrap.dataset.replicatedValue = e.currentTarget.value;
+                            }}
+                            onBlur={(e) => {
+                              const text = e.target.value.trim();
+                              const wrap = e.currentTarget.parentElement;
+                              if (text && text !== item.text) {
+                                saveChecklist(checklist.map((i) => (i.id === item.id ? { ...i, text } : i)));
+                              } else {
+                                e.target.value = item.text;
+                                if (wrap) wrap.dataset.replicatedValue = item.text;
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                (e.target as HTMLTextAreaElement).blur();
+                              }
+                            }}
+                          />
+                        </div>
                         <button
                           type="button"
                           aria-label={`Eliminar «${item.text}»`}

@@ -376,6 +376,25 @@ input[type="date"], input[type="time"] {
 .rich-text-editor a { color: var(--color-link); text-decoration: underline; }
 .rich-text-editor strong { font-weight: 700; }
 
+/* Paso del checklist: crece con el contenido puramente por CSS (grid +
+   pseudo-elemento espejo invisible que copia el texto vía data-attribute),
+   nunca midiendo scrollHeight en JS — no depende del timing de layout/reflow
+   de ningún navegador, así que el texto largo jamás queda recortado en
+   ninguna plataforma. El textarea (misma celda de grid que el ::after)
+   se estira para igualar el alto que el texto invisible ya calculó. */
+.grow-wrap { display: grid; }
+.grow-wrap::after {
+  content: attr(data-replicated-value) " ";
+  white-space: pre-wrap;
+  visibility: hidden;
+}
+.grow-wrap > textarea { resize: none; overflow: hidden; }
+.grow-wrap > textarea, .grow-wrap::after {
+  grid-area: 1 / 1 / 2 / 2;
+  font: inherit;
+  word-break: break-word;
+}
+
 .label {
   display: block;
   font-size: var(--label-font-size, 0.75rem);
