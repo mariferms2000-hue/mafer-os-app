@@ -1,7 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
-import path from "path";
+import { requireTestDatabaseUrl } from "./scripts/lib/require-test-db.mjs";
 
-const TEST_DB = path.join(__dirname, "e2e", ".test-db", "mafer-test.db");
+// Se resuelve al cargar este archivo, ANTES de levantar cualquier servidor o
+// browser: si falta TEST_DATABASE_URL, o si coincide con DATABASE_URL, la
+// suite entera se detiene aquí mismo. Nunca corre E2E contra producción.
+const testDatabaseUrl = requireTestDatabaseUrl();
 
 export default defineConfig({
   testDir: "./e2e",
@@ -22,7 +25,7 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       PORT: "3900",
-      DB_PATH: TEST_DB,
+      DATABASE_URL: testDatabaseUrl,
       AUTH_SECRET: "secreto-solo-para-tests-0123456789abcdef",
       LOCAL_HTTP: "1",
       NODE_ENV: "production",

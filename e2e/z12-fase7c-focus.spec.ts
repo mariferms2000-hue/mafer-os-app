@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
-import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import { run } from "./lib/test-db";
 
 /** Fase 7C — overlay mínimo de Focus Garden (?focus=1).
  *  El tiempo real se simula retrasando phase_started_at en la base de prueba
@@ -9,7 +9,6 @@ import path from "path";
 
 const QA_DIR = path.join(__dirname, "..", "docs", "qa", "phase-7c-focus-overlay");
 const PASSWORD = "prueba-mafer-123";
-const TEST_DB = path.join(__dirname, ".test-db", "mafer-test.db");
 
 test.describe.configure({ mode: "serial" });
 
@@ -29,16 +28,9 @@ async function login(page: Page) {
 }
 
 /** Retrasa el inicio de la fase actual N minutos (como si el tiempo hubiera pasado). */
-function backdateOpenSession(minutes: number) {
+async function backdateOpenSession(minutes: number) {
   const iso = new Date(Date.now() - minutes * 60_000).toISOString();
-  execSync(
-    `node --input-type=module --eval "
-import Database from 'better-sqlite3';
-const db = new Database(process.env.TEST_DB);
-db.prepare(\\"UPDATE focus_sessions SET phase_started_at = ? WHERE finished_at IS NULL\\").run('${iso}');
-"`,
-    { cwd: path.join(__dirname, ".."), env: { ...process.env, TEST_DB } }
-  );
+  await run(`UPDATE focus_sessions SET phase_started_at = '${iso}' WHERE finished_at IS NULL`);
 }
 
 async function discardOpen(page: Page) {
@@ -136,7 +128,7 @@ test("recarga durante la sesión: recupera desde timestamps y acredita lo real a
   await expect(page.getByTestId("focus-clock")).toBeVisible();
 
   // como si hubieran pasado 10 minutos con Safari cerrado
-  backdateOpenSession(10);
+  await backdateOpenSession(10);
   await page.reload();
   await expect(page.getByTestId("focus-overlay")).toBeVisible();
   await expect(page.getByTestId("focus-clock")).toHaveText(/^1[45]:\d{2}$/); // ~15:00 restantes
@@ -153,7 +145,7 @@ test("bloque expirado con el navegador cerrado: estado honesto, descanso y salta
   await page.getByTestId("focus-start").click();
   await expect(page.getByTestId("focus-clock")).toBeVisible();
 
-  backdateOpenSession(40); // más que los 25 planeados
+  await backdateOpenSession(40); // más que los 25 planeados
   await page.reload();
   // honesto: «enfoque listo», acreditando SOLO lo planeado
   await expect(page.getByTestId("focus-done-minutes")).toContainText("25 minutos de enfoque");
@@ -176,7 +168,7 @@ test("Arranque (sin descanso) cierra el ciclo completo directamente", async ({ p
   await page.getByTestId("focus-preset-arranque").click();
   await page.getByTestId("focus-start").click();
   await expect(page.getByTestId("focus-clock")).toBeVisible();
-  backdateOpenSession(6);
+  await backdateOpenSession(6);
   await page.reload();
   await expect(page.getByTestId("focus-summary")).toContainText("Ciclo completo");
   await expect(page.getByTestId("focus-credited")).toContainText("5 min de enfoque abonados");
@@ -247,7 +239,7 @@ test("capturas: oscuro (listo, enfoque, pausado, completado)", async ({ page }) 
   await shot(page, "03-pausado-oscuro");
   await page.getByTestId("focus-resume").click();
 
-  backdateOpenSession(30);
+  await backdateOpenSession(30);
   await page.reload();
   await expect(page.getByTestId("focus-done-minutes")).toBeVisible();
   await page.waitForTimeout(300);

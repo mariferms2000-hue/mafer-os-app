@@ -9,11 +9,12 @@
     "lint": "eslint",
     "seed": "node scripts/seed.mjs",
     "db:migrate": "node scripts/migrate.mjs",
+    "db:migrate:test": "node scripts/migrate-test.mjs",
     "sync:obsidian": "node scripts/sync-obsidian.mjs",
     "backup": "node scripts/backup.mjs",
     "setup": "node scripts/setup.mjs",
     "test:unit": "vitest run",
-    "test:e2e": "rm -rf e2e/.test-db && mkdir -p e2e/.test-db && playwright test",
+    "test:e2e": "playwright test",
     "inventory": "node scripts/inventory-agents.mjs"
   },
   "dependencies": {
