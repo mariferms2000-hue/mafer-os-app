@@ -4,6 +4,8 @@ import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, Unplug } from "l
 import { db, today, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { NewEventButton } from "@/components/calendar/new-event";
+import { NewTripButton } from "@/components/calendar/new-trip";
+import { TripWeekBand, TripDayBadges, type TripSpan } from "@/components/calendar/trip-band";
 import { MonthChip, WeekChip, OccLine, type Occurrence } from "@/components/calendar/occurrence";
 import { googleStatus } from "@/lib/google/calendar";
 import { disconnectGoogleAction } from "@/lib/actions/google";
@@ -53,6 +55,10 @@ export default async function CalendarioPage({
     .where(eq(schema.projects.archived, false));
   const projectName = new Map(projects.map((p) => [p.id, p.title]));
   const gstatus = await googleStatus();
+  const trips: TripSpan[] = await db
+    .select({ id: schema.trips.id, title: schema.trips.title, startDate: schema.trips.startDate, endDate: schema.trips.endDate })
+    .from(schema.trips)
+    .orderBy(asc(schema.trips.startDate));
 
   let occ: Occurrence[] = [
     ...events.map((e) => ({
@@ -106,6 +112,8 @@ export default async function CalendarioPage({
     ...Array.from({ length: daysInMonth }, (_, i) => iso(new Date(year, month, i + 1))),
   ];
   while (cells.length % 7 !== 0) cells.push(null);
+  const weeks: (string | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
   // semana que contiene `fecha` (lunes a domingo)
   const weekStart = addDays(fecha, -((parseIso(fecha).getDay() + 6) % 7));
@@ -128,7 +136,10 @@ export default async function CalendarioPage({
         title="Calendario"
         intro="Reuniones, fechas límite, tareas con fecha y recordatorios."
       >
-        <NewEventButton projects={projects} autoOpen={nuevo === "1"} />
+        <div className="flex flex-wrap gap-2">
+          <NewEventButton projects={projects} autoOpen={nuevo === "1"} />
+          <NewTripButton />
+        </div>
       </PageHeader>
 
       {google === "conectado" && (
@@ -200,35 +211,44 @@ export default async function CalendarioPage({
 
         {vista === "mes" && (
           <div className="overflow-x-auto">
-            <div className="grid grid-cols-7 gap-1.5 min-w-[640px]">
-              {DIAS_CORTOS.map((d) => (
-                <div key={d} className="text-center text-[10.5px] font-semibold uppercase tracking-[0.1em] text-stone-soft py-1">{d}</div>
-              ))}
-              {cells.map((date, i) => (
-                <div
-                  key={i}
-                  className={`min-h-28 rounded-xl border p-1.5 ${
-                    date === hoy ? "glow-focus bg-sage-soft/30" : "border-card-border/70"
-                  } ${date ? "" : "opacity-0"}`}
-                >
-                  {date && (
-                    <>
-                      <Link
-                        href={keep({ vista: "dia", fecha: date })}
-                        className={`text-xs mb-1 inline-block rounded px-1 hover:bg-sand ${date === hoy ? "font-bold text-forest" : "text-stone"}`}
+            <div className="min-w-[640px]">
+              <div className="grid grid-cols-7 gap-1.5 mb-1">
+                {DIAS_CORTOS.map((d) => (
+                  <div key={d} className="text-center text-[10.5px] font-semibold uppercase tracking-[0.1em] text-stone-soft py-1">{d}</div>
+                ))}
+              </div>
+              {weeks.map((week, wi) => (
+                <div key={wi} className="mb-1.5">
+                  <TripWeekBand week={week} trips={trips} />
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {week.map((date, i) => (
+                      <div
+                        key={i}
+                        className={`min-h-28 rounded-xl border p-1.5 ${
+                          date === hoy ? "glow-focus bg-sage-soft/30" : "border-card-border/70"
+                        } ${date ? "" : "opacity-0"}`}
                       >
-                        {Number(date.slice(8))}
-                      </Link>
-                      <ul className="flex flex-col gap-0.5">
-                        {(byDate.get(date) ?? []).slice(0, 4).map((o) => (
-                          <MonthChip key={o.id} o={o} />
-                        ))}
-                        {(byDate.get(date)?.length ?? 0) > 4 && (
-                          <li className="text-[10px] text-stone-soft px-1">+{byDate.get(date)!.length - 4} más</li>
+                        {date && (
+                          <>
+                            <Link
+                              href={keep({ vista: "dia", fecha: date })}
+                              className={`text-xs mb-1 inline-block rounded px-1 hover:bg-sand ${date === hoy ? "font-bold text-forest" : "text-stone"}`}
+                            >
+                              {Number(date.slice(8))}
+                            </Link>
+                            <ul className="flex flex-col gap-0.5">
+                              {(byDate.get(date) ?? []).slice(0, 4).map((o) => (
+                                <MonthChip key={o.id} o={o} />
+                              ))}
+                              {(byDate.get(date)?.length ?? 0) > 4 && (
+                                <li className="text-[10px] text-stone-soft px-1">+{byDate.get(date)!.length - 4} más</li>
+                              )}
+                            </ul>
+                          </>
                         )}
-                      </ul>
-                    </>
-                  )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -236,27 +256,30 @@ export default async function CalendarioPage({
         )}
 
         {vista === "dia" && (
-          <DayView items={byDate.get(fecha) ?? []} hours={HOURS} nowHour={fecha === hoy ? nowHour : null} />
+          <DayView items={byDate.get(fecha) ?? []} hours={HOURS} nowHour={fecha === hoy ? nowHour : null} date={fecha} trips={trips} />
         )}
 
         {vista === "semana" && (
           <div className="overflow-x-auto">
-            <div className="grid grid-cols-7 gap-1.5 min-w-[760px]">
-              {weekDays.map((d) => (
-                <div key={d} className={`rounded-xl border p-2 min-h-48 ${d === hoy ? "glow-focus bg-sage-soft/30" : "border-card-border/70"}`}>
-                  <Link
-                    href={keep({ vista: "dia", fecha: d })}
-                    className={`block text-center text-xs mb-2 rounded hover:bg-sand ${d === hoy ? "font-bold text-forest" : "text-stone"}`}
-                  >
-                    {fechaLegible(d, { weekday: "short", day: "numeric" })}
-                  </Link>
-                  <div className="flex flex-col gap-1">
-                    {(byDate.get(d) ?? []).map((o) => (
-                      <WeekChip key={o.id} o={o} />
-                    ))}
+            <div className="min-w-[760px]">
+              <TripWeekBand week={weekDays} trips={trips} />
+              <div className="grid grid-cols-7 gap-1.5">
+                {weekDays.map((d) => (
+                  <div key={d} className={`rounded-xl border p-2 min-h-48 ${d === hoy ? "glow-focus bg-sage-soft/30" : "border-card-border/70"}`}>
+                    <Link
+                      href={keep({ vista: "dia", fecha: d })}
+                      className={`block text-center text-xs mb-2 rounded hover:bg-sand ${d === hoy ? "font-bold text-forest" : "text-stone"}`}
+                    >
+                      {fechaLegible(d, { weekday: "short", day: "numeric" })}
+                    </Link>
+                    <div className="flex flex-col gap-1">
+                      {(byDate.get(d) ?? []).map((o) => (
+                        <WeekChip key={o.id} o={o} />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -264,13 +287,14 @@ export default async function CalendarioPage({
         {vista === "agenda" && (
           <div className="flex flex-col gap-3">
             {Array.from({ length: 30 }, (_, i) => addDays(hoy, i))
-              .filter((d) => (byDate.get(d) ?? []).length > 0)
+              .filter((d) => (byDate.get(d) ?? []).length > 0 || trips.some((t) => d >= t.startDate && d <= t.endDate))
               .map((d) => (
                 <div key={d} className={`rounded-xl border p-3 ${d === hoy ? "glow-focus" : "border-card-border/70"}`}>
                   <p className="text-sm font-semibold text-ink-green capitalize mb-1">
                     {fechaLegible(d, { weekday: "long", day: "numeric", month: "long" })}
                     {d === hoy && <span className="chip chip-sage ml-2">Hoy</span>}
                   </p>
+                  <TripDayBadges date={d} trips={trips} />
                   <div className="divide-y divide-beige">
                     {(byDate.get(d) ?? []).map((o) => (
                       <OccLine key={o.id} o={o} />
@@ -278,9 +302,10 @@ export default async function CalendarioPage({
                   </div>
                 </div>
               ))}
-            {occ.filter((o) => o.date >= hoy && o.date <= addDays(hoy, 29)).length === 0 && (
-              <p className="text-sm text-stone">No hay nada agendado en los próximos 30 días.</p>
-            )}
+            {occ.filter((o) => o.date >= hoy && o.date <= addDays(hoy, 29)).length === 0 &&
+              trips.filter((t) => t.endDate >= hoy && t.startDate <= addDays(hoy, 29)).length === 0 && (
+                <p className="text-sm text-stone">No hay nada agendado en los próximos 30 días.</p>
+              )}
           </div>
         )}
       </section>
@@ -321,10 +346,14 @@ function DayView({
   items,
   hours,
   nowHour,
+  date,
+  trips,
 }: {
   items: Occurrence[];
   hours: number[];
   nowHour: number | null;
+  date: string;
+  trips: TripSpan[];
 }) {
   const allDay = items.filter((o) => !o.time);
   const timed = items.filter((o) => o.time);
@@ -336,6 +365,7 @@ function DayView({
 
   return (
     <div data-testid="day-view">
+      <TripDayBadges date={date} trips={trips} />
       {allDay.length > 0 && (
         <div className="mb-3 rounded-xl bg-beige/70 border border-sand p-3">
           <p className="label !mb-1.5">Todo el día</p>

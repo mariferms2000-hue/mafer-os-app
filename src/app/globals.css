@@ -28,6 +28,8 @@
   --color-waiting-soft: #f4e9d4;
   --color-done: #5f7d55;
   --color-done-soft: #e2eadd;
+  --color-trip: #4d6b7a;
+  --color-trip-soft: #dde8ea;
 
   --font-display: var(--font-fraunces), "Georgia", serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
@@ -142,6 +144,8 @@ html[data-theme="dark"] {
   --color-waiting-soft: #342e1e;
   --color-done: #adc99a;
   --color-done-soft: #26331f;
+  --color-trip: #8fb3c2;
+  --color-trip-soft: #1e2b30;
 
   /* Profundidad: sombra + brillo de canto superior (luz, no relleno) */
   --shadow-soft: inset 0 1px 0 rgb(241 235 219 / 0.04), 0 1px 2px rgb(0 0 0 / 0.45), 0 8px 24px rgb(0 0 0 / 0.30);
@@ -258,6 +262,7 @@ html[data-theme="dark"] .chip {
 html[data-theme="dark"] .chip-blocked { background: var(--color-blocked-soft); color: var(--color-blocked); border-color: transparent; }
 html[data-theme="dark"] .chip-waiting { background: var(--color-waiting-soft); color: var(--color-waiting); border-color: transparent; }
 html[data-theme="dark"] .chip-done { background: var(--color-done-soft); color: var(--color-done); border-color: transparent; }
+html[data-theme="dark"] .chip-trip { background: var(--color-trip-soft); color: var(--color-trip); border-color: transparent; }
 html[data-theme="dark"] .chip-sage { background: var(--color-sage-soft); color: var(--color-forest); border-color: transparent; }
 
 /* Etiqueta de sección al estilo editorial: pequeña, espaciada, serena */
@@ -423,6 +428,7 @@ input[type="date"], input[type="time"] {
 .chip-blocked { background: var(--color-blocked-soft); color: var(--color-blocked); border-color: transparent; }
 .chip-waiting { background: var(--color-waiting-soft); color: var(--color-waiting); border-color: transparent; }
 .chip-done { background: var(--color-done-soft); color: var(--color-done); border-color: transparent; }
+.chip-trip { background: var(--color-trip-soft); color: var(--color-trip); border-color: transparent; }
 .chip-sage { background: var(--color-sage-soft); color: var(--color-forest); border-color: transparent; }
 
 /* Foco visible accesible en todo */

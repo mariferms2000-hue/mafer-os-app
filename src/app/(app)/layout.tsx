@@ -5,6 +5,7 @@ import { GlobalShortcuts } from "@/components/shell/shortcuts";
 import { PwaSetup } from "@/components/shell/sw-register";
 import { TaskDetailFromUrl } from "@/components/tasks/task-detail";
 import { EventDetailFromUrl } from "@/components/calendar/event-detail";
+import { TripDetailFromUrl } from "@/components/calendar/trip-detail";
 import { FocusOverlayFromUrl } from "@/components/focus/focus-overlay";
 import { FocusWatcher } from "@/components/focus/focus-watcher";
 import { ToastProvider } from "@/components/ui/toast";
@@ -35,6 +36,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </Suspense>
         <Suspense fallback={null}>
           <EventDetailFromUrl />
+        </Suspense>
+        <Suspense fallback={null}>
+          <TripDetailFromUrl />
         </Suspense>
         <Suspense fallback={null}>
           <FocusOverlayFromUrl />
