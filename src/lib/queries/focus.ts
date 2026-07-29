@@ -13,6 +13,7 @@ export type FocusOverview = {
   plant: {
     id: string;
     species: string;
+    visualSeed: number;
     accumulatedMinutes: number;
     stage: StageKey;
     next: { key: StageKey; missingMinutes: number } | null;
@@ -168,6 +169,7 @@ export async function getFocusOverview(): Promise<FocusOverview> {
       ? {
           id: plant.id,
           species: plant.species,
+          visualSeed: plant.visualSeed,
           accumulatedMinutes: plant.accumulatedMinutes,
           stage: plantStage(plant.accumulatedMinutes),
           next: nextStageInfo(plant.accumulatedMinutes),

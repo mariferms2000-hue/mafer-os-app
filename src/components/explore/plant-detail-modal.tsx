@@ -2,9 +2,9 @@
 
 import { X } from "lucide-react";
 import { PlantArt } from "@/components/focus/plant-art";
-import { SPECIES_LABEL } from "@/lib/plant-svg";
+import { SPECIES_LABEL } from "@/lib/plant-svg-v2";
 import { STAGES, type StageKey } from "@/lib/focus-logic";
-import type { PlantSpecies } from "@/lib/plant-render";
+import type { PlantSpeciesV2 } from "@/lib/plant-render-v2";
 import type { GardenPlant } from "@/lib/queries/focus";
 
 /* Popup de detalle de una planta del Jardín de enfoque — abre desde Mi jardín
@@ -23,8 +23,8 @@ const STAGE_LABEL: Record<StageKey, string> = Object.fromEntries(STAGES.map((s) 
   string
 >;
 
-function asSpecies(s: string): PlantSpecies {
-  return (s in SPECIES_LABEL ? s : "helecho") as PlantSpecies;
+function asSpecies(s: string): PlantSpeciesV2 {
+  return (s in SPECIES_LABEL ? s : "helecho") as PlantSpeciesV2;
 }
 
 function fecha(iso: string | null): string {
@@ -57,7 +57,6 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
             species={asSpecies(plant.species)}
             visualSeed={plant.visualSeed}
             stage={plant.stage}
-            rendererVersion={plant.rendererVersion}
             className="h-44 w-44 text-sage-deep"
           />
           <h2 className="text-2xl font-display text-forest-deep">{SPECIES_LABEL[plant.species] ?? plant.species}</h2>

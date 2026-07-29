@@ -9,8 +9,8 @@ import { PlantArt } from "@/components/focus/plant-art";
 import { StopPropagation } from "@/components/ui/stop-propagation";
 import { getGarden } from "@/lib/queries/focus";
 import { STAGES, type StageKey } from "@/lib/focus-logic";
-import { SPECIES_LABEL } from "@/lib/plant-svg";
-import type { PlantSpecies } from "@/lib/plant-render";
+import { SPECIES_LABEL } from "@/lib/plant-svg-v2";
+import type { PlantSpeciesV2 } from "@/lib/plant-render-v2";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mi jardín" };
@@ -29,8 +29,8 @@ const PAGE_SIZE = 12;
 
 /** Solo especies conocidas llegan al motor de render; cualquier otra cosa en la
  *  base (no debería existir tras el backfill) se dibuja como la primera especie. */
-function asSpecies(s: string): PlantSpecies {
-  return (s in SPECIES_LABEL ? s : "helecho") as PlantSpecies;
+function asSpecies(s: string): PlantSpeciesV2 {
+  return (s in SPECIES_LABEL ? s : "helecho") as PlantSpeciesV2;
 }
 
 function fecha(iso: string | null): string {
@@ -71,7 +71,6 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
               species={asSpecies(c.species)}
               visualSeed={c.visualSeed}
               stage={c.stage}
-              rendererVersion={c.rendererVersion}
               className="h-40 w-40 md:h-48 md:w-48 shrink-0 text-sage-deep"
             />
             <div className="min-w-0 flex-1 text-center sm:text-left">
@@ -103,7 +102,6 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
               species="helecho"
               visualSeed={0}
               stage="semilla"
-              rendererVersion={1}
               className="h-40 w-40 md:h-48 md:w-48 shrink-0 text-sage-deep"
             />
             <div className="min-w-0 flex-1 text-center sm:text-left">
@@ -156,7 +154,6 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
                     species={asSpecies(p.species)}
                     visualSeed={p.visualSeed}
                     stage="planta-completa"
-                    rendererVersion={p.rendererVersion}
                     className="h-32 w-32 text-sage-deep"
                   />
                   <p className="font-display text-lg text-forest-deep mt-2">{SPECIES_LABEL[p.species] ?? p.species}</p>

@@ -34,13 +34,27 @@ import {
 } from "@/lib/focus-logic";
 import { primeFocusAudio, isFocusSoundMuted, setFocusSoundMuted } from "@/lib/focus-sound";
 import { notifyFocusDue, requestFocusNotifyPermission } from "@/lib/focus-notify";
-import { FocusPlant } from "./plant";
+import { PlantArt } from "./plant-art";
+import { isKnownSpeciesV2, type PlantSpeciesV2 } from "@/lib/plant-render-v2";
 
 /* «Jardín de enfoque» — Fase 7C.1: la habitación de enfoque de Mafer OS.
    Overlay amplio e inmersivo con el Marco vivo en el contenedor principal,
    la planta como protagonista y un solo botón primario por estado.
    Toda la lógica, persistencia y recuperación son las de 7B/7C: el
-   setInterval SOLO pinta; cerrar el overlay nunca termina la sesión. */
+   setInterval SOLO pinta; cerrar el overlay nunca termina la sesión.
+
+   Fase 7F.2 (Checkpoint 2): la planta que se ve aquí es la MISMA planta real
+   de Mi jardín y el popup de detalle — misma especie, mismo seed, dibujada
+   con el motor v2. Antes de tener planta (nadie ha enfocado todavía), se usa
+   el mismo valor de reserva que Mi jardín (helecho/seed 0): como la primera
+   etapa siempre es semilla y esa etapa usa el arte compartido genérico, no
+   se nota ninguna diferencia hasta que la planta realmente nace. */
+
+/** Ya validada por el llamador — igual que en jardín/popup (ver asSpecies()
+ *  en jardin/page.tsx y plant-detail-modal.tsx). */
+function asSpecies(s: string): PlantSpeciesV2 {
+  return (isKnownSpeciesV2(s) ? s : "helecho") as PlantSpeciesV2;
+}
 
 type Session = NonNullable<FocusOverview["openSession"]>;
 
@@ -452,7 +466,12 @@ function ReadyView({
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
-      <FocusPlant stage={stage} className="h-44 w-44 md:h-48 md:w-48 text-sage-deep" />
+      <PlantArt
+        species={asSpecies(plant?.species ?? "helecho")}
+        visualSeed={plant?.visualSeed ?? 0}
+        stage={stage}
+        className="h-44 w-44 md:h-48 md:w-48 text-sage-deep"
+      />
 
       <div>
         <p className="font-display text-2xl text-forest-deep">{STAGE_LABEL[stage]}</p>
@@ -663,7 +682,12 @@ function ActiveView({
         <p className="font-display text-2xl md:text-3xl text-forest-deep" data-testid="focus-done-minutes">
           Guardaste {focusDone} minutos de enfoque
         </p>
-        <FocusPlant stage={stage} className="h-36 w-36 text-sage-deep" />
+        <PlantArt
+          species={asSpecies(plant?.species ?? "helecho")}
+          visualSeed={plant?.visualSeed ?? 0}
+          stage={stage}
+          className="h-36 w-36 text-sage-deep"
+        />
         <p className="text-sm text-stone">
           {advances ? `Tu planta pasará a ${STAGE_LABEL[projected].toLowerCase()} al cerrar el ciclo.` : `Tu ${STAGE_NOUN[stage]} sigue creciendo.`}
           {projectedNext ? ` Faltan ${projectedNext.missingMinutes} min para ${STAGE_LABEL[projectedNext.key].toLowerCase()}.` : ""}
@@ -704,7 +728,9 @@ function ActiveView({
         {paused ? " · en pausa" : ""}
       </p>
 
-      <FocusPlant
+      <PlantArt
+        species={asSpecies(plant?.species ?? "helecho")}
+        visualSeed={plant?.visualSeed ?? 0}
         stage={stage}
         className={`h-32 w-32 md:h-36 md:w-36 ${isBreak ? "text-sage/70" : paused ? "text-sage-deep/80" : "text-sage-deep"}`}
       />
@@ -862,7 +888,12 @@ function ClosedView({
           : `Guardaste ${info.creditedMinutes} minuto${info.creditedMinutes === 1 ? "" : "s"} de enfoque`}
       </p>
 
-      <FocusPlant stage={stage} className="h-40 w-40 md:h-44 md:w-44 text-sage-deep" />
+      <PlantArt
+        species={asSpecies(plant?.species ?? "helecho")}
+        visualSeed={plant?.visualSeed ?? 0}
+        stage={stage}
+        className="h-40 w-40 md:h-44 md:w-44 text-sage-deep"
+      />
 
       <div className="text-sm text-stone flex flex-col gap-1 max-w-sm">
         {info.plantCompleted ? (

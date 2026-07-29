@@ -1,12 +1,19 @@
 import type { StageKey } from "@/lib/focus-logic";
-import { plantRenderSpec, type PlantSpecies } from "@/lib/plant-render";
-import { plantScene } from "@/lib/plant-svg";
+import { plantRenderSpecV2, type PlantSpeciesV2 } from "@/lib/plant-render-v2";
+import { plantSceneV2 } from "@/lib/plant-svg-v2";
 import { STAGE_ART, STAGE_VIEW } from "./plant";
 
-/* Ilustración de una planta CON identidad — Fase 7E.3. Componente presentacional
-   puro: species + visual_seed + stage + renderer_version → el mismo SVG siempre
-   (la especificación viene del motor determinista de 7E.2 y la geometría de
-   plant-svg.ts; aquí no se calcula nada aleatorio).
+/* Ilustración de una planta CON identidad — v2 (rediseño). Componente
+   presentacional puro: species + visual_seed + stage → el mismo SVG siempre.
+
+   ADAPTADOR DE COMPATIBILIDAD: toda planta (nacida bajo renderer_version 1
+   o 2) se dibuja SIEMPRE con el motor v2, alimentándolo con su especie/seed/
+   etapa ya guardadas — v1 y v2 comparten los nombres de las 5 especies
+   originales, así que no hace falta traducir nada. Los datos de la planta
+   (especie, seed, etapa, minutos, fechas) nunca cambian; solo cambia CÓMO se
+   dibuja. El motor v1 (plant-render.ts/plant-svg.ts) queda intacto en el
+   repo como referencia congelada — ya ningún componente lo usa, pero sus
+   pruebas y snapshot lo siguen protegiendo.
 
    Las etapas semilla y brote usan el arte compartido de plant.tsx — aprobado:
    la identidad de especie se hace evidente conforme la planta crece. Trazo
@@ -18,13 +25,13 @@ export function PlantArt({
   species,
   visualSeed,
   stage,
-  rendererVersion,
   className,
 }: {
-  species: PlantSpecies;
+  /** Ya validada por el llamador (ver asSpecies() en jardín/popup) — funciona
+   *  igual para especies nacidas bajo v1 (subconjunto de 5) o v2 (12). */
+  species: PlantSpeciesV2;
   visualSeed: number;
   stage: StageKey;
-  rendererVersion: number;
   className?: string;
 }) {
   if (stage === "semilla" || stage === "brote") {
@@ -49,8 +56,8 @@ export function PlantArt({
     );
   }
 
-  const spec = plantRenderSpec({ species, visualSeed, stage, rendererVersion });
-  const scene = plantScene(spec);
+  const spec = plantRenderSpecV2({ species, visualSeed, stage });
+  const scene = plantSceneV2(spec);
   const { k, cx, cy } = scene.frame;
   const tx = 48 - cx * k;
   const ty = 46 - cy * k;
