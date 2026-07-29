@@ -245,6 +245,20 @@ export const events = pgTable("events", {
   createdAt: text("created_at").notNull(),
 });
 
+/** Viaje: rango de días propio, independiente de events/cards (sin FK a
+ *  proyectos ni tareas — fuera de alcance en su primera versión). Fechas
+ *  inclusivas en ambos extremos, formato YYYY-MM-DD igual que el resto del
+ *  calendario. */
+export const trips = pgTable("trips", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  destination: text("destination"),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date").notNull(),
+  notes: text("notes").default(""),
+  createdAt: text("created_at").notNull(),
+});
+
 /** Sesiones de revisión (diaria/semanal): progreso guardado e historial simple. */
 export const reviews = pgTable("reviews", {
   id: text("id").primaryKey(),
