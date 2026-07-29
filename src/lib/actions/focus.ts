@@ -16,7 +16,7 @@ import {
   type FocusState,
   type PresetKey,
 } from "@/lib/focus-logic";
-import { newPlantIdentity } from "@/lib/plant-render";
+import { newPlantIdentityV2 } from "@/lib/plant-render-v2";
 
 /* Server actions de Focus Garden — Fase 7B (motor sin interfaz).
    Regla de una sola sesión: si ya hay una abierta, empezar devuelve esa.
@@ -51,10 +51,13 @@ async function openSession(): Promise<SessionRow | null> {
 
 /** Fila de una planta recién nacida: su identidad (especie, visual_seed,
  *  renderer_version) se deriva del id UNA sola vez, aquí, y se persiste —
- *  después solo se lee, nunca se recalcula (7E.2). */
+ *  después solo se lee, nunca se recalcula (7E.2). Nace bajo v2 (12
+ *  especies) — el rediseño visual v2 (7F) hace que TODAS las plantas,
+ *  antiguas y nuevas, se dibujen con el motor v2; renderer_version queda
+ *  como dato histórico de qué motor de identidad la sorteó. */
 function newbornPlant(accumulatedMinutes: number) {
   const id = uid();
-  const identity = newPlantIdentity(id);
+  const identity = newPlantIdentityV2(id);
   return {
     id,
     species: identity.species,
