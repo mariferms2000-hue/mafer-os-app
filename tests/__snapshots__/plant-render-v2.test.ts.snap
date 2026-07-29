@@ -3,34 +3,34 @@
 exports[`congelamiento v2 > snapshot exacto de una entrada conocida — una vez aprobado visualmente, no se debe editar sin subir a v3 1`] = `
 {
   "branches": {
-    "angleDeg": 57.296,
+    "angleDeg": 60.593,
     "arrangement": "corona",
-    "count": 6,
-    "lengthRatio": 0.449,
+    "count": 4,
+    "lengthRatio": 0.459,
   },
   "details": [
     "corona-radial",
   ],
   "height": 0.793,
   "leaves": {
-    "count": 6,
+    "count": 5,
     "density": 0.565,
     "shape": "fronda-palmeada",
-    "sizeRatio": 0.312,
+    "sizeRatio": 0.306,
   },
   "orientation": {
-    "leanDeg": 2.217,
+    "leanDeg": 1.971,
   },
   "proportions": {
-    "crownWidthRatio": 1.045,
-    "stemHeightRatio": 0.787,
+    "crownWidthRatio": 1.021,
+    "stemHeightRatio": 0.797,
   },
   "rendererVersion": 2,
   "species": "palmera",
   "stage": "planta-joven",
   "stem": {
     "count": 1,
-    "curvature": 0.31,
+    "curvature": 0.248,
     "thickness": 0.111,
     "woody": true,
   },

@@ -75,6 +75,25 @@ function roundLeaf(center: P, r: number): string {
   return `M${pt(center.x - r, center.y)}A${r2(r)} ${r2(r)} 0 1 0 ${pt(center.x + r, center.y)}A${r2(r)} ${r2(r)} 0 1 0 ${pt(center.x - r, center.y)}Z`;
 }
 
+/** Hoja acorazonada (monstera): base partida en dos lóbulos (muesca en el
+ *  punto de inserción del peciolo) que se ensanchan y convergen en punta —
+ *  silueta más icónica que el óvalo genérico de `leafPath`. */
+function heartLeaf(base: P, tip: P, width: number): string {
+  const dx = tip.x - base.x;
+  const dy = tip.y - base.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const nx = -dy / len;
+  const ny = dx / len;
+  const bl: P = { x: base.x + nx * width * 0.22, y: base.y + ny * width * 0.22 };
+  const br: P = { x: base.x - nx * width * 0.22, y: base.y - ny * width * 0.22 };
+  const notch: P = { x: base.x + ux * width * 0.16, y: base.y + uy * width * 0.16 };
+  const wl: P = { x: base.x + ux * len * 0.42 + nx * width, y: base.y + uy * len * 0.42 + ny * width };
+  const wr: P = { x: base.x + ux * len * 0.42 - nx * width, y: base.y + uy * len * 0.42 - ny * width };
+  return `M${pt(bl.x, bl.y)}Q${pt(wl.x, wl.y)} ${pt(tip.x, tip.y)}Q${pt(wr.x, wr.y)} ${pt(br.x, br.y)}L${pt(notch.x, notch.y)}L${pt(bl.x, bl.y)}Z`;
+}
+
 function ground(): PlantStrokeV2[] {
   return [
     { d: "M26 78h44", w: 1.2 },
@@ -133,26 +152,38 @@ function monsteraScene(spec: PlantRenderSpecV2, H: number, salt: number): PlantS
     const top2 = L({ x: BASE_X - 4 - spec.stem.curvature * 4, y: BASE_Y - H * 0.62 });
     strokes.push({ d: quad(base, L({ x: BASE_X - 5, y: BASE_Y - H * 0.3 }), top2), w: 1.15, o: 0.9 });
   }
+  // Pocas hojas, grandes y protagonistas — no una hilera de hojas pequeñas.
   const nLeaves = Math.max(1, spec.leaves.count);
   const fenestrada = spec.leaves.shape === "hoja-fenestrada";
-  const size = Math.max(5, spec.leaves.sizeRatio * H * 1.05);
+  const size = Math.max(7, spec.leaves.sizeRatio * H * 1.15);
   for (let i = 0; i < nLeaves; i++) {
-    const t = 0.34 + (0.62 * i) / Math.max(1, nLeaves - 1);
+    const t = 0.3 + (0.66 * i) / Math.max(1, nLeaves - 1);
     const p = qAt(base, ctrl, top, t);
     const side = i % 2 === 0 ? 1 : -1;
-    const ang = rad(90 - spec.branches.angleDeg - wiggle(i, salt) * 8);
-    const plen = Math.max(3, spec.branches.lengthRatio * H * (0.5 + 0.2 * Math.abs(wiggle(i + 3, salt))));
-    const end: P = { x: p.x + Math.cos(ang) * plen * side, y: p.y - Math.sin(ang) * plen * 0.35 };
-    strokes.push({ d: quad(p, { x: (p.x + end.x) / 2, y: Math.min(p.y, end.y) - 1.5 }, end), w: 1 });
-    const tip: P = { x: end.x + side * size * 0.55, y: end.y + size * 0.85 };
-    strokes.push({ d: leafPath(end, tip, size * 0.5), w: 1.2 });
-    strokes.push({ d: line(end, { x: (end.x + tip.x) / 2, y: (end.y + tip.y) / 2 }), w: 0.7, o: 0.55 });
-    if (fenestrada && size > 6) {
-      for (let f = 0; f < 2; f++) {
-        const ft = 0.35 + f * 0.3;
+    const ang = rad(90 - spec.branches.angleDeg - wiggle(i, salt) * 6);
+    const plen = Math.max(4, spec.branches.lengthRatio * H * (0.55 + 0.15 * Math.abs(wiggle(i + 3, salt))));
+    const end: P = { x: p.x + Math.cos(ang) * plen * side, y: p.y - Math.sin(ang) * plen * 0.32 };
+    strokes.push({ d: quad(p, { x: (p.x + end.x) / 2, y: Math.min(p.y, end.y) - 1.5 }, end), w: 1.05 });
+    const tip: P = { x: end.x + side * size * 0.32, y: end.y - size * 0.95 };
+    strokes.push({ d: heartLeaf(end, tip, size * 0.62), w: 1.25 });
+    // nervadura central bien visible + un par de nervaduras secundarias.
+    strokes.push({ d: line(end, tip), w: 0.75, o: 0.6 });
+    for (let v = 0; v < 2; v++) {
+      const vt = 0.4 + v * 0.28;
+      const vp = { x: end.x + (tip.x - end.x) * vt, y: end.y + (tip.y - end.y) * vt };
+      strokes.push({
+        d: line(vp, { x: vp.x + side * size * 0.42, y: vp.y - size * 0.18 }),
+        w: 0.55,
+        o: 0.45,
+      });
+    }
+    if (fenestrada) {
+      for (let f = 0; f < 3; f++) {
+        const ft = 0.3 + f * 0.22;
         const mid = { x: end.x + (tip.x - end.x) * ft, y: end.y + (tip.y - end.y) * ft };
-        const cut = { x: mid.x + side * size * 0.32, y: mid.y - size * 0.1 };
-        strokes.push({ d: line(cut, { x: mid.x + side * size * 0.06, y: mid.y }), w: 0.8, o: 0.9 });
+        const fSide = f % 2 === 0 ? side : -side;
+        const cut = { x: mid.x + fSide * size * 0.4, y: mid.y - size * 0.06 };
+        strokes.push({ d: line(cut, { x: mid.x + fSide * size * 0.1, y: mid.y }), w: 0.85, o: 0.92 });
       }
     }
   }
@@ -195,10 +226,12 @@ function lavandaScene(spec: PlantRenderSpecV2, H: number, salt: number): PlantSt
   const strokes: PlantStrokeV2[] = [];
   const L = leanFn(spec.orientation.leanDeg);
   const n = Math.max(3, spec.stem.count);
-  const spread = 30 * spec.proportions.crownWidthRatio;
+  // Más separación entre varas y menos hojas por vara: silueta refinada,
+  // no amontonada.
+  const spread = 34 * spec.proportions.crownWidthRatio;
   const base: P = { x: BASE_X, y: BASE_Y };
   const espigas = spec.details.includes("espigas-florales");
-  const leavesPerStem = Math.max(1, Math.round(spec.leaves.count / n / 2));
+  const leavesPerStem = Math.max(1, Math.round(spec.leaves.count / n / 2.6));
 
   for (let i = 0; i < n; i++) {
     const u = n === 1 ? 0.5 : i / (n - 1);
@@ -218,12 +251,12 @@ function lavandaScene(spec: PlantRenderSpecV2, H: number, salt: number): PlantSt
     }
     if (espigas) {
       const tan = qTan(base, ctrl, tip, 1);
-      for (let k = 0; k < 3; k++) {
-        const p = { x: tip.x + tan.x * (k * 2.1), y: tip.y + tan.y * (k * 2.1) };
-        const s = 1.7 - k * 0.35;
+      for (let k = 0; k < 2; k++) {
+        const p = { x: tip.x + tan.x * (k * 2.3), y: tip.y + tan.y * (k * 2.3) };
+        const s = 1.6 - k * 0.4;
         strokes.push({ d: line({ x: p.x - tan.y * s, y: p.y + tan.x * s }, { x: p.x + tan.y * s, y: p.y - tan.x * s }), w: 1.05, o: 0.9 });
       }
-      strokes.push({ d: line(tip, { x: tip.x + tan.x * 7.2, y: tip.y + tan.y * 7.2 }), w: 0.8, o: 0.7 });
+      strokes.push({ d: line(tip, { x: tip.x + tan.x * 6.2, y: tip.y + tan.y * 6.2 }), w: 0.8, o: 0.7 });
     }
   }
   if (spec.details.includes("base-lenosa")) {
@@ -251,18 +284,25 @@ function olivoScene(spec: PlantRenderSpecV2, H: number, salt: number): PlantStro
   for (let i = 0; i < nB; i++) {
     const u = i / Math.max(1, nB - 1);
     const side = i % 2 === 0 ? 1 : -1;
-    const start = qAt(base, trunkCtrl, trunkTop, 0.72 + u * 0.28);
-    const ang = rad(20 + spec.branches.angleDeg * (0.45 + 0.55 * u) + wiggle(i, salt) * 8);
-    const blen = Math.max(4, crownR * (0.55 + 0.45 * Math.abs(wiggle(i + 6, salt))));
-    const end: P = { x: start.x + Math.cos(ang) * blen * side, y: start.y - Math.sin(ang) * blen };
-    const bctrl: P = { x: (start.x + end.x) / 2, y: Math.min(start.y, end.y) + 1 };
-    strokes.push({ d: quad(start, bctrl, end), w: 1.05 });
+    const start = qAt(base, trunkCtrl, trunkTop, 0.68 + u * 0.3);
+    // Copa ancha y baja: la rama sale casi horizontal, sube un poco y luego
+    // «pesa» hacia abajo — silueta redondeada y colgante, no una punta que
+    // sigue subiendo (eso es el eucalipto).
+    const ang = rad(24 + spec.branches.angleDeg * (0.22 + 0.3 * u) + wiggle(i, salt) * 7);
+    const blen = Math.max(4, crownR * (0.62 + 0.38 * Math.abs(wiggle(i + 6, salt))));
+    const crest: P = { x: start.x + Math.cos(ang) * blen * 0.6 * side, y: start.y - Math.sin(ang) * blen * 0.55 };
+    const end: P = { x: crest.x + Math.cos(ang) * blen * 0.55 * side, y: crest.y + blen * 0.4 };
+    const ctrl1: P = { x: (start.x + crest.x) / 2, y: Math.min(start.y, crest.y) - blen * 0.06 };
+    const ctrl2: P = { x: (crest.x + end.x) / 2 + Math.cos(ang) * blen * 0.1 * side, y: crest.y + blen * 0.08 };
+    strokes.push({ d: `${quad(start, ctrl1, crest)}Q${pt(ctrl2.x, ctrl2.y)} ${pt(end.x, end.y)}`, w: 1.05 });
     for (let j = 0; j <= leavesPerBranch; j++) {
-      const t = 0.35 + (0.65 * j) / Math.max(1, leavesPerBranch);
-      const p = qAt(start, bctrl, end, Math.min(1, t));
-      const tan = qTan(start, bctrl, end, Math.min(1, t));
+      const t = j / Math.max(1, leavesPerBranch);
+      const onFirst = t < 0.4;
+      const lt = onFirst ? t / 0.4 : (t - 0.4) / 0.6;
+      const p = onFirst ? qAt(start, ctrl1, crest, lt) : qAt(crest, ctrl2, end, lt);
+      const tan = onFirst ? qTan(start, ctrl1, crest, lt) : qTan(crest, ctrl2, end, lt);
       const s = 2 + spec.leaves.sizeRatio * H * 0.75;
-      const sway = 0.35;
+      const sway = 0.3;
       if (j % 2 === 0) {
         strokes.push({ d: line(p, { x: p.x - tan.y * s + tan.x * s * sway, y: p.y + tan.x * s + tan.y * s * sway }), w: 0.8, o: 0.85 });
       } else {
@@ -356,28 +396,37 @@ function cactusScene(spec: PlantRenderSpecV2, H: number, salt: number): PlantStr
   return strokes;
 }
 
-/** Potos: raíz en la tierra como el resto, pero curvatura muy marcada para
- *  que el tallo caiga en arco — silueta claramente «colgante». */
+/** Potos: sube apenas desde la tierra y luego cae en cascada por DEBAJO de
+ *  la línea de tierra (como colgando del borde de la maceta) — la silueta
+ *  más claramente «colgante» del set, no una que se arrastra a los lados. */
 function potosScene(spec: PlantRenderSpecV2, H: number, salt: number): PlantStrokeV2[] {
   const strokes: PlantStrokeV2[] = [];
   const n = Math.max(2, spec.stem.count);
-  const size = Math.max(3, spec.leaves.sizeRatio * H * 1.1);
+  const size = Math.max(3, spec.leaves.sizeRatio * H * 1.15);
   for (let i = 0; i < n; i++) {
     const side = i % 2 === 0 ? 1 : -1;
-    const reach = 20 + i * 6 + wiggle(i, salt) * 4;
-    const rise = H * (0.55 + 0.25 * Math.abs(wiggle(i + 8, salt)));
+    const spread = 3 + i * 2.2 + wiggle(i, salt) * 1.4;
+    const riseH = H * (0.4 + 0.18 * Math.abs(wiggle(i + 8, salt)));
+    const dropH = H * (0.4 + 0.4 * spec.stem.curvature) + i * 1.6;
     const base: P = { x: BASE_X + side * 2, y: BASE_Y };
-    const up: P = { x: BASE_X + side * 4, y: BASE_Y - rise };
-    const arc: P = { x: BASE_X + side * reach * spec.stem.curvature * 1.3, y: BASE_Y - rise * 0.55 };
-    strokes.push({ d: quad(base, up, arc), w: 1 });
-    const leavesHere = Math.max(2, Math.round(spec.leaves.count / n));
+    const peakCtrl: P = { x: BASE_X + side * spread * 0.6, y: BASE_Y - riseH * 0.7 };
+    const peak: P = { x: BASE_X + side * spread, y: BASE_Y - riseH };
+    const dropCtrl: P = { x: peak.x + side * spread * 0.55, y: peak.y + dropH * 0.45 };
+    const tip: P = { x: peak.x + side * spread * 0.35, y: peak.y + dropH };
+    strokes.push({ d: `${quad(base, peakCtrl, peak)}Q${pt(dropCtrl.x, dropCtrl.y)} ${pt(tip.x, tip.y)}`, w: 1 });
+    const leavesHere = Math.max(3, Math.round(spec.leaves.count / n));
     for (let j = 0; j < leavesHere; j++) {
-      const t = 0.25 + (0.7 * j) / Math.max(1, leavesHere - 1);
-      const p = qAt(base, up, arc, t);
-      const tan = qTan(base, up, arc, t);
+      const t = j / Math.max(1, leavesHere - 1);
+      const onRise = t < 0.28;
+      const lt = onRise ? t / 0.28 : (t - 0.28) / 0.72;
+      const p = onRise ? qAt(base, peakCtrl, peak, lt) : qAt(peak, dropCtrl, tip, lt);
+      const tan = onRise ? qTan(base, peakCtrl, peak, lt) : qTan(peak, dropCtrl, tip, lt);
       const lSide = j % 2 === 0 ? 1 : -1;
-      const tip: P = { x: p.x - tan.y * size * lSide + tan.x * size * 0.3, y: p.y + tan.x * size * lSide + tan.y * size * 0.3 };
-      strokes.push({ d: leafPath(p, tip, size * 0.42), w: 1, o: 0.88 });
+      const leafTip: P = {
+        x: p.x - tan.y * size * lSide + tan.x * size * 0.25,
+        y: p.y + tan.x * size * lSide + tan.y * size * 0.25,
+      };
+      strokes.push({ d: leafPath(p, leafTip, size * 0.42), w: 1, o: 0.88 });
     }
   }
   if (spec.details.includes("raiz-aerea-potos")) {
@@ -410,24 +459,26 @@ function sansevieriaScene(spec: PlantRenderSpecV2, H: number, salt: number): Pla
   return strokes;
 }
 
-/** Pilea: hojas redondas en «monedas» sobre peciolos finos y cortos. */
+/** Pilea: tallo desnudo y, en la punta, un ramillete de hojas-moneda bien
+ *  redondas que radian como un paraguas — pocas y grandes, no muchas hojas
+ *  pequeñas repartidas por el tallo (así se lee como «moneditas» de un
+ *  vistazo, no como una planta genérica). */
 function pileaScene(spec: PlantRenderSpecV2, H: number, salt: number): PlantStrokeV2[] {
   const strokes: PlantStrokeV2[] = [];
   const L = leanFn(spec.orientation.leanDeg);
-  const top: P = L({ x: BASE_X, y: BASE_Y - H * 0.6 });
+  const stemH = H * Math.max(0.5, spec.proportions.stemHeightRatio);
+  const top: P = L({ x: BASE_X, y: BASE_Y - stemH });
   const base: P = { x: BASE_X, y: BASE_Y };
-  strokes.push({ d: quad(base, L({ x: BASE_X - 2, y: BASE_Y - H * 0.3 }), top), w: 1.1 });
-  const n = Math.max(3, spec.leaves.count);
-  const r = Math.max(2, spec.leaves.sizeRatio * H * 0.5);
+  strokes.push({ d: quad(base, L({ x: BASE_X - 2, y: BASE_Y - stemH * 0.5 }), top), w: 1.15 });
+  const n = Math.max(4, Math.min(7, spec.leaves.count));
+  const r = Math.max(2.8, spec.leaves.sizeRatio * H * 0.65);
   for (let i = 0; i < n; i++) {
-    const t = 0.3 + (0.68 * i) / Math.max(1, n - 1);
-    const p = qAt(base, L({ x: BASE_X - 2, y: BASE_Y - H * 0.3 }), top, t);
-    const side = i % 2 === 0 ? 1 : -1;
-    const ang = rad(spec.branches.angleDeg * (0.6 + 0.4 * (i / n)) + wiggle(i, salt) * 10);
-    const plen = Math.max(2, spec.branches.lengthRatio * H * 0.5);
-    const petioleTip: P = { x: p.x + Math.cos(ang) * plen * side, y: p.y - Math.sin(ang) * plen * 0.6 };
-    strokes.push({ d: line(p, petioleTip), w: 0.7, o: 0.75 });
-    strokes.push({ d: roundLeaf(petioleTip, r * (0.85 + 0.3 * Math.abs(wiggle(i + 5, salt)))), w: 1.05 });
+    const u = n === 1 ? 0.5 : i / (n - 1);
+    const ang = rad(-95 + 190 * u + wiggle(i, salt) * 5);
+    const plen = Math.max(3, spec.branches.lengthRatio * H * (0.55 + 0.1 * Math.abs(wiggle(i + 4, salt))));
+    const petioleTip: P = { x: top.x + Math.cos(ang) * plen, y: top.y - Math.sin(ang) * plen * 0.85 };
+    strokes.push({ d: line(top, petioleTip), w: 0.65, o: 0.78 });
+    strokes.push({ d: roundLeaf(petioleTip, r * (0.85 + 0.3 * Math.abs(wiggle(i + 9, salt)))), w: 1.1 });
   }
   return strokes;
 }
@@ -442,24 +493,26 @@ function palmeraScene(spec: PlantRenderSpecV2, H: number, salt: number): PlantSt
   const trunkCtrl = L({ x: BASE_X - spec.stem.curvature * 7, y: BASE_Y - H * 0.55 });
   const crown: P = L({ x: BASE_X, y: crownY });
   strokes.push({ d: quad(base, trunkCtrl, crown), w: 1.5 });
-  const nFronds = Math.max(5, spec.branches.count);
-  const flen = Math.max(6, spec.branches.lengthRatio * H * 1.1);
+  // Menos frondas, bien espaciadas y con menos temblor — corona limpia y
+  // elegante en vez de una maraña.
+  const nFronds = Math.max(5, Math.min(7, spec.branches.count));
+  const flen = Math.max(6, spec.branches.lengthRatio * H * 1.05);
   for (let i = 0; i < nFronds; i++) {
-    const u = i / Math.max(1, nFronds - 1);
-    const ang = rad(-110 + 220 * u + wiggle(i, salt) * 8); // abanico hacia todos lados desde la corona
-    const droop = 0.3 + 0.5 * Math.abs(Math.sin(ang));
-    const ctrl: P = { x: crown.x + Math.cos(ang) * flen * 0.55, y: crown.y - Math.sin(ang) * flen * 0.55 * (1 - droop) + flen * droop * 0.15 };
-    const tip: P = { x: crown.x + Math.cos(ang) * flen, y: crown.y - Math.sin(ang) * flen * (1 - droop) + flen * droop * 0.55 };
+    const u = nFronds === 1 ? 0.5 : i / (nFronds - 1);
+    const ang = rad(-100 + 200 * u + wiggle(i, salt) * 3);
+    const droop = 0.35 + 0.4 * Math.abs(Math.sin(ang));
+    const ctrl: P = { x: crown.x + Math.cos(ang) * flen * 0.55, y: crown.y - Math.sin(ang) * flen * 0.55 * (1 - droop) + flen * droop * 0.12 };
+    const tip: P = { x: crown.x + Math.cos(ang) * flen, y: crown.y - Math.sin(ang) * flen * (1 - droop) + flen * droop * 0.48 };
     strokes.push({ d: quad(crown, ctrl, tip), w: 1 });
-    // foliolos cortos a los lados de cada fronda
-    const nLeaflets = 4;
+    // pocos foliolos, más largos: lectura limpia en vez de estática visual
+    const nLeaflets = 3;
     for (let j = 1; j <= nLeaflets; j++) {
-      const t = (0.25 * j) / nLeaflets + 0.15;
+      const t = (0.22 * j) / nLeaflets + 0.22;
       const p = qAt(crown, ctrl, tip, t);
       const tan = qTan(crown, ctrl, tip, t);
-      const s = 1.6 + spec.leaves.sizeRatio * H * 0.35;
-      strokes.push({ d: line(p, { x: p.x - tan.y * s, y: p.y + tan.x * s }), w: 0.6, o: 0.75 });
-      strokes.push({ d: line(p, { x: p.x + tan.y * s, y: p.y - tan.x * s }), w: 0.6, o: 0.75 });
+      const s = 2 + spec.leaves.sizeRatio * H * 0.4;
+      strokes.push({ d: line(p, { x: p.x - tan.y * s, y: p.y + tan.x * s }), w: 0.6, o: 0.7 });
+      strokes.push({ d: line(p, { x: p.x + tan.y * s, y: p.y - tan.x * s }), w: 0.6, o: 0.7 });
     }
   }
   return strokes;
@@ -543,9 +596,24 @@ export function plantSceneV2(spec: PlantRenderSpecV2): PlantSceneV2 {
       break;
   }
   strokes.push(...ground());
-  const visualH = spec.species === "suculenta" || spec.species === "pilea" ? Math.max(H * 0.5, 16) : H;
+  // Encuadre por especie: la mayoría crece solo hacia arriba desde la
+  // tierra, pero el potos cae también por debajo de la línea de tierra
+  // (silueta colgante) y necesita un centro de encuadre más bajo.
+  let visualH: number;
+  let cyOverride: number | undefined;
+  if (spec.species === "suculenta") {
+    visualH = Math.max(H * 0.5, 16);
+  } else if (spec.species === "pilea") {
+    visualH = Math.max(H * 0.85, 16);
+  } else if (spec.species === "potos") {
+    visualH = Math.max(H * 1.35, 18);
+    cyOverride = r2(BASE_Y + H * 0.15 - 2);
+  } else {
+    visualH = H;
+  }
   const k = Math.min(1.75, Math.max(1, 56 / (visualH + 12)));
-  return { strokes, frame: { k: r2(k), cx: BASE_X, cy: r2(BASE_Y - visualH / 2 - 2) } };
+  const cy = cyOverride ?? r2(BASE_Y - visualH / 2 - 2);
+  return { strokes, frame: { k: r2(k), cx: BASE_X, cy } };
 }
 
 /** Nombre visible en español de cada especie (v2, 12 en total). */
