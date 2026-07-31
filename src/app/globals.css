@@ -20,6 +20,7 @@
   --color-stone-soft: #97907e;
   --color-charcoal: #2e2b25;
   --color-ink-green: #4a5c42;
+  --color-plant-bloom: #9b8fb0;         /* Fase 4B: flor de lavanda, uso único */
 
   /* estados — apagados, nunca chillones */
   --color-blocked: #a05c4c;
@@ -125,6 +126,7 @@ html[data-theme="dark"] {
   --color-stone: #b7b2a2;            /* secundario */
   --color-stone-soft: #948e7d;       /* tenue */
   --color-ink-green: #d8e2c6;
+  --color-plant-bloom: #b7a8cf;
 
   /* Acción primaria: verde luminoso reservado para lo importante */
   --color-btn-primary-bg: #a9c79a;

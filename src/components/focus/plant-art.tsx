@@ -2,6 +2,8 @@ import type { StageKey } from "@/lib/focus-logic";
 import { plantRenderSpecV2, type PlantSpeciesV2 } from "@/lib/plant-render-v2";
 import { plantSceneV2 } from "@/lib/plant-svg-v2";
 import { STAGE_ART, STAGE_VIEW } from "./plant";
+import { isIllustratedSpecies } from "@/lib/plant-illustration-fixed";
+import { FixedIllustratedPlantArt } from "./plant-art-fixed";
 
 /* Ilustración de una planta CON identidad — v2 (rediseño). Componente
    presentacional puro: species + visual_seed + stage → el mismo SVG siempre.
@@ -15,11 +17,17 @@ import { STAGE_ART, STAGE_VIEW } from "./plant";
    repo como referencia congelada — ya ningún componente lo usa, pero sus
    pruebas y snapshot lo siguen protegiendo.
 
-   Las etapas semilla y brote usan el arte compartido de plant.tsx — aprobado:
-   la identidad de especie se hace evidente conforme la planta crece. Trazo
-   lineal botánico con currentColor: funciona en claro y oscuro sin hex propios.
-   Sin animaciones permanentes; el cambio de etapa hereda la transición breve de
-   opacidad que prefers-reduced-motion anula (regla global en globals.css). */
+   PILOTO FASE 4B (ilustración botánica fija): monstera/lavanda/cactus ya no
+   pasan por el motor v2 procedural — se dibujan con plant-illustration-fixed.ts
+   (una ilustración de mano por especie+etapa, sin variación por seed; ver ese
+   archivo para el porqué). Las otras 9 especies siguen exactamente igual que
+   antes hasta que el piloto se apruebe y se extienda.
+
+   Las etapas semilla y brote de las especies NO pilotadas usan el arte
+   compartido de plant.tsx. Trazo lineal botánico con currentColor: funciona
+   en claro y oscuro sin hex propios. Sin animaciones permanentes; el cambio
+   de etapa hereda la transición breve de opacidad que prefers-reduced-motion
+   anula (regla global en globals.css). */
 
 export function PlantArt({
   species,
@@ -34,6 +42,10 @@ export function PlantArt({
   stage: StageKey;
   className?: string;
 }) {
+  if (isIllustratedSpecies(species)) {
+    return <FixedIllustratedPlantArt species={species} stage={stage} className={className} />;
+  }
+
   if (stage === "semilla" || stage === "brote") {
     const Art = STAGE_ART[stage];
     const v = STAGE_VIEW[stage];
