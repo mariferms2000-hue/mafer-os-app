@@ -14,7 +14,7 @@
 
 import type { StageKey } from "./focus-logic";
 
-export const ILLUSTRATED_PLANT_SPECIES = ["monstera", "lavanda", "cactus", "helecho", "suculenta", "olivo"] as const;
+export const ILLUSTRATED_PLANT_SPECIES = ["monstera", "lavanda", "cactus", "helecho", "suculenta", "olivo", "bambu", "potos", "sansevieria"] as const;
 export type IllustratedPlantSpecies = (typeof ILLUSTRATED_PLANT_SPECIES)[number];
 
 export type PlantAssetTheme = "light" | "dark";
@@ -37,6 +37,12 @@ export const PLANT_ASSET_DIMS: Record<IllustratedPlantSpecies, Record<PlantAsset
   helecho: { large: { w: 459, h: 313 }, small: { w: 320, h: 218 } },
   suculenta: { large: { w: 404, h: 274 }, small: { w: 320, h: 217 } },
   olivo: { large: { w: 439, h: 354 }, small: { w: 320, h: 258 } },
+  // Bloque 2 (Fase 4E, desde botanical-reference-05.png). El bambú es
+  // vertical (más alto que ancho) y su lado mayor no llega a 320 px, así que
+  // small == large: no se reescala hacia arriba.
+  bambu: { large: { w: 263, h: 282 }, small: { w: 263, h: 282 } },
+  potos: { large: { w: 343, h: 309 }, small: { w: 320, h: 288 } },
+  sansevieria: { large: { w: 426, h: 357 }, small: { w: 320, h: 268 } },
 };
 
 /** Ruta pública del asset exacto (sirve tal cual desde public/plants/). */

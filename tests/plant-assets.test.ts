@@ -20,15 +20,25 @@ const SIZES = ["small", "large"] as const;
 const PUBLIC_PLANTS = path.join(__dirname, "..", "public", "plants");
 
 describe("selección de especie ilustrada (puerta del fallback)", () => {
-  it("reconoce las 6 especies ilustradas (piloto + Bloque 1)", () => {
-    expect([...ILLUSTRATED_PLANT_SPECIES].sort()).toEqual(["cactus", "helecho", "lavanda", "monstera", "olivo", "suculenta"]);
+  it("reconoce las 9 especies ilustradas (piloto + Bloque 1 + Bloque 2)", () => {
+    expect([...ILLUSTRATED_PLANT_SPECIES].sort()).toEqual([
+      "bambu",
+      "cactus",
+      "helecho",
+      "lavanda",
+      "monstera",
+      "olivo",
+      "potos",
+      "sansevieria",
+      "suculenta",
+    ]);
     for (const s of ILLUSTRATED_PLANT_SPECIES) expect(isIllustratedPlantSpecies(s)).toBe(true);
   });
 
-  it("las 6 especies aún no integradas caen al fallback (no ilustradas)", () => {
+  it("las 3 especies aún no integradas caen al fallback (no ilustradas)", () => {
     const fallback = PLANT_SPECIES_V2.filter((s) => !isIllustratedPlantSpecies(s));
-    expect(fallback).toHaveLength(6);
-    for (const s of ["bambu", "sansevieria", "pilea", "palmera", "eucalipto", "potos"]) {
+    expect(fallback).toHaveLength(3);
+    for (const s of ["pilea", "palmera", "eucalipto"]) {
       expect(fallback).toContain(s);
       expect(isIllustratedPlantSpecies(s)).toBe(false);
     }
@@ -77,21 +87,29 @@ describe("cobertura de archivos: cada combinación existe en public/plants", () 
         }
       }
     }
-    expect(count).toBe(ILLUSTRATED_PLANT_SPECIES.length * 5 * 2 * 2); // 6 especies × 5 etapas × 2 temas × 2 tamaños = 120
+    expect(count).toBe(ILLUSTRATED_PLANT_SPECIES.length * 5 * 2 * 2); // 9 especies × 5 etapas × 2 temas × 2 tamaños = 180
   });
 });
 
 describe("dimensiones intrínsecas", () => {
-  it("cada especie ilustrada define small y large con proporción horizontal creíble", () => {
+  it("cada especie ilustrada define small y large con proporción creíble", () => {
     for (const sp of ILLUSTRATED_PLANT_SPECIES) {
       for (const sz of SIZES) {
         const d = PLANT_ASSET_DIMS[sp][sz];
         expect(d.w).toBeGreaterThan(0);
         expect(d.h).toBeGreaterThan(0);
-        expect(d.w).toBeGreaterThanOrEqual(d.h); // lienzo apaisado como la lámina
+        // proporción no degenerada (hay especies apaisadas como la monstera y
+        // verticales como el bambú); solo descartamos relaciones absurdas.
+        const ar = d.w / d.h;
+        expect(ar).toBeGreaterThan(0.4);
+        expect(ar).toBeLessThan(2.5);
       }
-      // el "large" es de mayor resolución que el "small"
-      expect(PLANT_ASSET_DIMS[sp].large.w).toBeGreaterThan(PLANT_ASSET_DIMS[sp].small.w);
+      // "small" nunca excede 320 px en su lado mayor; "large" es al menos tan
+      // grande como "small" (igual solo cuando la especie ya cabe en 320).
+      const L = PLANT_ASSET_DIMS[sp].large;
+      const S = PLANT_ASSET_DIMS[sp].small;
+      expect(Math.max(S.w, S.h)).toBeLessThanOrEqual(320);
+      expect(Math.max(L.w, L.h)).toBeGreaterThanOrEqual(Math.max(S.w, S.h));
     }
   });
 });
