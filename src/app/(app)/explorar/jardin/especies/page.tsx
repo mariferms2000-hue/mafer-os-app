@@ -23,6 +23,9 @@ const PILOT_SPECIES = [
   { key: "helecho", label: "Helecho" },
   { key: "suculenta", label: "Suculenta" },
   { key: "olivo", label: "Olivo" },
+  { key: "bambu", label: "Bambú" },
+  { key: "potos", label: "Potos" },
+  { key: "sansevieria", label: "Sansevieria" },
 ] as const;
 
 const STAGE_LABEL: Record<StageKey, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.label])) as Record<
