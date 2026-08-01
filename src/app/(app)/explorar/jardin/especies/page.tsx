@@ -20,6 +20,9 @@ const PILOT_SPECIES = [
   { key: "monstera", label: "Monstera" },
   { key: "lavanda", label: "Lavanda" },
   { key: "cactus", label: "Cactus" },
+  { key: "helecho", label: "Helecho" },
+  { key: "suculenta", label: "Suculenta" },
+  { key: "olivo", label: "Olivo" },
 ] as const;
 
 const STAGE_LABEL: Record<StageKey, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.label])) as Record<
@@ -58,7 +61,7 @@ export default function EspeciesPage() {
     <div>
       <PageHeader
         title="Catálogo de especies"
-        intro="Monstera, Lavanda y Cactus en sus 5 etapas, dibujadas con el mismo componente que usa la app (Enfoque, Mi jardín, grid y popup). Vista de solo lectura, no depende de tus plantas guardadas."
+        intro="Las especies con ilustración botánica, en sus 5 etapas, dibujadas con el mismo componente que usa la app (Enfoque, Mi jardín, grid y popup). Vista de solo lectura, no depende de tus plantas guardadas."
       >
         <Link href="/explorar/jardin" className="btn btn-ghost" data-testid="especies-back">
           <ArrowLeft size={15} aria-hidden /> Volver a Mi jardín

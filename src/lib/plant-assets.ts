@@ -14,7 +14,7 @@
 
 import type { StageKey } from "./focus-logic";
 
-export const ILLUSTRATED_PLANT_SPECIES = ["monstera", "lavanda", "cactus"] as const;
+export const ILLUSTRATED_PLANT_SPECIES = ["monstera", "lavanda", "cactus", "helecho", "suculenta", "olivo"] as const;
 export type IllustratedPlantSpecies = (typeof ILLUSTRATED_PLANT_SPECIES)[number];
 
 export type PlantAssetTheme = "light" | "dark";
@@ -33,6 +33,10 @@ export const PLANT_ASSET_DIMS: Record<IllustratedPlantSpecies, Record<PlantAsset
   monstera: { large: { w: 411, h: 318 }, small: { w: 320, h: 248 } },
   lavanda: { large: { w: 411, h: 324 }, small: { w: 320, h: 252 } },
   cactus: { large: { w: 411, h: 340 }, small: { w: 320, h: 265 } },
+  // Bloque 1 (Fase 4D, desde botanical-reference-03.png)
+  helecho: { large: { w: 459, h: 313 }, small: { w: 320, h: 218 } },
+  suculenta: { large: { w: 404, h: 274 }, small: { w: 320, h: 217 } },
+  olivo: { large: { w: 439, h: 354 }, small: { w: 320, h: 258 } },
 };
 
 /** Ruta pública del asset exacto (sirve tal cual desde public/plants/). */
