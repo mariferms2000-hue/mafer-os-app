@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sprout } from "lucide-react";
+import { Sprout, Leaf } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExplorarTabs } from "@/components/explore/tabs";
@@ -51,7 +51,11 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
         icon={Sprout}
         title="Mi jardín"
         intro="Cada planta conserva el tiempo que decidiste cuidar. Crece a tu ritmo; aquí nada caduca ni se pierde."
-      />
+      >
+        <Link href="/explorar/jardin/especies" className="btn btn-secondary" data-testid="garden-view-species">
+          <Leaf size={15} aria-hidden /> Ver especies
+        </Link>
+      </PageHeader>
       <ExplorarTabs />
 
       {/* Planta actual: la protagonista de la pantalla */}
