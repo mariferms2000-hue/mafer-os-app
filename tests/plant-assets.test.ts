@@ -20,15 +20,15 @@ const SIZES = ["small", "large"] as const;
 const PUBLIC_PLANTS = path.join(__dirname, "..", "public", "plants");
 
 describe("selección de especie ilustrada (puerta del fallback)", () => {
-  it("reconoce exactamente monstera, lavanda y cactus", () => {
-    expect([...ILLUSTRATED_PLANT_SPECIES].sort()).toEqual(["cactus", "lavanda", "monstera"]);
+  it("reconoce las 6 especies ilustradas (piloto + Bloque 1)", () => {
+    expect([...ILLUSTRATED_PLANT_SPECIES].sort()).toEqual(["cactus", "helecho", "lavanda", "monstera", "olivo", "suculenta"]);
     for (const s of ILLUSTRATED_PLANT_SPECIES) expect(isIllustratedPlantSpecies(s)).toBe(true);
   });
 
-  it("las otras 9 especies v2 caen al fallback (no ilustradas)", () => {
+  it("las 6 especies aún no integradas caen al fallback (no ilustradas)", () => {
     const fallback = PLANT_SPECIES_V2.filter((s) => !isIllustratedPlantSpecies(s));
-    expect(fallback).toHaveLength(9);
-    for (const s of ["helecho", "suculenta", "olivo", "bambu", "sansevieria", "pilea", "palmera", "eucalipto", "potos"]) {
+    expect(fallback).toHaveLength(6);
+    for (const s of ["bambu", "sansevieria", "pilea", "palmera", "eucalipto", "potos"]) {
       expect(fallback).toContain(s);
       expect(isIllustratedPlantSpecies(s)).toBe(false);
     }
@@ -62,7 +62,7 @@ describe("plantAssetPath — mapeo determinista", () => {
   });
 });
 
-describe("cobertura de archivos: las 60 combinaciones existen en public/plants", () => {
+describe("cobertura de archivos: cada combinación existe en public/plants", () => {
   it("cada especie × etapa × tema × tamaño tiene su WebP", () => {
     let count = 0;
     for (const sp of ILLUSTRATED_PLANT_SPECIES) {
@@ -77,7 +77,7 @@ describe("cobertura de archivos: las 60 combinaciones existen en public/plants",
         }
       }
     }
-    expect(count).toBe(3 * 5 * 2 * 2); // 60
+    expect(count).toBe(ILLUSTRATED_PLANT_SPECIES.length * 5 * 2 * 2); // 6 especies × 5 etapas × 2 temas × 2 tamaños = 120
   });
 });
 
