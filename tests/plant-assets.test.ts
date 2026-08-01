@@ -20,14 +20,17 @@ const SIZES = ["small", "large"] as const;
 const PUBLIC_PLANTS = path.join(__dirname, "..", "public", "plants");
 
 describe("selección de especie ilustrada (puerta del fallback)", () => {
-  it("reconoce las 9 especies ilustradas (piloto + Bloque 1 + Bloque 2)", () => {
+  it("reconoce las 12 especies ilustradas (piloto + Bloques 1, 2 y 3)", () => {
     expect([...ILLUSTRATED_PLANT_SPECIES].sort()).toEqual([
       "bambu",
       "cactus",
+      "eucalipto",
       "helecho",
       "lavanda",
       "monstera",
       "olivo",
+      "palmera",
+      "pilea",
       "potos",
       "sansevieria",
       "suculenta",
@@ -35,11 +38,16 @@ describe("selección de especie ilustrada (puerta del fallback)", () => {
     for (const s of ILLUSTRATED_PLANT_SPECIES) expect(isIllustratedPlantSpecies(s)).toBe(true);
   });
 
-  it("las 3 especies aún no integradas caen al fallback (no ilustradas)", () => {
+  it("las 12 especies del jardín ya están todas ilustradas (fallback sin especies)", () => {
     const fallback = PLANT_SPECIES_V2.filter((s) => !isIllustratedPlantSpecies(s));
-    expect(fallback).toHaveLength(3);
-    for (const s of ["pilea", "palmera", "eucalipto"]) {
-      expect(fallback).toContain(s);
+    expect(fallback).toHaveLength(0);
+    for (const s of PLANT_SPECIES_V2) expect(isIllustratedPlantSpecies(s)).toBe(true);
+  });
+
+  it("el mecanismo de fallback sigue vigente como protección (cadenas fuera del catálogo)", () => {
+    // Aunque ninguna especie del jardín lo use ya, la puerta debe seguir
+    // enrutando al motor SVG v2 cualquier especie no ilustrada (protección).
+    for (const s of ["dinosaurio", "planta-desconocida", ""]) {
       expect(isIllustratedPlantSpecies(s)).toBe(false);
     }
   });
@@ -87,7 +95,7 @@ describe("cobertura de archivos: cada combinación existe en public/plants", () 
         }
       }
     }
-    expect(count).toBe(ILLUSTRATED_PLANT_SPECIES.length * 5 * 2 * 2); // 9 especies × 5 etapas × 2 temas × 2 tamaños = 180
+    expect(count).toBe(ILLUSTRATED_PLANT_SPECIES.length * 5 * 2 * 2); // 12 especies × 5 etapas × 2 temas × 2 tamaños = 240
   });
 });
 
