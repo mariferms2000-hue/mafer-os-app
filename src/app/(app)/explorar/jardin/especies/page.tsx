@@ -38,6 +38,7 @@ function PilotAsset({ size, className }: { size: "small" | "large"; className?: 
         alt=""
         aria-hidden
         unoptimized
+        priority
         className={`pilot-light object-contain ${className ?? ""}`}
       />
       <Image
@@ -47,6 +48,7 @@ function PilotAsset({ size, className }: { size: "small" | "large"; className?: 
         alt=""
         aria-hidden
         unoptimized
+        priority
         className={`pilot-dark object-contain ${className ?? ""}`}
       />
     </>
@@ -91,6 +93,7 @@ export default function EspeciesPage() {
                 alt=""
                 aria-hidden
                 unoptimized
+        priority
                 className="w-full max-w-[220px] rounded-lg border border-card-border"
               />
               <span className="text-[11px] text-stone text-center">Referencia original (recorte)</span>
@@ -113,6 +116,7 @@ export default function EspeciesPage() {
                   alt=""
                   aria-hidden
                   unoptimized
+        priority
                   className="w-full object-contain"
                 />
               </div>
@@ -130,6 +134,7 @@ export default function EspeciesPage() {
                   alt=""
                   aria-hidden
                   unoptimized
+        priority
                   className="w-full object-contain"
                 />
               </div>
