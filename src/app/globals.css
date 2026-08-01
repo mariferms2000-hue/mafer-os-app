@@ -478,3 +478,11 @@ a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Assets botánicos ilustrados (Fase 4C): se muestran dos <img> por planta
+   (claro/oscuro) y el tema activo decide cuál se ve. El toggle explícito de
+   la app vive en html[data-theme], no en prefers-color-scheme, así que la
+   selección debe seguir ese atributo. */
+.plant-illus-dark { display: none; }
+html[data-theme="dark"] .plant-illus-light { display: none; }
+html[data-theme="dark"] .plant-illus-dark { display: block; }

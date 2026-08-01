@@ -1,39 +1,89 @@
+import Image from "next/image";
 import type { StageKey } from "@/lib/focus-logic";
 import { plantRenderSpecV2, type PlantSpeciesV2 } from "@/lib/plant-render-v2";
 import { plantSceneV2 } from "@/lib/plant-svg-v2";
 import { STAGE_ART, STAGE_VIEW } from "./plant";
+import {
+  isIllustratedPlantSpecies,
+  plantAssetPath,
+  PLANT_ASSET_DIMS,
+  type PlantAssetSize,
+} from "@/lib/plant-assets";
 
-/* Ilustración de una planta CON identidad — v2 (rediseño). Componente
-   presentacional puro: species + visual_seed + stage → el mismo SVG siempre.
+/* Ilustración de una planta CON identidad. Componente presentacional puro:
+   species + visual_seed + stage → el mismo resultado siempre.
 
-   ADAPTADOR DE COMPATIBILIDAD: toda planta (nacida bajo renderer_version 1
-   o 2) se dibuja SIEMPRE con el motor v2, alimentándolo con su especie/seed/
-   etapa ya guardadas — v1 y v2 comparten los nombres de las 5 especies
-   originales, así que no hace falta traducir nada. Los datos de la planta
-   (especie, seed, etapa, minutos, fechas) nunca cambian; solo cambia CÓMO se
-   dibuja. El motor v1 (plant-render.ts/plant-svg.ts) queda intacto en el
-   repo como referencia congelada — ya ningún componente lo usa, pero sus
-   pruebas y snapshot lo siguen protegiendo.
+   DOS CAMINOS, una sola puerta de decisión (isIllustratedPlantSpecies):
 
-   Las etapas semilla y brote usan el arte compartido de plant.tsx — aprobado:
-   la identidad de especie se hace evidente conforme la planta crece. Trazo
-   lineal botánico con currentColor: funciona en claro y oscuro sin hex propios.
-   Sin animaciones permanentes; el cambio de etapa hereda la transición breve de
-   opacidad que prefers-reduced-motion anula (regla global en globals.css). */
+   1) Especies con asset botánico aprobado (monstera, lavanda, cactus): se
+      dibujan con el WebP fijo del piloto (public/plants/, Fase 4B/4C),
+      eligiendo etapa + tema + tamaño. El seed no participa: los assets son
+      fijos por especie+etapa (decisión aprobada en el piloto). Se muestran
+      dos <img> (claro/oscuro) y el tema activo decide cuál se ve, vía las
+      clases plant-illus-light/plant-illus-dark de globals.css.
+
+   2) Las otras 9 especies: FALLBACK idéntico a como estaban en Production —
+      motor SVG v2 (hojas en adelante) y arte compartido de plant.tsx para
+      semilla/brote. No cambia ni un pixel para ellas.
+
+   Nada de esto toca los datos de la planta (especie, seed, renderer_version,
+   minutos, etapa) — solo cambia CÓMO se dibujan las 3 especies ilustradas.
+   Las plantas antiguas conservan su especie guardada, así que jamás hay un
+   salto de identidad al abrir una planta vieja: una Monstera guardada usa
+   los assets de Monstera, y punto. */
 
 export function PlantArt({
   species,
   visualSeed,
   stage,
   className,
+  size = "large",
 }: {
-  /** Ya validada por el llamador (ver asSpecies() en jardín/popup) — funciona
-   *  igual para especies nacidas bajo v1 (subconjunto de 5) o v2 (12). */
+  /** Ya validada por el llamador (ver asSpecies() en jardín/popup). */
   species: PlantSpeciesV2;
   visualSeed: number;
   stage: StageKey;
   className?: string;
+  /** Tamaño del asset ilustrado a cargar. Los contenedores chicos (grid de
+   *  Mi jardín) piden "small"; el resto usa "large" (nítido a cualquier
+   *  tamaño de uso). Irrelevante para el fallback SVG. */
+  size?: PlantAssetSize;
 }) {
+  // ── Camino 1: assets botánicos aprobados ──
+  if (isIllustratedPlantSpecies(species)) {
+    const dims = PLANT_ASSET_DIMS[species][size];
+    return (
+      <span
+        className={`inline-flex items-center justify-center ${className ?? ""}`}
+        aria-hidden="true"
+        data-species={species}
+        data-stage={stage}
+        data-seed={visualSeed}
+        data-illustrated="true"
+      >
+        <Image
+          src={plantAssetPath(species, stage, "light", size)}
+          width={dims.w}
+          height={dims.h}
+          alt=""
+          aria-hidden
+          unoptimized
+          className="plant-illus-light h-full w-full object-contain"
+        />
+        <Image
+          src={plantAssetPath(species, stage, "dark", size)}
+          width={dims.w}
+          height={dims.h}
+          alt=""
+          aria-hidden
+          unoptimized
+          className="plant-illus-dark h-full w-full object-contain"
+        />
+      </span>
+    );
+  }
+
+  // ── Camino 2 (fallback): motor SVG v2 + arte compartido, sin cambios ──
   if (stage === "semilla" || stage === "brote") {
     const Art = STAGE_ART[stage];
     const v = STAGE_VIEW[stage];

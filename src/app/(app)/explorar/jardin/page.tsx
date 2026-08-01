@@ -158,6 +158,7 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
                     species={asSpecies(p.species)}
                     visualSeed={p.visualSeed}
                     stage="planta-completa"
+                    size="small"
                     className="h-32 w-32 text-sage-deep"
                   />
                   <p className="font-display text-lg text-forest-deep mt-2">{SPECIES_LABEL[p.species] ?? p.species}</p>
