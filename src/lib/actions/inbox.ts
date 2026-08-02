@@ -84,9 +84,9 @@ export async function convertInboxItem(formData: FormData): Promise<{ convertedT
       dueDate: str("date") || item.date,
       duration: normalizeDuration(str("duration")),
     });
-    if (str("nextAction")) {
-      await db.update(schema.cards).set({ nextAction: str("nextAction") }).where(eq(schema.cards.id, cardId));
-    }
+    // Deliberadamente NO se escribe `nextAction`: la «siguiente acción» pertenece
+    // al proyecto, no a la tarjeta. El detalle de una tarea nunca la muestra ni la
+    // edita, así que persistirla aquí dejaba un dato huérfano en cards.next_action.
     convertedTo = `tarea:${cardId}`;
   } else if (target === "proyecto") {
     const pid = uid();
