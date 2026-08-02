@@ -126,7 +126,10 @@ test("la pestaña «Mi jardín» existe en Explorar y muestra la planta actual r
   expect(plant).toBeTruthy();
   await expect(page.getByTestId("garden-current-species")).toHaveText(SPECIES_LABEL[plant.species]);
   await expect(page.getByTestId("garden-current-progress")).toContainText(`${plant.accumulated_minutes} de `);
-  const art = page.getByTestId("garden-current").locator("svg[data-species]");
+  // El arte vive ahora en la mesa de propagación del cuarto. Las 12 especies
+  // están ilustradas, así que PlantArt pinta un <span data-species> con dos
+  // <img>; el selector no puede asumir <svg> (eso solo aplica al fallback).
+  const art = page.getByTestId("garden-room-current").locator("[data-species]").first();
   await expect(art).toHaveAttribute("data-species", plant.species);
   await expect(art).toHaveAttribute("data-seed", String(plant.visual_seed));
 });
@@ -176,9 +179,9 @@ test("cuadrícula: más reciente primero, 12 iniciales y «Ver más» solo cuand
   const cards = page.getByTestId("garden-plant");
   await expect(cards).toHaveCount(12);
   for (const [i, p] of all.slice(0, 12).entries()) {
-    const svg = cards.nth(i).locator("svg");
-    await expect(svg).toHaveAttribute("data-species", p.species);
-    await expect(svg).toHaveAttribute("data-seed", String(p.visual_seed));
+    const art = cards.nth(i).locator("[data-species]").first();
+    await expect(art).toHaveAttribute("data-species", p.species);
+    await expect(art).toHaveAttribute("data-seed", String(p.visual_seed));
   }
   await expect(cards.first()).toContainText(SPECIES_LABEL[all[0].species]);
   await expect(cards.first()).toContainText("150 min de enfoque");
@@ -191,17 +194,47 @@ test("cuadrícula: más reciente primero, 12 iniciales y «Ver más» solo cuand
   await expect(page.getByTestId("garden-more")).toHaveCount(0);
 });
 
-test("el SVG es determinista: recargar produce exactamente los mismos trazos", async ({ page }) => {
+test("la ilustración es determinista: recargar produce exactamente el mismo arte", async ({ page }) => {
   await login(page);
   await page.goto("/explorar/jardin");
-  const firstCardSvg = () => page.getByTestId("garden-plant").first().locator("svg").innerHTML();
-  const currentSvg = () => page.getByTestId("garden-current").locator("svg[data-species]").innerHTML();
+  const firstCardArt = () => page.getByTestId("garden-plant").first().locator("[data-species]").first().innerHTML();
+  const currentArt = () => page.getByTestId("garden-room-current").locator("[data-species]").first().innerHTML();
 
-  const [card1, cur1] = [await firstCardSvg(), await currentSvg()];
+  const [card1, cur1] = [await firstCardArt(), await currentArt()];
   await page.reload();
   await expect(page.getByTestId("garden-plant").first()).toBeVisible();
-  expect(await firstCardSvg()).toBe(card1);
-  expect(await currentSvg()).toBe(cur1);
+  expect(await firstCardArt()).toBe(card1);
+  expect(await currentArt()).toBe(cur1);
+});
+
+test("el cuarto: las plantas posadas en las repisas abren su popup y el invernadero conserva la colección completa", async ({ page }) => {
+  await seedCompletedFixtures();
+  const all = await completedOrdered();
+
+  await login(page);
+  await page.goto("/explorar/jardin");
+
+  // La escena es una VITRINA con aforo: muestra una selección, nunca todo.
+  const enElCuarto = page.getByTestId("garden-room-plant");
+  const puestas = await enElCuarto.count();
+  expect(puestas).toBeGreaterThan(0);
+  expect(puestas).toBeLessThanOrEqual(18);
+  expect(puestas).toBeLessThanOrEqual(all.length);
+
+  // Ninguna planta se pierde: el invernadero sigue listando la colección entera.
+  await expect(page.getByTestId("garden-grid")).toBeVisible();
+  await expect(page.getByTestId("garden-more")).toContainText(`(${all.length - 12} restantes)`);
+
+  // Cada planta de la escena abre el mismo popup de detalle de siempre.
+  await enElCuarto.first().click();
+  await expect(page.getByTestId("plant-detail-modal")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar" }).click();
+  await expect(page.getByTestId("plant-detail-modal")).toHaveCount(0);
+
+  // Y la planta actual, en su mesa de propagación, también.
+  await page.getByTestId("garden-room-current").click();
+  await expect(page.getByTestId("plant-detail-modal")).toBeVisible();
+  await expect(page.getByTestId("plant-detail-modal")).toContainText("Planta actual");
 });
 
 test("«Enfocarme» abre el overlay existente; cerrarlo devuelve al jardín sin tocar nada", async ({ page }) => {
