@@ -299,14 +299,15 @@ function ProcessPanel({
                   ))}
                 </select>
               </div>
-              <div>
+              {/* Ancho completo: al quitar «Siguiente acción», Fecha se quedaba a media
+                  columna con un hueco a la derecha. */}
+              <div className="col-span-2">
                 <label className="label" htmlFor="pp-date">Fecha</label>
                 <input id="pp-date" name="date" type="date" className="input" defaultValue={item.date ?? ""} />
               </div>
-              <div className="col-span-2">
-                <label className="label" htmlFor="pp-next">Siguiente acción</label>
-                <input id="pp-next" name="nextAction" className="input" placeholder="El primer paso visible" />
-              </div>
+              {/* Sin «Siguiente acción»: es un concepto de PROYECTO (ver NextActionBlock).
+                  Una tarea no la muestra ni la deja editar en su detalle, así que pedirla
+                  aquí solo guardaba un dato huérfano en cards.nextAction. */}
             </div>
           )}
 
