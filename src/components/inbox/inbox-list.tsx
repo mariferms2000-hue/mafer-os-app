@@ -299,7 +299,9 @@ function ProcessPanel({
                   ))}
                 </select>
               </div>
-              <div>
+              {/* Ancho completo: al quitar «Siguiente acción», Fecha se quedaba a media
+                  columna con un hueco a la derecha. */}
+              <div className="col-span-2">
                 <label className="label" htmlFor="pp-date">Fecha</label>
                 <input id="pp-date" name="date" type="date" className="input" defaultValue={item.date ?? ""} />
               </div>
