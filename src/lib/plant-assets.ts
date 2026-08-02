@@ -14,7 +14,7 @@
 
 import type { StageKey } from "./focus-logic";
 
-export const ILLUSTRATED_PLANT_SPECIES = ["monstera", "lavanda", "cactus", "helecho", "suculenta", "olivo", "bambu", "potos", "sansevieria"] as const;
+export const ILLUSTRATED_PLANT_SPECIES = ["monstera", "lavanda", "cactus", "helecho", "suculenta", "olivo", "bambu", "potos", "sansevieria", "pilea", "palmera", "eucalipto"] as const;
 export type IllustratedPlantSpecies = (typeof ILLUSTRATED_PLANT_SPECIES)[number];
 
 export type PlantAssetTheme = "light" | "dark";
@@ -43,6 +43,11 @@ export const PLANT_ASSET_DIMS: Record<IllustratedPlantSpecies, Record<PlantAsset
   bambu: { large: { w: 263, h: 282 }, small: { w: 263, h: 282 } },
   potos: { large: { w: 343, h: 309 }, small: { w: 320, h: 288 } },
   sansevieria: { large: { w: 426, h: 357 }, small: { w: 320, h: 268 } },
+  // Bloque 3 (Fase 4F, desde botanical-reference-07.png). El eucalipto es
+  // vertical (más alto que ancho), como el bambú.
+  pilea: { large: { w: 321, h: 281 }, small: { w: 320, h: 280 } },
+  palmera: { large: { w: 356, h: 295 }, small: { w: 320, h: 265 } },
+  eucalipto: { large: { w: 315, h: 324 }, small: { w: 311, h: 320 } },
 };
 
 /** Ruta pública del asset exacto (sirve tal cual desde public/plants/). */
