@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SquareKanban, Ban, Hourglass, ListTodo, ArrowRight, CalendarClock, CircleAlert } from "lucide-react";
 import { today } from "@/lib/db";
-import { getProjectsOverview, type ProjectOverview } from "@/lib/queries/projects";
+import { getProjectsOverview, getTasksWithoutProject, type ProjectOverview } from "@/lib/queries/projects";
 import { humanDate, type ProjectIssueKind } from "@/lib/project-health";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -24,6 +24,7 @@ export default async function ProyectosPage({
   const { f = "activos", area = "", nuevo } = await searchParams;
   const d = today();
   const overview = await getProjectsOverview();
+  const sinProyecto = await getTasksWithoutProject();
 
   const activos = overview.filter((o) => o.project.status === "activo" && !o.project.archived);
   const atencionCount = activos.filter((o) => o.issues.length > 0).length;
@@ -49,6 +50,24 @@ export default async function ProyectosPage({
       </PageHeader>
 
       <ProjectsFilter f={f} area={area} atencion={atencionCount} />
+
+      {/* Vista inteligente: tareas sueltas que no pertenecen a ningún proyecto */}
+      <Link
+        href="/proyectos/sin-proyecto"
+        className="card p-4 mb-4 flex items-center gap-3 hover:shadow-lift transition-shadow"
+        data-testid="tareas-sin-proyecto-access"
+      >
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sand text-sage-deep shrink-0" aria-hidden>
+          <ListTodo size={18} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-body font-semibold text-charcoal">
+            Tareas sin proyecto <span className="text-stone tabular-nums">({sinProyecto.length})</span>
+          </p>
+          <p className="text-xs text-stone">Tareas sueltas que aún no pertenecen a ningún proyecto.</p>
+        </div>
+        <ArrowRight size={16} className="ml-auto text-stone-soft shrink-0" aria-hidden />
+      </Link>
 
       {f === "atencion" && list.length === 0 ? (
         <EmptyState icon={SquareKanban} title="Nada necesita atención 🌿" hint="Todos tus proyectos activos tienen siguiente acción, sin bloqueos ni tareas vencidas." />
