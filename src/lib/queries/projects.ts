@@ -1,8 +1,25 @@
 import "server-only";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, today, schema } from "@/lib/db";
 import { projectIssues, type ProjectIssue } from "@/lib/project-health";
 import { diasEntre } from "@/lib/recommend";
+import type { CardRow } from "@/lib/queries/today";
+
+/** Tareas sueltas: cards abiertas (no completadas, no archivadas) sin proyecto.
+ *  Fuente única para el acceso «Tareas sin proyecto (n)» de /proyectos y para
+ *  la vista /proyectos/sin-proyecto — así el conteo y la lista nunca divergen.
+ *  No crea ni modifica datos; solo lee cards.projectId (sin migraciones). */
+export async function getTasksWithoutProject(): Promise<CardRow[]> {
+  const rows = await db
+    .select({ card: schema.cards, columnKind: schema.columns.kind })
+    .from(schema.cards)
+    .leftJoin(schema.columns, eq(schema.cards.columnId, schema.columns.id))
+    .where(and(isNull(schema.cards.projectId), eq(schema.cards.archived, false)))
+    .orderBy(asc(schema.cards.dueDate));
+  return rows
+    .filter((r) => !r.card.completedAt)
+    .map((r) => ({ ...r.card, projectTitle: null, columnKind: r.columnKind }));
+}
 
 export type ProjectOverview = {
   project: typeof schema.projects.$inferSelect;
