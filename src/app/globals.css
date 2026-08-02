@@ -513,7 +513,7 @@ html[data-theme="dark"] .plant-illus-dark { display: block; }
   --garden-glow: #fffdf3;
   --garden-beam: #fffdf2;
   --garden-lamp: transparent;
-  --garden-glass: #e9efe8;
+  --garden-glass: #dae7e1;
   --garden-glass-hi: #ffffff;
   --garden-shadow: #6b6355;
   --garden-grain: #8a8170;
@@ -526,17 +526,17 @@ html[data-theme="dark"] {
   --garden-floor: #0e120c;
   --garden-floor-lit: #161c12;
   --garden-baseboard: #1a2015;
-  --garden-shelf: #2b3323;
-  --garden-shelf-edge: #1c2217;
+  --garden-shelf: #39432e;
+  --garden-shelf-edge: #242c1c;
   --garden-frame: #333c2b;
   --garden-sill: #2e3726;
   --garden-sky: #0a0f1a;      /* noche real, no un crema invertido */
   --garden-sky-low: #131c2a;
   --garden-glow: #2a3627;     /* de noche la ventana casi no ilumina */
-  --garden-beam: #46586a;     /* un hilo de luna, no un foco */
+  --garden-beam: #33485c;     /* un hilo de luna, no un foco */
   --garden-lamp: #e8bd7a;     /* la única luz cálida del cuarto */
-  --garden-glass: #24312a;
-  --garden-glass-hi: #7f9c86;
+  --garden-glass: #27352d;
+  --garden-glass-hi: #8fae95;
   --garden-shadow: #000000;
   --garden-grain: #d6cdb8;
 }

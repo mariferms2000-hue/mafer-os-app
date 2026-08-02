@@ -97,19 +97,19 @@ export function RoomArt({ variant, className }: { variant: GardenBreakpoint; cla
 
         {/* Halo alrededor de la ventana: el aire iluminado */}
         <radialGradient id={`${p}-glow`}>
-          <stop offset="0%" stopColor="var(--garden-glow)" stopOpacity="0.55" />
+          <stop offset="0%" stopColor="var(--garden-glow)" stopOpacity="0.4" />
           <stop offset="100%" stopColor="var(--garden-glow)" stopOpacity="0" />
         </radialGradient>
 
         {/* Haz de luz que cae de la ventana hacia el suelo */}
         <linearGradient id={`${p}-beam`} x1="0" y1="0" x2="0.55" y2="1">
-          <stop offset="0%" stopColor="var(--garden-beam)" stopOpacity="0.5" />
+          <stop offset="0%" stopColor="var(--garden-beam)" stopOpacity="0.16" />
           <stop offset="100%" stopColor="var(--garden-beam)" stopOpacity="0" />
         </linearGradient>
 
         {/* Lámpara interior: transparente en claro, ámbar tenue en oscuro */}
         <radialGradient id={`${p}-lamp`}>
-          <stop offset="0%" stopColor="var(--garden-lamp)" stopOpacity="0.5" />
+          <stop offset="0%" stopColor="var(--garden-lamp)" stopOpacity="0.38" />
           <stop offset="100%" stopColor="var(--garden-lamp)" stopOpacity="0" />
         </radialGradient>
 
@@ -125,9 +125,9 @@ export function RoomArt({ variant, className }: { variant: GardenBreakpoint; cla
         </linearGradient>
 
         {/* Grano de papel: el puente entre el vector y la acuarela */}
-        <pattern id={`${p}-grain`} width="7" height="7" patternUnits="userSpaceOnUse">
-          <circle cx="1.5" cy="1.5" r="0.6" fill="var(--garden-grain)" />
-          <circle cx="5" cy="4.5" r="0.5" fill="var(--garden-grain)" />
+        <pattern id={`${p}-grain`} width="11" height="11" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2.5" r="0.45" fill="var(--garden-grain)" />
+          <circle cx="7.5" cy="7" r="0.35" fill="var(--garden-grain)" />
         </pattern>
       </defs>
 
@@ -247,6 +247,9 @@ export function RoomArt({ variant, className }: { variant: GardenBreakpoint; cla
             L ${g.vessel.cx - g.vessel.w / 2 + 18} ${g.vessel.bottom}
             Q ${g.vessel.cx - g.vessel.w / 2 + 6} ${g.vessel.bottom} ${g.vessel.cx - g.vessel.w / 2 + 6} ${g.vessel.bottom - 10} Z`}
         fill={`url(#${p}-glass)`}
+        stroke="var(--garden-glass-hi)"
+        strokeWidth="1.5"
+        strokeOpacity="0.55"
       />
       <rect
         x={g.vessel.cx - g.vessel.w / 2 + 12}
@@ -268,7 +271,7 @@ export function RoomArt({ variant, className }: { variant: GardenBreakpoint; cla
       />
 
       {/* Grano sobre todo el conjunto */}
-      <rect x="0" y="0" width={g.w} height={g.h} fill={`url(#${p}-grain)`} opacity="0.5" />
+      <rect x="0" y="0" width={g.w} height={g.h} fill={`url(#${p}-grain)`} opacity="0.22" />
     </svg>
   );
 }
