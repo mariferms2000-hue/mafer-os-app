@@ -488,14 +488,17 @@ html[data-theme="dark"] .plant-illus-light { display: none; }
 html[data-theme="dark"] .plant-illus-dark { display: block; }
 
 /* ─── Mi jardín: el cuarto botánico ───────────────────────────────
-   El fondo es una ilustración (public/garden/), no un SVG generado. Se pone
+   El fondo son ilustraciones (public/garden/), no un SVG generado. Se ponen
    como background-image para que el navegador descargue SOLO la variante del
    tema activo — con dos <img> ocultos bajaría las dos.
 
-   El contenedor fija la proporción del lienzo (1586×991), así que
-   `background-size: 100% 100%` llena exacto: sin letterbox, sin recorte y sin
-   deformación, y los porcentajes de cada sitio caen sobre la superficie
-   pintada. */
+   Cada lienzo fija su propia proporción, así que `background-size: 100% 100%`
+   llena exacto: sin letterbox, sin recorte y sin deformación, y los porcentajes
+   de cada sitio caen sobre la superficie pintada.
+
+   Escritorio: la habitación entera. Móvil: el mismo cuarto en dos vistas
+   apiladas — un recorte 4:5 de la ilustración horizontal mide media imagen y
+   perdería la ventana o las repisas. */
 :root {
   --garden-shadow: #6b6355;
   --garden-fallback: #efe9dc;  /* color mientras carga la ilustración */
@@ -507,34 +510,67 @@ html[data-theme="dark"] {
 }
 
 .garden-scene {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
   background-color: var(--garden-fallback);
-  background-image: url("/garden/cuarto-claro.webp");
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
 
-html[data-theme="dark"] .garden-scene {
-  background-image: url("/garden/cuarto-oscuro.webp");
-}
+.garden-scene-wide { display: none; aspect-ratio: 1586 / 991; }
+.garden-panel-a { aspect-ratio: 800 / 820; }
+.garden-panel-b { aspect-ratio: 806 / 930; }
 
-.garden-slot {
+.garden-scene-wide { background-image: url("/garden/cuarto-claro.webp"); }
+.garden-panel-a { background-image: url("/garden/movil-a-claro.webp"); }
+.garden-panel-b { background-image: url("/garden/movil-b-claro.webp"); }
+
+html[data-theme="dark"] .garden-scene-wide { background-image: url("/garden/cuarto-oscuro.webp"); }
+html[data-theme="dark"] .garden-panel-a { background-image: url("/garden/movil-a-oscuro.webp"); }
+html[data-theme="dark"] .garden-panel-b { background-image: url("/garden/movil-b-oscuro.webp"); }
+
+/* Las dos vistas se apilan sin borde ni separación: la costura se disuelve con
+   un degradado hacia la superficie de la tarjeta, para que se lean como un
+   mismo cuarto recorrido y no como dos tarjetas pegadas. */
+.garden-movil > * + * { margin-top: -1px; }
+
+.garden-panel-a::after,
+.garden-panel-b::after {
+  content: "";
   position: absolute;
-  left: var(--gx-n);
-  top: var(--gy-n);
-  width: var(--gw-n);
-  height: var(--gh-n);
-  transform: translate(-50%, -100%);
-  transition: transform 220ms ease-out;
-  cursor: pointer;
+  left: 0;
+  right: 0;
+  height: 11%;
+  pointer-events: none;
+  z-index: 0;
+}
+.garden-panel-a::after {
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent, var(--color-paper));
+}
+.garden-panel-b::after {
+  top: 0;
+  background: linear-gradient(to top, transparent, var(--color-paper));
 }
 
 @media (min-width: 768px) {
-  .garden-slot {
-    left: var(--gx);
-    top: var(--gy);
-    width: var(--gw);
-    height: var(--gh);
-  }
+  .garden-scene-wide { display: block; }
+  .garden-movil { display: none; }
+}
+
+/* Cada planta lleva su posición y su tamaño en variables CSS, medidos sobre el
+   lienzo al que pertenece. */
+.garden-slot {
+  position: absolute;
+  left: var(--gx);
+  top: var(--gy);
+  width: var(--gw);
+  height: var(--gh);
+  transform: translate(-50%, -100%);
+  transition: transform 220ms ease-out;
+  cursor: pointer;
+  z-index: 1;
 }
 
 /* Sombra de contacto: lo que hace que la planta PESE sobre la repisa en vez

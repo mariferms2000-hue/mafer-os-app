@@ -4,6 +4,7 @@ import {
   MAX_ROOM_PLANTS,
   PROPAGATION_SPOT,
   SCENE_ASPECT,
+  SCENES_FOR,
   fillIndex,
   fitPlant,
   placePlants,
@@ -20,7 +21,7 @@ const BREAKPOINTS: GardenBreakpoint[] = ["wide", "narrow"];
  *  a la anterior y no puede invadirla. */
 const STACK: Record<GardenBreakpoint, string[]> = {
   wide: ["repisa-alta", "repisa-media", "repisa-baja", "piso"],
-  narrow: ["repisa-baja", "piso"],
+  narrow: ["repisa-alta", "repisa-media", "repisa-baja", "piso"],
 };
 
 const bySurface = (slots: GardenSlot[], surface: string) => slots.filter((s) => s.surface === surface);
@@ -58,6 +59,8 @@ describe("slots de la escena", () => {
         const surfaces = [...new Set(slots.map((s) => s.surface))];
         for (const surface of surfaces) {
           const row = bySurface(slots, surface).sort((a, b) => a.x - b.x);
+          // (todas las de una superficie viven en el mismo lienzo)
+          expect(new Set(row.map((s) => s.scene)).size).toBe(1);
           for (let i = 1; i < row.length; i++) {
             const gap = row[i].x - row[i - 1].x;
             const needed = row[i].maxWidth / 2 + row[i - 1].maxWidth / 2;
@@ -88,7 +91,8 @@ describe("slots de la escena", () => {
       it("la mesa de propagación no pisa ningún slot de plantas", () => {
         const p = PROPAGATION_SPOT[bp];
         expect(slots.some((s) => s.id === p.id)).toBe(false);
-        for (const s of slots) {
+        // Solo puede chocar con lo que comparte lienzo con ella.
+        for (const s of slots.filter((s) => s.scene === p.scene)) {
           const solapaX = Math.abs(s.x - p.x) < s.maxWidth / 2 + p.maxWidth / 2;
           const solapaY = s.baseline > p.baseline - p.height && s.baseline - s.height < p.baseline;
           expect(solapaX && solapaY, `${s.id} choca con la mesa`).toBe(false);
@@ -97,16 +101,41 @@ describe("slots de la escena", () => {
     });
   }
 
-  it("los ids de la composición estrecha existen también en la amplia", () => {
-    const wide = new Set(GARDEN_SLOTS.wide.map((s) => s.id));
-    for (const s of GARDEN_SLOTS.narrow) expect(wide.has(s.id)).toBe(true);
+  it("un id compartido entre composiciones significa siempre la misma superficie", () => {
+    // El alféizar solo existe en móvil por ahora; lo que sí debe cumplirse es
+    // que «repisa-media-2» sea la repisa media en las dos, para que un acomodo
+    // guardado (PR siguiente) signifique lo mismo en cualquier pantalla.
+    const wide = new Map(GARDEN_SLOTS.wide.map((s) => [s.id, s.surface]));
+    for (const s of GARDEN_SLOTS.narrow) {
+      const enAmplia = wide.get(s.id);
+      if (enAmplia) expect(enAmplia, s.id).toBe(s.surface);
+    }
+  });
+
+  it("cada slot vive en un lienzo declarado y con proporción conocida", () => {
+    for (const bp of BREAKPOINTS) {
+      for (const s of GARDEN_SLOTS[bp]) {
+        expect(SCENES_FOR[bp]).toContain(s.scene);
+        expect(SCENE_ASPECT[s.scene]).toBeGreaterThan(0);
+      }
+      expect(SCENES_FOR[bp]).toContain(PROPAGATION_SPOT[bp].scene);
+    }
+  });
+
+  it("móvil reparte el cuarto en dos vistas: ventana arriba, repisas abajo", () => {
+    const a = GARDEN_SLOTS.narrow.filter((s) => s.scene === "movil-a");
+    const b = GARDEN_SLOTS.narrow.filter((s) => s.scene === "movil-b");
+    expect(a.every((s) => s.surface === "alfeizar")).toBe(true);
+    expect(new Set(b.map((s) => s.surface))).toEqual(
+      new Set(["repisa-alta", "repisa-media", "repisa-baja", "piso"])
+    );
+    expect(a.length + b.length).toBe(GARDEN_SLOTS.narrow.length);
   });
 
   it("el cuarto es una vitrina: capacidad acotada y menor en móvil", () => {
     expect(roomCapacity("wide")).toBe(18);
-    // Móvil: sobre la misma ilustración solo caben con dignidad la repisa baja
-    // y el suelo — el resto de la colección sigue entero en el invernadero.
-    expect(roomCapacity("narrow")).toBe(4);
+    // Móvil reparte el cuarto en dos vistas y recupera casi todo el aforo.
+    expect(roomCapacity("narrow")).toBe(13);
     expect(roomCapacity("narrow")).toBeLessThan(roomCapacity("wide"));
     expect(MAX_ROOM_PLANTS).toBe(18);
   });
@@ -128,7 +157,7 @@ describe("tamaño de cada planta", () => {
     for (const bp of BREAKPOINTS) {
       for (const slot of GARDEN_SLOTS[bp]) {
         for (const species of ILLUSTRATED_PLANT_SPECIES) {
-          const box = fitPlant(species, slot, bp);
+          const box = fitPlant(species, slot);
           expect(box.width, `${species} en ${slot.id}`).toBeLessThanOrEqual(slot.maxWidth + 1e-6);
           expect(box.height).toBeLessThanOrEqual(slot.height + 1e-6);
           expect(box.width).toBeGreaterThan(0);
@@ -142,10 +171,10 @@ describe("tamaño de cada planta", () => {
     for (const bp of BREAKPOINTS) {
       for (const slot of GARDEN_SLOTS[bp]) {
         for (const species of ILLUSTRATED_PLANT_SPECIES) {
-          const { width, height } = fitPlant(species, slot, bp);
+          const { width, height } = fitPlant(species, slot);
           // % de ancho y de alto se miden sobre ejes distintos: hay que
           // devolverlos a píxeles con la proporción de la escena.
-          const aspectoReal = (width * SCENE_ASPECT[bp]) / height;
+          const aspectoReal = (width * SCENE_ASPECT[slot.scene]) / height;
           expect(aspectoReal, `${species} en ${slot.id}`).toBeCloseTo(plantAspect(species), 3);
         }
       }
@@ -154,8 +183,8 @@ describe("tamaño de cada planta", () => {
 
   it("una especie ancha se recorta y una estrecha no", () => {
     const slot = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-alta")!;
-    const monstera = fitPlant("monstera", slot, "wide"); // 411×318, apaisada
-    const bambu = fitPlant("bambu", slot, "wide"); // 263×282, vertical
+    const monstera = fitPlant("monstera", slot); // 411×318, apaisada
+    const bambu = fitPlant("bambu", slot); // 263×282, vertical
     expect(monstera.height).toBeLessThan(slot.height); // recortada
     expect(bambu.height).toBeCloseTo(slot.height, 4); // cabe entera
   });
@@ -211,10 +240,15 @@ describe("reparto de plantas", () => {
     }
   });
 
-  it("las primeras plantas de escritorio son también las de móvil: nada salta de sitio al cambiar de pantalla", () => {
+  it("las mismas plantas se muestran en ambas composiciones, aunque en sitios distintos", () => {
     const n = roomCapacity("narrow");
     const wide = placePlants(plantas(n), "wide").map((p) => p.plant.id);
     const narrow = placePlants(plantas(n), "narrow").map((p) => p.plant.id);
     expect(new Set(narrow)).toEqual(new Set(wide.slice(0, n)));
+  });
+
+  it("móvil llena los dos paneles desde el principio, no uno y luego el otro", () => {
+    const puestas = placePlants(plantas(5), "narrow");
+    expect(new Set(puestas.map((p) => p.slot.scene)).size).toBe(2);
   });
 });

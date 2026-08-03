@@ -33,19 +33,33 @@ import { PLANT_ASSET_DIMS, isIllustratedPlantSpecies } from "./plant-assets";
  *  legible a 390 px de ancho. */
 export type GardenBreakpoint = "wide" | "narrow";
 
+/** Cada lienzo de fondo con su propio sistema de coordenadas. En escritorio la
+ *  habitación cabe entera; en móvil se recorre en dos vistas apiladas del mismo
+ *  cuarto — arriba la ventana con su banco, abajo las repisas y el suelo. */
+export type GardenScene = "wide" | "movil-a" | "movil-b";
+
+/** Qué lienzos se pintan en cada composición, en orden de arriba abajo. */
+export const SCENES_FOR: Record<GardenBreakpoint, GardenScene[]> = {
+  wide: ["wide"],
+  narrow: ["movil-a", "movil-b"],
+};
+
 export type GardenSurface = "alfeizar" | "repisa-alta" | "repisa-media" | "repisa-baja" | "piso";
 
 /** Proporción del lienzo ilustrado (1586 × 991). Debe coincidir con el
  *  aspect-ratio del contenedor o los sitios dejarían de caer sobre las
  *  superficies pintadas. Ambas composiciones comparten fondo. */
-export const SCENE_ASPECT: Record<GardenBreakpoint, number> = {
+export const SCENE_ASPECT: Record<GardenScene, number> = {
   wide: 1586 / 991,
-  narrow: 1586 / 991,
+  "movil-a": 800 / 820,
+  "movil-b": 806 / 930,
 };
 
 export type GardenSlot = {
   id: string;
   surface: GardenSurface;
+  /** lienzo al que pertenecen sus coordenadas */
+  scene: GardenScene;
   /** centro horizontal, % del ancho de la escena */
   x: number;
   /** línea de apoyo, % del alto de la escena medido desde arriba */
@@ -59,6 +73,7 @@ export type GardenSlot = {
 };
 
 const slot = (
+  scene: GardenScene,
   id: string,
   surface: GardenSurface,
   x: number,
@@ -66,47 +81,67 @@ const slot = (
   height: number,
   maxWidth: number,
   order: number
-): GardenSlot => ({ id, surface, x, baseline, height, maxWidth, order });
+): GardenSlot => ({ id, surface, scene, x, baseline, height, maxWidth, order });
 
 /** Escritorio: 15 sitios en las tres repisas + 3 en el suelo.
  *  Líneas de apoyo medidas sobre la ilustración, siguiendo su inclinación. */
 const WIDE: GardenSlot[] = [
   // Repisa alta — sube 2.1 % hacia la derecha
-  slot("repisa-alta-1", "repisa-alta", 63, 16.07, 13, 7.8, 0),
-  slot("repisa-alta-2", "repisa-alta", 71, 15.44, 13, 7.8, 1),
-  slot("repisa-alta-3", "repisa-alta", 79, 14.81, 13, 7.8, 2),
-  slot("repisa-alta-4", "repisa-alta", 87, 14.17, 13, 7.8, 3),
-  slot("repisa-alta-5", "repisa-alta", 95, 13.54, 13, 7.8, 4),
+  slot("wide", "repisa-alta-1", "repisa-alta", 63, 16.07, 13, 7.8, 0),
+  slot("wide", "repisa-alta-2", "repisa-alta", 71, 15.44, 13, 7.8, 1),
+  slot("wide", "repisa-alta-3", "repisa-alta", 79, 14.81, 13, 7.8, 2),
+  slot("wide", "repisa-alta-4", "repisa-alta", 87, 14.17, 13, 7.8, 3),
+  slot("wide", "repisa-alta-5", "repisa-alta", 95, 13.54, 13, 7.8, 4),
   // Repisa media — casi horizontal
-  slot("repisa-media-1", "repisa-media", 63, 32.41, 13, 7.8, 5),
-  slot("repisa-media-2", "repisa-media", 71, 32.25, 13, 7.8, 6),
-  slot("repisa-media-3", "repisa-media", 79, 32.09, 13, 7.8, 7),
-  slot("repisa-media-4", "repisa-media", 87, 31.93, 13, 7.8, 8),
-  slot("repisa-media-5", "repisa-media", 95, 31.77, 13, 7.8, 9),
+  slot("wide", "repisa-media-1", "repisa-media", 63, 32.41, 13, 7.8, 5),
+  slot("wide", "repisa-media-2", "repisa-media", 71, 32.25, 13, 7.8, 6),
+  slot("wide", "repisa-media-3", "repisa-media", 79, 32.09, 13, 7.8, 7),
+  slot("wide", "repisa-media-4", "repisa-media", 87, 31.93, 13, 7.8, 8),
+  slot("wide", "repisa-media-5", "repisa-media", 95, 31.77, 13, 7.8, 9),
   // Repisa baja — horizontal
-  slot("repisa-baja-1", "repisa-baja", 63, 49.11, 14, 7.8, 10),
-  slot("repisa-baja-2", "repisa-baja", 71, 49.20, 14, 7.8, 11),
-  slot("repisa-baja-3", "repisa-baja", 79, 49.29, 14, 7.8, 12),
-  slot("repisa-baja-4", "repisa-baja", 87, 49.38, 14, 7.8, 13),
-  slot("repisa-baja-5", "repisa-baja", 95, 49.47, 14, 7.8, 14),
+  slot("wide", "repisa-baja-1", "repisa-baja", 63, 49.11, 14, 7.8, 10),
+  slot("wide", "repisa-baja-2", "repisa-baja", 71, 49.20, 14, 7.8, 11),
+  slot("wide", "repisa-baja-3", "repisa-baja", 79, 49.29, 14, 7.8, 12),
+  slot("wide", "repisa-baja-4", "repisa-baja", 87, 49.38, 14, 7.8, 13),
+  slot("wide", "repisa-baja-5", "repisa-baja", 95, 49.47, 14, 7.8, 14),
   // Suelo — más cerca del frente = más grandes. A la izquierda de la regadera
   // y la caja de madera, que viven a partir del 78 % del ancho.
-  slot("piso-1", "piso", 37, 87, 23, 16, 15),
-  slot("piso-2", "piso", 54, 85, 22, 16, 16),
-  slot("piso-3", "piso", 70, 80, 19, 14, 17),
+  slot("wide", "piso-1", "piso", 37, 87, 23, 16, 15),
+  slot("wide", "piso-2", "piso", 54, 85, 22, 16, 16),
+  slot("wide", "piso-3", "piso", 70, 80, 19, 14, 17),
 ];
 
-/** Móvil: la misma ilustración a 390 px de ancho deja la escena en ~244 px de
- *  alto, y las repisas están a solo un 17 % de altura entre sí — ahí una planta
- *  mediría 38 px. Así que en móvil solo se usan las superficies con altura
- *  suficiente: la repisa baja y el suelo. El resto de la colección sigue
- *  entero en el invernadero.
- *  PROVISIONAL: una ilustración vertical propia permitiría más sitios. */
+/** Móvil: la misma habitación recorrida en dos vistas apiladas.
+ *
+ *  Un recorte 4:5 de la ilustración horizontal mide exactamente media imagen:
+ *  o conserva la ventana y pierde las repisas, o al revés. Por eso móvil no es
+ *  un recorte sino DOS lienzos del mismo cuarto — arriba la ventana con su
+ *  alféizar y su banco, abajo las tres repisas y el suelo.
+ *
+ *  Coordenadas medidas dentro de cada recorte, promediando claro y oscuro.
+ *  A 390 px de ancho las plantas quedan entre 55 y 90 px: legibles y tocables,
+ *  frente a los 38 px que daba la composición de una sola escena. */
 const NARROW: GardenSlot[] = [
-  slot("repisa-baja-2", "repisa-baja", 70, 49.19, 14, 16, 0),
-  slot("repisa-baja-4", "repisa-baja", 88, 49.39, 14, 16, 1),
-  slot("piso-2", "piso", 50, 86, 24, 22, 2),
-  slot("piso-3", "piso", 72, 79, 20, 18, 3),
+  // ── Panel A · ventana, alféizar y banco ──
+  // El alféizar sube hacia la derecha con la perspectiva. Sus dos sitios van a
+  // la derecha del panel para dejarle a la planta actual el hueco de la
+  // izquierda: el banco está DELANTE del alféizar, así que una planta alta
+  // sobre él invadiría el alféizar si compartieran columna.
+  slot("movil-a", "alfeizar-1", "alfeizar", 40, 63.8, 20, 11, 0),
+  slot("movil-a", "alfeizar-2", "alfeizar", 52, 62.9, 20, 11, 1),
+  // ── Panel B · tres repisas y suelo ──
+  slot("movil-b", "repisa-alta-1", "repisa-alta", 35, 15.46, 13, 22, 2),
+  slot("movil-b", "repisa-alta-2", "repisa-alta", 58, 14.57, 13, 22, 3),
+  slot("movil-b", "repisa-alta-3", "repisa-alta", 81, 13.67, 13, 22, 4),
+  slot("movil-b", "repisa-media-1", "repisa-media", 35, 33.43, 16, 22, 5),
+  slot("movil-b", "repisa-media-2", "repisa-media", 58, 33.13, 16, 22, 6),
+  slot("movil-b", "repisa-media-3", "repisa-media", 81, 32.83, 16, 22, 7),
+  slot("movil-b", "repisa-baja-1", "repisa-baja", 35, 51.26, 17, 22, 8),
+  slot("movil-b", "repisa-baja-2", "repisa-baja", 58, 51.43, 17, 22, 9),
+  slot("movil-b", "repisa-baja-3", "repisa-baja", 81, 51.60, 17, 22, 10),
+  // El suelo se queda a la izquierda de la regadera y la caja (68 % en adelante)
+  slot("movil-b", "piso-1", "piso", 30, 88, 22, 26, 11),
+  slot("movil-b", "piso-2", "piso", 54, 82, 19, 22, 12),
 ];
 
 export const GARDEN_SLOTS: Record<GardenBreakpoint, GardenSlot[]> = { wide: WIDE, narrow: NARROW };
@@ -120,8 +155,9 @@ export const GARDEN_SLOTS: Record<GardenBreakpoint, GardenSlot[]> = { wide: WIDE
  *  lienzo un poco más abajo el dibujo aterriza sobre la madera en vez de
  *  flotar. Calculado como 67.8 + 0.18 × alto. */
 export const PROPAGATION_SPOT: Record<GardenBreakpoint, Omit<GardenSlot, "surface" | "order">> = {
-  wide: { id: "propagacion", x: 17, baseline: 73.3, height: 24, maxWidth: 24 },
-  narrow: { id: "propagacion", x: 17, baseline: 73.3, height: 24, maxWidth: 24 },
+  wide: { id: "propagacion", scene: "wide", x: 17, baseline: 73.3, height: 24, maxWidth: 24 },
+  // En móvil el banco vive en el panel A, medido dentro de ese recorte.
+  narrow: { id: "propagacion", scene: "movil-a", x: 18, baseline: 83.2, height: 26, maxWidth: 26 },
 };
 
 /** Orden de llenado, distinto del orden visual: reparte entre superficies para
@@ -134,7 +170,11 @@ const FILL_ORDER: Record<GardenBreakpoint, string[]> = {
     "repisa-baja-3", "repisa-alta-5", "repisa-media-5", "repisa-baja-5", "repisa-alta-2",
     "repisa-media-3", "repisa-baja-2", "repisa-alta-4",
   ],
-  narrow: ["repisa-baja-2", "piso-2", "repisa-baja-4", "piso-3"],
+  narrow: [
+    "alfeizar-1", "repisa-media-2", "piso-1", "repisa-alta-2", "repisa-baja-2",
+    "alfeizar-2", "piso-2", "repisa-media-1", "repisa-alta-1", "repisa-baja-3",
+    "repisa-media-3", "repisa-alta-3", "repisa-baja-1",
+  ],
 };
 
 /** Cuántas plantas caben en el cuarto. El resto NO se pierde: sigue en el
@@ -164,12 +204,12 @@ export type PlantBox = { width: number; height: number };
  *  recortar, se reduce el alto en la misma proporción. */
 export function fitPlant(
   species: string,
-  slot: { height: number; maxWidth: number },
-  breakpoint: GardenBreakpoint
+  slot: { height: number; maxWidth: number; scene: GardenScene },
+  scene?: GardenScene
 ): PlantBox {
   const aspect = plantAspect(species);
   const height = slot.height;
-  const width = (height * aspect) / SCENE_ASPECT[breakpoint];
+  const width = (height * aspect) / SCENE_ASPECT[scene ?? slot.scene];
   if (width <= slot.maxWidth) return { width: round(width), height: round(height) };
   const scale = slot.maxWidth / width;
   return { width: round(slot.maxWidth), height: round(height * scale) };

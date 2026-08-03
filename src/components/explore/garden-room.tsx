@@ -8,25 +8,32 @@ import {
   PROPAGATION_SPOT,
   fitPlant,
   placePlants,
+  type GardenScene,
   type GardenSlot,
 } from "@/lib/garden-layout";
 
 /* La escena de «Mi jardín»: el cuarto botánico.
 
-   El fondo es la ilustración de public/garden/, puesta como background-image en
-   .garden-scene: así el navegador descarga SOLO la variante del tema activo
-   (con dos <img> ocultos se bajarían las dos). El contenedor fija la proporción
-   del lienzo ilustrado, de modo que los porcentajes de cada sitio caen sobre la
-   superficie pintada exacta, a cualquier ancho de pantalla.
+   El fondo son las ilustraciones de public/garden/, puestas como
+   background-image en cada lienzo: así el navegador descarga SOLO la variante
+   del tema activo (con dos <img> ocultos se bajarían las dos). Cada contenedor
+   fija la proporción de su lienzo, de modo que los porcentajes de cada sitio
+   caen sobre la superficie pintada exacta, a cualquier ancho de pantalla.
 
-   Una sola capa de plantas para las DOS composiciones. Cada planta se pinta una
-   vez y su posición viaja en variables CSS (--gx/--gy para escritorio,
-   --gx-n/--gy-n para móvil); la media query de .garden-slot elige cuál manda.
-   Así no se duplican <img> por breakpoint ni hace falta JavaScript.
+   ESCRITORIO: la habitación entera en un lienzo.
+   MÓVIL: el mismo cuarto recorrido en DOS vistas apiladas — arriba la ventana
+   con su alféizar y el banco de propagación, abajo las tres repisas y el suelo.
+   Un recorte 4:5 de la ilustración horizontal mide media imagen: o conserva la
+   ventana o conserva las repisas, nunca las dos. Dos vistas del mismo cuarto lo
+   resuelven sin inventar arte nuevo, y suben las plantas de 38 px a 55-90.
 
-   Cada planta sigue siendo un PlantCardTrigger: abre el mismo popup de detalle
-   de siempre. PlantArt no se toca; solo se le da una caja con la proporción
-   real de su especie para que quede posada y sin deformar. */
+   Cada composición monta sus propios nodos (viven en contenedores distintos y
+   no pueden compartirlos), pero las URL de las imágenes se repiten, así que el
+   coste de red no cambia: solo hay nodos de más en el DOM, ocultos por CSS.
+
+   Cada planta sigue siendo un PlantCardTrigger: abre el mismo popup de siempre.
+   PlantArt no se toca; solo se le da una caja con la proporción real de su
+   especie para que quede posada y sin deformar. */
 
 const STAGE_LABEL: Record<StageKey, string> = Object.fromEntries(STAGES.map((s) => [s.key, s.label])) as Record<
   StageKey,
@@ -42,94 +49,115 @@ function fecha(iso: string | null): string {
   return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
 }
 
-type SpotLike = Pick<GardenSlot, "x" | "baseline" | "height" | "maxWidth">;
+type Spot = Pick<GardenSlot, "x" | "baseline" | "height" | "maxWidth" | "scene">;
 
-/** Variables CSS de posición y tamaño para las dos composiciones. */
-function slotStyle(species: string, wide: SpotLike, narrow: SpotLike | null): React.CSSProperties {
-  const w = fitPlant(species, wide, "wide");
-  const vars: Record<string, string> = {
-    "--gx": `${wide.x}%`,
-    "--gy": `${wide.baseline}%`,
-    "--gw": `${w.width}%`,
-    "--gh": `${w.height}%`,
-  };
-  if (narrow) {
-    const n = fitPlant(species, narrow, "narrow");
-    vars["--gx-n"] = `${narrow.x}%`;
-    vars["--gy-n"] = `${narrow.baseline}%`;
-    vars["--gw-n"] = `${n.width}%`;
-    vars["--gh-n"] = `${n.height}%`;
+/** Posición y tamaño del sitio, en variables CSS. */
+function slotStyle(species: string, spot: Spot): React.CSSProperties {
+  const box = fitPlant(species, spot);
+  return {
+    "--gx": `${spot.x}%`,
+    "--gy": `${spot.baseline}%`,
+    "--gw": `${box.width}%`,
+    "--gh": `${box.height}%`,
+  } as React.CSSProperties;
+}
+
+/** La planta actual, posada en su banco de propagación. Las etapas tempranas
+ *  son láminas de espécimen —con raíces al aire—, y ahí es justo donde tienen
+ *  sentido. */
+function CurrentPlant({
+  current,
+  spot,
+  testid,
+}: {
+  current: GardenData["current"];
+  spot: Spot;
+  testid: string;
+}) {
+  if (!current) {
+    return (
+      <div className="garden-slot garden-slot-current garden-slot-quiet" style={slotStyle("helecho", spot)}>
+        <PlantArt species="helecho" visualSeed={0} stage="semilla" className="h-full w-full text-sage-deep" />
+      </div>
+    );
   }
-  return vars as React.CSSProperties;
+  const nombre = SPECIES_LABEL[current.species] ?? current.species;
+  return (
+    <PlantCardTrigger
+      plant={current}
+      label={`Ver detalle de tu ${nombre} — planta actual, ${STAGE_LABEL[current.stage].toLowerCase()}`}
+      testid={testid}
+      className="garden-slot garden-slot-current"
+      style={slotStyle(current.species, spot)}
+    >
+      <PlantArt
+        species={asSpecies(current.species)}
+        visualSeed={current.visualSeed}
+        stage={current.stage}
+        className="h-full w-full text-sage-deep"
+      />
+      <span className="garden-tip">
+        {nombre} · {STAGE_LABEL[current.stage]}
+      </span>
+    </PlantCardTrigger>
+  );
+}
+
+function CompletedPlant({ plant, slot, testid }: { plant: GardenPlant; slot: GardenSlot; testid: string }) {
+  const nombre = SPECIES_LABEL[plant.species] ?? plant.species;
+  return (
+    <PlantCardTrigger
+      plant={{ ...plant, stage: "planta-completa", next: null }}
+      label={`Ver detalle de tu ${nombre} completada el ${fecha(plant.completedAt)}`}
+      testid={testid}
+      className="garden-slot"
+      style={slotStyle(plant.species, slot)}
+    >
+      <PlantArt
+        species={asSpecies(plant.species)}
+        visualSeed={plant.visualSeed}
+        stage="planta-completa"
+        size="small"
+        className="h-full w-full text-sage-deep"
+      />
+      <span className="garden-tip">{nombre}</span>
+    </PlantCardTrigger>
+  );
 }
 
 export function GardenRoom({ garden }: { garden: GardenData }) {
   const c = garden.current;
-
-  // Mismo orden de entrada en ambas composiciones, así que la planta i cae en
-  // el sitio i del orden de llenado de cada una.
   const wide = placePlants<GardenPlant>(garden.completed, "wide");
   const narrow = placePlants<GardenPlant>(garden.completed, "narrow");
-  const narrowByPlant = new Map(narrow.map((p) => [p.plant.id, p.slot]));
 
-  // DOM en orden de lectura visual (arriba→abajo, izquierda→derecha): es el
-  // orden en que el tabulador recorre la escena.
-  const placed = [...wide].sort((a, b) => a.slot.order - b.slot.order);
+  // DOM en orden de lectura visual: es el orden en que el tabulador recorre.
+  const porOrden = (a: { slot: GardenSlot }, b: { slot: GardenSlot }) => a.slot.order - b.slot.order;
+  const enPanel = (scene: GardenScene) => narrow.filter((p) => p.slot.scene === scene).sort(porOrden);
 
   return (
-    <div className="garden-scene relative w-full aspect-[1586/991] overflow-hidden">
+    <>
+      {/* ── Escritorio: la habitación entera ── */}
+      <div className="garden-scene garden-scene-wide" data-testid="garden-scene-wide">
+        <CurrentPlant current={c} spot={PROPAGATION_SPOT.wide} testid="garden-room-current" />
+        {[...wide].sort(porOrden).map(({ slot, plant }) => (
+          <CompletedPlant key={plant.id} plant={plant} slot={slot} testid="garden-room-plant" />
+        ))}
+      </div>
 
-      {/* Planta actual, en la mesa de propagación. Las etapas tempranas son
-          láminas de espécimen (semilla, raíces al aire): dentro del frasco es
-          justo donde tienen sentido. */}
-      {c ? (
-        <PlantCardTrigger
-          plant={c}
-          label={`Ver detalle de tu ${SPECIES_LABEL[c.species] ?? c.species} — planta actual, ${STAGE_LABEL[c.stage].toLowerCase()}`}
-          testid="garden-room-current"
-          className="garden-slot garden-slot-current"
-          style={slotStyle(c.species, PROPAGATION_SPOT.wide, PROPAGATION_SPOT.narrow)}
-        >
-          <PlantArt
-            species={asSpecies(c.species)}
-            visualSeed={c.visualSeed}
-            stage={c.stage}
-            className="h-full w-full text-sage-deep"
-          />
-          <span className="garden-tip">{SPECIES_LABEL[c.species] ?? c.species} · {STAGE_LABEL[c.stage]}</span>
-        </PlantCardTrigger>
-      ) : (
-        <div
-          className="garden-slot garden-slot-current garden-slot-quiet"
-          style={slotStyle("helecho", PROPAGATION_SPOT.wide, PROPAGATION_SPOT.narrow)}
-        >
-          <PlantArt species="helecho" visualSeed={0} stage="semilla" className="h-full w-full text-sage-deep" />
+      {/* ── Móvil: el mismo cuarto en dos vistas apiladas ── */}
+      <div className="garden-movil" data-testid="garden-scene-movil">
+        <div className="garden-scene garden-panel-a">
+          <CurrentPlant current={c} spot={PROPAGATION_SPOT.narrow} testid="garden-movil-current" />
+          {enPanel("movil-a").map(({ slot, plant }) => (
+            <CompletedPlant key={plant.id} plant={plant} slot={slot} testid="garden-movil-plant" />
+          ))}
         </div>
-      )}
-
-      {/* Plantas completadas: cada una en su sitio, cada una con su popup */}
-      {placed.map(({ slot, plant }) => {
-        const narrowSlot = narrowByPlant.get(plant.id) ?? null;
-        return (
-          <PlantCardTrigger
-            key={plant.id}
-            plant={{ ...plant, stage: "planta-completa", next: null }}
-            label={`Ver detalle de tu ${SPECIES_LABEL[plant.species] ?? plant.species} completada el ${fecha(plant.completedAt)}`}
-            testid="garden-room-plant"
-            className={`garden-slot ${narrowSlot ? "" : "hidden md:block"}`}
-            style={slotStyle(plant.species, slot, narrowSlot)}
-          >
-            <PlantArt
-              species={asSpecies(plant.species)}
-              visualSeed={plant.visualSeed}
-              stage="planta-completa"
-              size="small"
-              className="h-full w-full text-sage-deep"
-            />
-            <span className="garden-tip">{SPECIES_LABEL[plant.species] ?? plant.species}</span>
-          </PlantCardTrigger>
-        );
-      })}
-    </div>
+        <div className="garden-scene garden-panel-b">
+          {enPanel("movil-b").map(({ slot, plant }) => (
+            <CompletedPlant key={plant.id} plant={plant} slot={slot} testid="garden-movil-plant" />
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
