@@ -20,7 +20,7 @@ const BREAKPOINTS: GardenBreakpoint[] = ["wide", "narrow"];
  *  a la anterior y no puede invadirla. */
 const STACK: Record<GardenBreakpoint, string[]> = {
   wide: ["repisa-alta", "repisa-media", "repisa-baja", "piso"],
-  narrow: ["repisa-alta", "repisa-baja", "piso"],
+  narrow: ["repisa-baja", "piso"],
 };
 
 const bySurface = (slots: GardenSlot[], surface: string) => slots.filter((s) => s.surface === surface);
@@ -79,10 +79,10 @@ describe("slots de la escena", () => {
         }
       });
 
-      it("la profundidad se nota: las plantas del suelo son mayores que las de la repisa alta", () => {
+      it("la profundidad se nota: las plantas del suelo son mayores que las de la repisa más alta disponible", () => {
         const piso = bySurface(slots, "piso")[0];
-        const alta = bySurface(slots, "repisa-alta")[0];
-        expect(piso.height).toBeGreaterThan(alta.height);
+        const arriba = STACK[bp].map((s) => bySurface(slots, s)[0]).find((s) => s && s.surface !== "piso")!;
+        expect(piso.height).toBeGreaterThan(arriba.height);
       });
 
       it("la mesa de propagación no pisa ningún slot de plantas", () => {
@@ -104,7 +104,9 @@ describe("slots de la escena", () => {
 
   it("el cuarto es una vitrina: capacidad acotada y menor en móvil", () => {
     expect(roomCapacity("wide")).toBe(18);
-    expect(roomCapacity("narrow")).toBe(8);
+    // Móvil: sobre la misma ilustración solo caben con dignidad la repisa baja
+    // y el suelo — el resto de la colección sigue entero en el invernadero.
+    expect(roomCapacity("narrow")).toBe(4);
     expect(roomCapacity("narrow")).toBeLessThan(roomCapacity("wide"));
     expect(MAX_ROOM_PLANTS).toBe(18);
   });
@@ -171,7 +173,7 @@ describe("reparto de plantas", () => {
   it("la más reciente ocupa el primer sitio del orden de llenado", () => {
     const [primera] = placePlants(plantas(5), "wide");
     expect(primera.plant.id).toBe("p0");
-    expect(primera.slot.id).toBe("alfeizar-2");
+    expect(primera.slot.id).toBe("repisa-media-2");
   });
 
   it("nunca coloca dos plantas en el mismo sitio", () => {
@@ -190,7 +192,8 @@ describe("reparto de plantas", () => {
   it("con pocas plantas la escena queda repartida, no amontonada", () => {
     const puestas = placePlants(plantas(5), "wide");
     const superficies = new Set(puestas.map((p) => p.slot.surface));
-    expect(superficies.size).toBe(5); // una en cada superficie
+    // Las cuatro superficies del cuarto quedan estrenadas con solo 5 plantas.
+    expect(superficies.size).toBe(4);
   });
 
   it("un jardín vacío no coloca nada", () => {

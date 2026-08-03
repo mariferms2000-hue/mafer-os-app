@@ -1,6 +1,5 @@
 import { PlantArt } from "@/components/focus/plant-art";
 import { PlantCardTrigger } from "./plant-card-trigger";
-import { RoomArt } from "./room-art";
 import { SPECIES_LABEL } from "@/lib/plant-svg-v2";
 import type { PlantSpeciesV2 } from "@/lib/plant-render-v2";
 import type { GardenData, GardenPlant } from "@/lib/queries/focus";
@@ -14,11 +13,16 @@ import {
 
 /* La escena de «Mi jardín»: el cuarto botánico.
 
+   El fondo es la ilustración de public/garden/, puesta como background-image en
+   .garden-scene: así el navegador descarga SOLO la variante del tema activo
+   (con dos <img> ocultos se bajarían las dos). El contenedor fija la proporción
+   del lienzo ilustrado, de modo que los porcentajes de cada sitio caen sobre la
+   superficie pintada exacta, a cualquier ancho de pantalla.
+
    Una sola capa de plantas para las DOS composiciones. Cada planta se pinta una
    vez y su posición viaja en variables CSS (--gx/--gy para escritorio,
    --gx-n/--gy-n para móvil); la media query de .garden-slot elige cuál manda.
-   Así no se duplican <img> por breakpoint —lo que habría doblado el peso de la
-   página— ni hace falta JavaScript para medir la pantalla.
+   Así no se duplican <img> por breakpoint ni hace falta JavaScript.
 
    Cada planta sigue siendo un PlantCardTrigger: abre el mismo popup de detalle
    de siempre. PlantArt no se toca; solo se le da una caja con la proporción
@@ -73,9 +77,7 @@ export function GardenRoom({ garden }: { garden: GardenData }) {
   const placed = [...wide].sort((a, b) => a.slot.order - b.slot.order);
 
   return (
-    <div className="garden-scene relative w-full aspect-[4/5] md:aspect-[8/5] overflow-hidden">
-      <RoomArt variant="narrow" className="absolute inset-0 h-full w-full md:hidden" />
-      <RoomArt variant="wide" className="absolute inset-0 h-full w-full hidden md:block" />
+    <div className="garden-scene relative w-full aspect-[1586/991] overflow-hidden">
 
       {/* Planta actual, en la mesa de propagación. Las etapas tempranas son
           láminas de espécimen (semilla, raíces al aire): dentro del frasco es

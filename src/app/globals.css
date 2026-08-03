@@ -488,62 +488,35 @@ html[data-theme="dark"] .plant-illus-light { display: none; }
 html[data-theme="dark"] .plant-illus-dark { display: block; }
 
 /* ─── Mi jardín: el cuarto botánico ───────────────────────────────
-   Paleta propia de la escena, en formas rellenas (nada de contornos): la
-   pared, las repisas y las sombras se separan por VALOR dentro de la familia
-   crema/arena, con una sola fuente de luz.
+   El fondo es una ilustración (public/garden/), no un SVG generado. Se pone
+   como background-image para que el navegador descargue SOLO la variante del
+   tema activo — con dos <img> ocultos bajaría las dos.
 
-   El modo oscuro NO es una inversión: es otra escena. Fuera es de noche (cielo
-   azul profundo por la ventana) y dentro hay una lámpara ámbar tenue —
-   `--garden-lamp` es transparente de día y cálida de noche, así que el mismo
-   SVG cambia de atmósfera sin duplicar arte. Ningún texto se apoya en estos
-   tokens: las etiquetas usan los pares ya cubiertos por tests/contrast.test.ts. */
+   El contenedor fija la proporción del lienzo (1586×991), así que
+   `background-size: 100% 100%` llena exacto: sin letterbox, sin recorte y sin
+   deformación, y los porcentajes de cada sitio caen sobre la superficie
+   pintada. */
 :root {
-  --garden-wall: #efe9dc;
-  --garden-wall-lit: #f8f5ec;
-  --garden-wall-deep: #e5ded0;
-  --garden-floor: #ddd2bc;
-  --garden-floor-lit: #eae1d0;
-  --garden-baseboard: #d6cab2;
-  --garden-shelf: #d8cbb1;
-  --garden-shelf-edge: #c2b398;
-  --garden-frame: #f7f3e9;
-  --garden-sill: #f1ebdd;
-  --garden-sky: #dbe6e4;
-  --garden-sky-low: #edf0e8;
-  --garden-glow: #fffdf3;
-  --garden-beam: #fffdf2;
-  --garden-lamp: transparent;
-  --garden-glass: #dae7e1;
-  --garden-glass-hi: #ffffff;
   --garden-shadow: #6b6355;
-  --garden-grain: #8a8170;
+  --garden-fallback: #efe9dc;  /* color mientras carga la ilustración */
 }
 
 html[data-theme="dark"] {
-  --garden-wall: #171d14;
-  --garden-wall-lit: #212819;
-  --garden-wall-deep: #101410;
-  --garden-floor: #0e120c;
-  --garden-floor-lit: #161c12;
-  --garden-baseboard: #1a2015;
-  --garden-shelf: #39432e;
-  --garden-shelf-edge: #242c1c;
-  --garden-frame: #333c2b;
-  --garden-sill: #2e3726;
-  --garden-sky: #0a0f1a;      /* noche real, no un crema invertido */
-  --garden-sky-low: #131c2a;
-  --garden-glow: #2a3627;     /* de noche la ventana casi no ilumina */
-  --garden-beam: #33485c;     /* un hilo de luna, no un foco */
-  --garden-lamp: #e8bd7a;     /* la única luz cálida del cuarto */
-  --garden-glass: #27352d;
-  --garden-glass-hi: #8fae95;
   --garden-shadow: #000000;
-  --garden-grain: #d6cdb8;
+  --garden-fallback: #171d14;
 }
 
-/* Cada planta se pinta UNA vez y lleva sus dos posiciones en variables CSS.
-   La media query elige composición, así que cambiar de móvil a escritorio no
-   duplica ni una sola imagen. */
+.garden-scene {
+  background-color: var(--garden-fallback);
+  background-image: url("/garden/cuarto-claro.webp");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+html[data-theme="dark"] .garden-scene {
+  background-image: url("/garden/cuarto-oscuro.webp");
+}
+
 .garden-slot {
   position: absolute;
   left: var(--gx-n);
