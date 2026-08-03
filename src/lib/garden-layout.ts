@@ -72,23 +72,23 @@ const slot = (
  *  Líneas de apoyo medidas sobre la ilustración, siguiendo su inclinación. */
 const WIDE: GardenSlot[] = [
   // Repisa alta — sube 2.1 % hacia la derecha
-  slot("repisa-alta-1", "repisa-alta", 63, 15.72, 13, 7.8, 0),
-  slot("repisa-alta-2", "repisa-alta", 71, 15.19, 13, 7.8, 1),
-  slot("repisa-alta-3", "repisa-alta", 79, 14.65, 13, 7.8, 2),
-  slot("repisa-alta-4", "repisa-alta", 87, 14.11, 13, 7.8, 3),
-  slot("repisa-alta-5", "repisa-alta", 95, 13.58, 13, 7.8, 4),
+  slot("repisa-alta-1", "repisa-alta", 63, 16.07, 13, 7.8, 0),
+  slot("repisa-alta-2", "repisa-alta", 71, 15.44, 13, 7.8, 1),
+  slot("repisa-alta-3", "repisa-alta", 79, 14.81, 13, 7.8, 2),
+  slot("repisa-alta-4", "repisa-alta", 87, 14.17, 13, 7.8, 3),
+  slot("repisa-alta-5", "repisa-alta", 95, 13.54, 13, 7.8, 4),
   // Repisa media — casi horizontal
-  slot("repisa-media-1", "repisa-media", 63, 32.29, 13, 7.8, 5),
-  slot("repisa-media-2", "repisa-media", 71, 32.12, 13, 7.8, 6),
-  slot("repisa-media-3", "repisa-media", 79, 31.96, 13, 7.8, 7),
-  slot("repisa-media-4", "repisa-media", 87, 31.79, 13, 7.8, 8),
-  slot("repisa-media-5", "repisa-media", 95, 31.62, 13, 7.8, 9),
+  slot("repisa-media-1", "repisa-media", 63, 32.41, 13, 7.8, 5),
+  slot("repisa-media-2", "repisa-media", 71, 32.25, 13, 7.8, 6),
+  slot("repisa-media-3", "repisa-media", 79, 32.09, 13, 7.8, 7),
+  slot("repisa-media-4", "repisa-media", 87, 31.93, 13, 7.8, 8),
+  slot("repisa-media-5", "repisa-media", 95, 31.77, 13, 7.8, 9),
   // Repisa baja — horizontal
-  slot("repisa-baja-1", "repisa-baja", 63, 49.07, 14, 7.8, 10),
-  slot("repisa-baja-2", "repisa-baja", 71, 49.16, 14, 7.8, 11),
-  slot("repisa-baja-3", "repisa-baja", 79, 49.25, 14, 7.8, 12),
-  slot("repisa-baja-4", "repisa-baja", 87, 49.34, 14, 7.8, 13),
-  slot("repisa-baja-5", "repisa-baja", 95, 49.43, 14, 7.8, 14),
+  slot("repisa-baja-1", "repisa-baja", 63, 49.11, 14, 7.8, 10),
+  slot("repisa-baja-2", "repisa-baja", 71, 49.20, 14, 7.8, 11),
+  slot("repisa-baja-3", "repisa-baja", 79, 49.29, 14, 7.8, 12),
+  slot("repisa-baja-4", "repisa-baja", 87, 49.38, 14, 7.8, 13),
+  slot("repisa-baja-5", "repisa-baja", 95, 49.47, 14, 7.8, 14),
   // Suelo — más cerca del frente = más grandes. A la izquierda de la regadera
   // y la caja de madera, que viven a partir del 78 % del ancho.
   slot("piso-1", "piso", 37, 87, 23, 16, 15),
@@ -103,8 +103,8 @@ const WIDE: GardenSlot[] = [
  *  entero en el invernadero.
  *  PROVISIONAL: una ilustración vertical propia permitiría más sitios. */
 const NARROW: GardenSlot[] = [
-  slot("repisa-baja-2", "repisa-baja", 70, 49.15, 14, 16, 0),
-  slot("repisa-baja-4", "repisa-baja", 88, 49.35, 14, 16, 1),
+  slot("repisa-baja-2", "repisa-baja", 70, 49.19, 14, 16, 0),
+  slot("repisa-baja-4", "repisa-baja", 88, 49.39, 14, 16, 1),
   slot("piso-2", "piso", 50, 86, 24, 22, 2),
   slot("piso-3", "piso", 72, 79, 20, 18, 3),
 ];
@@ -120,8 +120,8 @@ export const GARDEN_SLOTS: Record<GardenBreakpoint, GardenSlot[]> = { wide: WIDE
  *  lienzo un poco más abajo el dibujo aterriza sobre la madera en vez de
  *  flotar. Calculado como 67.8 + 0.18 × alto. */
 export const PROPAGATION_SPOT: Record<GardenBreakpoint, Omit<GardenSlot, "surface" | "order">> = {
-  wide: { id: "propagacion", x: 17, baseline: 71.5, height: 24, maxWidth: 24 },
-  narrow: { id: "propagacion", x: 17, baseline: 71.5, height: 24, maxWidth: 24 },
+  wide: { id: "propagacion", x: 17, baseline: 73.3, height: 24, maxWidth: 24 },
+  narrow: { id: "propagacion", x: 17, baseline: 73.3, height: 24, maxWidth: 24 },
 };
 
 /** Orden de llenado, distinto del orden visual: reparte entre superficies para
