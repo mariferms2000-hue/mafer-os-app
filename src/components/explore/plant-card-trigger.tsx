@@ -12,6 +12,7 @@ export function PlantCardTrigger({
   plant,
   label,
   className,
+  style,
   testid,
   as: As = "div",
   children,
@@ -19,6 +20,8 @@ export function PlantCardTrigger({
   plant: PlantDetailData;
   label: string;
   className?: string;
+  /** La escena del cuarto coloca cada planta con variables CSS de posición. */
+  style?: React.CSSProperties;
   testid?: string;
   as?: "div" | "li";
   children: React.ReactNode;
@@ -38,6 +41,7 @@ export function PlantCardTrigger({
         }}
         aria-label={label}
         className={className}
+        style={style}
         data-testid={testid}
       >
         {children}
