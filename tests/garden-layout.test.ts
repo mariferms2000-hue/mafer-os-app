@@ -122,22 +122,22 @@ describe("slots de la escena", () => {
     }
   });
 
-  it("móvil reparte el cuarto en dos vistas: ventana arriba, repisas abajo", () => {
-    const a = GARDEN_SLOTS.narrow.filter((s) => s.scene === "movil-a");
-    const b = GARDEN_SLOTS.narrow.filter((s) => s.scene === "movil-b");
-    expect(a.every((s) => s.surface === "alfeizar")).toBe(true);
-    expect(new Set(b.map((s) => s.surface))).toEqual(
+  it("móvil reparte el cuarto en dos vistas: la planta actual arriba, la colección abajo", () => {
+    // El panel A es el retrato de la planta actual sobre su banco; en esta
+    // habitación el banco tapa el alféizar y no hay más superficie útil ahí.
+    expect(PROPAGATION_SPOT.narrow.scene).toBe("movil-a");
+    expect(GARDEN_SLOTS.narrow.every((s) => s.scene === "movil-b")).toBe(true);
+    expect(new Set(GARDEN_SLOTS.narrow.map((s) => s.surface))).toEqual(
       new Set(["repisa-alta", "repisa-media", "repisa-baja", "piso"])
     );
-    expect(a.length + b.length).toBe(GARDEN_SLOTS.narrow.length);
   });
 
   it("el cuarto es una vitrina: capacidad acotada y menor en móvil", () => {
-    expect(roomCapacity("wide")).toBe(18);
+    expect(roomCapacity("wide")).toBe(20);
     // Móvil reparte el cuarto en dos vistas y recupera casi todo el aforo.
-    expect(roomCapacity("narrow")).toBe(13);
+    expect(roomCapacity("narrow")).toBe(16);
     expect(roomCapacity("narrow")).toBeLessThan(roomCapacity("wide"));
-    expect(MAX_ROOM_PLANTS).toBe(18);
+    expect(MAX_ROOM_PLANTS).toBe(20);
   });
 });
 
@@ -182,7 +182,9 @@ describe("tamaño de cada planta", () => {
   });
 
   it("una especie ancha se recorta y una estrecha no", () => {
-    const slot = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-alta")!;
+    // La repisa media es la de plantas más altas del escritorio: ahí una
+    // especie apaisada topa con el ancho máximo y una vertical no.
+    const slot = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
     const monstera = fitPlant("monstera", slot); // 411×318, apaisada
     const bambu = fitPlant("bambu", slot); // 263×282, vertical
     expect(monstera.height).toBeLessThan(slot.height); // recortada
@@ -247,8 +249,8 @@ describe("reparto de plantas", () => {
     expect(new Set(narrow)).toEqual(new Set(wide.slice(0, n)));
   });
 
-  it("móvil llena los dos paneles desde el principio, no uno y luego el otro", () => {
+  it("móvil reparte entre las cuatro superficies desde el principio, no una y luego otra", () => {
     const puestas = placePlants(plantas(5), "narrow");
-    expect(new Set(puestas.map((p) => p.slot.scene)).size).toBe(2);
+    expect(new Set(puestas.map((p) => p.slot.surface)).size).toBe(4);
   });
 });

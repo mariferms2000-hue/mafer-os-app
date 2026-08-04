@@ -519,8 +519,8 @@ html[data-theme="dark"] {
 }
 
 .garden-scene-wide { display: none; aspect-ratio: 1586 / 991; }
-.garden-panel-a { aspect-ratio: 800 / 820; }
-.garden-panel-b { aspect-ratio: 806 / 930; }
+.garden-panel-a { aspect-ratio: 700 / 780; }
+.garden-panel-b { aspect-ratio: 986 / 940; }
 
 .garden-scene-wide { background-image: url("/garden/cuarto-claro.webp"); }
 .garden-panel-a { background-image: url("/garden/movil-a-claro.webp"); }

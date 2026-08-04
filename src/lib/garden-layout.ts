@@ -51,8 +51,8 @@ export type GardenSurface = "alfeizar" | "repisa-alta" | "repisa-media" | "repis
  *  superficies pintadas. Ambas composiciones comparten fondo. */
 export const SCENE_ASPECT: Record<GardenScene, number> = {
   wide: 1586 / 991,
-  "movil-a": 800 / 820,
-  "movil-b": 806 / 930,
+  "movil-a": 700 / 780,
+  "movil-b": 986 / 940,
 };
 
 export type GardenSlot = {
@@ -83,65 +83,69 @@ const slot = (
   order: number
 ): GardenSlot => ({ id, surface, scene, x, baseline, height, maxWidth, order });
 
-/** Escritorio: 15 sitios en las tres repisas + 3 en el suelo.
- *  Líneas de apoyo medidas sobre la ilustración, siguiendo su inclinación. */
+/** Escritorio: la habitación entera. Las repisas de esta ilustración llegan
+ *  desde el 38.8 % hasta el borde derecho —un 50 % más largas que las de la
+ *  versión anterior—, así que caben seis por repisa con holgura en vez de
+ *  apretarlas. Líneas de apoyo medidas sobre la ilustración y promediadas
+ *  entre la variante clara y la oscura. */
 const WIDE: GardenSlot[] = [
-  // Repisa alta — sube 2.1 % hacia la derecha
-  slot("wide", "repisa-alta-1", "repisa-alta", 63, 16.07, 13, 7.8, 0),
-  slot("wide", "repisa-alta-2", "repisa-alta", 71, 15.44, 13, 7.8, 1),
-  slot("wide", "repisa-alta-3", "repisa-alta", 79, 14.81, 13, 7.8, 2),
-  slot("wide", "repisa-alta-4", "repisa-alta", 87, 14.17, 13, 7.8, 3),
-  slot("wide", "repisa-alta-5", "repisa-alta", 95, 13.54, 13, 7.8, 4),
+  // Repisa alta — sube 5 % hacia la derecha; poco techo, plantas más bajas
+  slot("wide", "repisa-alta-1", "repisa-alta", 45, 16.26, 11, 9, 0),
+  slot("wide", "repisa-alta-2", "repisa-alta", 55, 15.36, 11, 9, 1),
+  slot("wide", "repisa-alta-3", "repisa-alta", 65, 14.46, 11, 9, 2),
+  slot("wide", "repisa-alta-4", "repisa-alta", 75, 13.56, 11, 9, 3),
+  slot("wide", "repisa-alta-5", "repisa-alta", 85, 12.66, 11, 9, 4),
+  slot("wide", "repisa-alta-6", "repisa-alta", 95, 11.76, 11, 9, 5),
   // Repisa media — casi horizontal
-  slot("wide", "repisa-media-1", "repisa-media", 63, 32.41, 13, 7.8, 5),
-  slot("wide", "repisa-media-2", "repisa-media", 71, 32.25, 13, 7.8, 6),
-  slot("wide", "repisa-media-3", "repisa-media", 79, 32.09, 13, 7.8, 7),
-  slot("wide", "repisa-media-4", "repisa-media", 87, 31.93, 13, 7.8, 8),
-  slot("wide", "repisa-media-5", "repisa-media", 95, 31.77, 13, 7.8, 9),
-  // Repisa baja — horizontal
-  slot("wide", "repisa-baja-1", "repisa-baja", 63, 49.11, 14, 7.8, 10),
-  slot("wide", "repisa-baja-2", "repisa-baja", 71, 49.20, 14, 7.8, 11),
-  slot("wide", "repisa-baja-3", "repisa-baja", 79, 49.29, 14, 7.8, 12),
-  slot("wide", "repisa-baja-4", "repisa-baja", 87, 49.38, 14, 7.8, 13),
-  slot("wide", "repisa-baja-5", "repisa-baja", 95, 49.47, 14, 7.8, 14),
-  // Suelo — más cerca del frente = más grandes. A la izquierda de la regadera
-  // y la caja de madera, que viven a partir del 78 % del ancho.
-  slot("wide", "piso-1", "piso", 37, 87, 23, 16, 15),
-  slot("wide", "piso-2", "piso", 54, 85, 22, 16, 16),
-  slot("wide", "piso-3", "piso", 70, 80, 19, 14, 17),
+  slot("wide", "repisa-media-1", "repisa-media", 45, 34.02, 14, 9, 6),
+  slot("wide", "repisa-media-2", "repisa-media", 55, 33.75, 14, 9, 7),
+  slot("wide", "repisa-media-3", "repisa-media", 65, 33.48, 14, 9, 8),
+  slot("wide", "repisa-media-4", "repisa-media", 75, 33.22, 14, 9, 9),
+  slot("wide", "repisa-media-5", "repisa-media", 85, 32.95, 14, 9, 10),
+  slot("wide", "repisa-media-6", "repisa-media", 95, 32.68, 14, 9, 11),
+  // Repisa baja — baja hacia la derecha y termina antes (94.5 %)
+  slot("wide", "repisa-baja-1", "repisa-baja", 45, 49.32, 14, 9, 12),
+  slot("wide", "repisa-baja-2", "repisa-baja", 55, 49.91, 14, 9, 13),
+  slot("wide", "repisa-baja-3", "repisa-baja", 65, 50.50, 14, 9, 14),
+  slot("wide", "repisa-baja-4", "repisa-baja", 75, 51.09, 14, 9, 15),
+  slot("wide", "repisa-baja-5", "repisa-baja", 85, 51.68, 14, 9, 16),
+  // Suelo — entre el banco (termina en el 40 %) y la caja de madera (empieza
+  // en el 74 %). Más cerca del frente = más grandes.
+  slot("wide", "piso-1", "piso", 47, 89, 17, 9, 17),
+  slot("wide", "piso-2", "piso", 57, 92, 19, 9, 18),
+  slot("wide", "piso-3", "piso", 67, 87, 16, 9, 19),
 ];
 
-/** Móvil: la misma habitación recorrida en dos vistas apiladas.
+/** Móvil: el mismo cuarto recorrido en dos vistas apiladas.
  *
- *  Un recorte 4:5 de la ilustración horizontal mide exactamente media imagen:
- *  o conserva la ventana y pierde las repisas, o al revés. Por eso móvil no es
- *  un recorte sino DOS lienzos del mismo cuarto — arriba la ventana con su
- *  alféizar y su banco, abajo las tres repisas y el suelo.
+ *  Panel A — ventana y banco de propagación           (recorte x 0-700, y 120-900)
+ *  Panel B — las tres repisas y el suelo             (recorte x 600-1586, y 0-940)
  *
- *  Coordenadas medidas dentro de cada recorte, promediando claro y oscuro.
- *  A 390 px de ancho las plantas quedan entre 55 y 90 px: legibles y tocables,
- *  frente a los 38 px que daba la composición de una sola escena. */
+ *  Cuatro o cinco sitios por repisa en vez de seis: a 390 px de ancho eso deja
+ *  plantas de 64-75 px, claramente visibles y tocables. */
 const NARROW: GardenSlot[] = [
-  // ── Panel A · ventana, alféizar y banco ──
-  // El alféizar sube hacia la derecha con la perspectiva. Sus dos sitios van a
-  // la derecha del panel para dejarle a la planta actual el hueco de la
-  // izquierda: el banco está DELANTE del alféizar, así que una planta alta
-  // sobre él invadiría el alféizar si compartieran columna.
-  slot("movil-a", "alfeizar-1", "alfeizar", 40, 63.8, 20, 11, 0),
-  slot("movil-a", "alfeizar-2", "alfeizar", 52, 62.9, 20, 11, 1),
-  // ── Panel B · tres repisas y suelo ──
-  slot("movil-b", "repisa-alta-1", "repisa-alta", 35, 15.46, 13, 22, 2),
-  slot("movil-b", "repisa-alta-2", "repisa-alta", 58, 14.57, 13, 22, 3),
-  slot("movil-b", "repisa-alta-3", "repisa-alta", 81, 13.67, 13, 22, 4),
-  slot("movil-b", "repisa-media-1", "repisa-media", 35, 33.43, 16, 22, 5),
-  slot("movil-b", "repisa-media-2", "repisa-media", 58, 33.13, 16, 22, 6),
-  slot("movil-b", "repisa-media-3", "repisa-media", 81, 32.83, 16, 22, 7),
-  slot("movil-b", "repisa-baja-1", "repisa-baja", 35, 51.26, 17, 22, 8),
-  slot("movil-b", "repisa-baja-2", "repisa-baja", 58, 51.43, 17, 22, 9),
-  slot("movil-b", "repisa-baja-3", "repisa-baja", 81, 51.60, 17, 22, 10),
-  // El suelo se queda a la izquierda de la regadera y la caja (68 % en adelante)
-  slot("movil-b", "piso-1", "piso", 30, 88, 22, 26, 11),
-  slot("movil-b", "piso-2", "piso", 54, 82, 19, 22, 12),
+  // ── Panel A · la planta actual en su banco, bajo la ventana ──
+  // Sin sitios extra: en esta habitación el banco está pegado a la ventana y
+  // tapa el alféizar, así que no queda superficie donde posar nada más. El
+  // panel es el retrato de la planta que estás cuidando.
+  // ── Panel B · la colección ──
+  slot("movil-b", "repisa-alta-1", "repisa-alta", 16, 16.87, 12, 21, 0),
+  slot("movil-b", "repisa-alta-2", "repisa-alta", 40, 15.46, 12, 21, 1),
+  slot("movil-b", "repisa-alta-3", "repisa-alta", 64, 14.05, 12, 21, 2),
+  slot("movil-b", "repisa-alta-4", "repisa-alta", 86, 12.76, 12, 21, 3),
+  slot("movil-b", "repisa-media-1", "repisa-media", 12, 35.86, 16, 18, 4),
+  slot("movil-b", "repisa-media-2", "repisa-media", 31, 35.52, 16, 18, 5),
+  slot("movil-b", "repisa-media-3", "repisa-media", 50, 35.19, 16, 18, 6),
+  slot("movil-b", "repisa-media-4", "repisa-media", 69, 34.86, 16, 18, 7),
+  slot("movil-b", "repisa-media-5", "repisa-media", 88, 34.53, 16, 18, 8),
+  slot("movil-b", "repisa-baja-1", "repisa-baja", 12, 52.02, 15, 18, 9),
+  slot("movil-b", "repisa-baja-2", "repisa-baja", 31, 52.75, 15, 18, 10),
+  slot("movil-b", "repisa-baja-3", "repisa-baja", 50, 53.48, 15, 18, 11),
+  slot("movil-b", "repisa-baja-4", "repisa-baja", 69, 54.21, 15, 18, 12),
+  slot("movil-b", "repisa-baja-5", "repisa-baja", 88, 54.95, 15, 18, 13),
+  // La caja de madera empieza en el 58 % de este recorte
+  slot("movil-b", "piso-1", "piso", 18, 92, 20, 20, 14),
+  slot("movil-b", "piso-2", "piso", 40, 88, 18, 20, 15),
 ];
 
 export const GARDEN_SLOTS: Record<GardenBreakpoint, GardenSlot[]> = { wide: WIDE, narrow: NARROW };
@@ -155,9 +159,9 @@ export const GARDEN_SLOTS: Record<GardenBreakpoint, GardenSlot[]> = { wide: WIDE
  *  lienzo un poco más abajo el dibujo aterriza sobre la madera en vez de
  *  flotar. Calculado como 67.8 + 0.18 × alto. */
 export const PROPAGATION_SPOT: Record<GardenBreakpoint, Omit<GardenSlot, "surface" | "order">> = {
-  wide: { id: "propagacion", scene: "wide", x: 17, baseline: 73.3, height: 24, maxWidth: 24 },
+  wide: { id: "propagacion", scene: "wide", x: 22, baseline: 62.98, height: 26, maxWidth: 26 },
   // En móvil el banco vive en el panel A, medido dentro de ese recorte.
-  narrow: { id: "propagacion", scene: "movil-a", x: 18, baseline: 83.2, height: 26, maxWidth: 26 },
+  narrow: { id: "propagacion", scene: "movil-a", x: 30, baseline: 67.7, height: 26, maxWidth: 32 },
 };
 
 /** Orden de llenado, distinto del orden visual: reparte entre superficies para
@@ -165,15 +169,16 @@ export const PROPAGATION_SPOT: Record<GardenBreakpoint, Omit<GardenSlot, "surfac
  *  nunca mueve nada. */
 const FILL_ORDER: Record<GardenBreakpoint, string[]> = {
   wide: [
-    "repisa-media-2", "piso-2", "repisa-alta-3", "repisa-baja-4", "piso-1",
-    "repisa-media-4", "repisa-baja-1", "repisa-alta-1", "piso-3", "repisa-media-1",
-    "repisa-baja-3", "repisa-alta-5", "repisa-media-5", "repisa-baja-5", "repisa-alta-2",
-    "repisa-media-3", "repisa-baja-2", "repisa-alta-4",
+    "repisa-media-2", "piso-2", "repisa-alta-4", "repisa-baja-1", "repisa-media-5",
+    "piso-1", "repisa-alta-1", "repisa-baja-3", "repisa-media-3", "piso-3",
+    "repisa-alta-6", "repisa-baja-5", "repisa-media-1", "repisa-alta-2", "repisa-baja-2",
+    "repisa-media-6", "repisa-alta-5", "repisa-baja-4", "repisa-media-4", "repisa-alta-3",
   ],
   narrow: [
-    "alfeizar-1", "repisa-media-2", "piso-1", "repisa-alta-2", "repisa-baja-2",
-    "alfeizar-2", "piso-2", "repisa-media-1", "repisa-alta-1", "repisa-baja-3",
-    "repisa-media-3", "repisa-alta-3", "repisa-baja-1",
+    "repisa-media-3", "piso-1", "repisa-alta-2", "repisa-baja-4", "repisa-media-1",
+    "piso-2", "repisa-alta-4", "repisa-baja-2", "repisa-media-5", "repisa-alta-1",
+    "repisa-baja-5", "repisa-media-2", "repisa-alta-3", "repisa-baja-1",
+    "repisa-media-4", "repisa-baja-3",
   ],
 };
 
