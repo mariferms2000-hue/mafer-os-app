@@ -637,3 +637,35 @@ html[data-theme="dark"] .garden-panel-b { background-image: url("/garden/movil-b
 .garden-slot:focus-visible .garden-tip {
   opacity: 1;
 }
+
+/* ─── Recipientes de las plantas del cuarto ───────────────────────
+   La maceta se pinta DOS veces desde el mismo archivo, recortada con
+   clip-path: la mitad trasera detrás de la planta y la delantera por delante.
+   Así la planta queda metida dentro y su base —tierra, raíces o grava— se
+   oculta sin recortar la ilustración botánica, que no se toca.
+
+   Cada tema tiene su archivo, y se elige igual que las plantas: los dos están
+   en el DOM y el atributo data-theme decide cuál se ve. */
+.garden-slot-potted .garden-pot,
+.garden-slot-potted .garden-planta {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.garden-slot-potted .garden-pot {
+  object-fit: contain;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.garden-slot-potted .garden-pot-front { z-index: 3; }
+.garden-slot-potted .garden-planta { z-index: 2; }
+
+.garden-pot-dark { display: none; }
+html[data-theme="dark"] .garden-pot:not(.garden-pot-dark) { display: none; }
+html[data-theme="dark"] .garden-pot-dark { display: block; }
+
+/* Con maceta la sombra de contacto se ciñe al pie de la cerámica, que es
+   más estrecho que el follaje. */
+.garden-slot-potted::after { width: 46%; opacity: 0.22; }
