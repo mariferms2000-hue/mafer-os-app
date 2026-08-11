@@ -169,9 +169,9 @@ export const GARDEN_SLOTS: Record<GardenBreakpoint, GardenSlot[]> = { wide: WIDE
  *  lienzo un poco más abajo el dibujo aterriza sobre la madera en vez de
  *  flotar. Calculado como 67.8 + 0.18 × alto. */
 export const PROPAGATION_SPOT: Record<GardenBreakpoint, Omit<GardenSlot, "surface" | "order">> = {
-  wide: { id: "propagacion", scene: "wide", x: 22, baseline: 62.98, height: 26, maxWidth: 26 },
+  wide: { id: "propagacion", scene: "wide", x: 22, baseline: 63.88, height: 21, maxWidth: 26 },
   // En móvil el banco vive en el panel A, medido dentro de ese recorte.
-  narrow: { id: "propagacion", scene: "movil-a", x: 30, baseline: 67.7, height: 26, maxWidth: 32 },
+  narrow: { id: "propagacion", scene: "movil-a", x: 30, baseline: 69.14, height: 18, maxWidth: 32 },
 };
 
 /** Orden de llenado, distinto del orden visual: reparte entre superficies para
@@ -232,9 +232,12 @@ export function plantAspect(species: string): number {
 export const SPECIES_SCALE: Record<string, number> = {
   // GRANDES — presencia dominante
   monstera: 1,
+  // El olivo es un ÁRBOL: en escena tiene que competir con la monstera, no
+  // quedarse un escalón por debajo. Su tiesto alto ya se lleva el 46 % del
+  // conjunto, así que el porte es lo único que puede compensarlo.
+  olivo: 1,
   palmera: 0.97,
   bambu: 0.94,
-  olivo: 0.92,
   // MEDIANAS — salto claro respecto a las grandes
   sansevieria: 0.72,
   helecho: 0.68,
@@ -283,11 +286,11 @@ export function plantInk(species: string): { fy: number; padBot: number } {
  *  con la misma caja de 101 px.
  *
  *  El tope seguro es el mínimo de `foliageFraction / porte` entre todas las
- *  especies (lo marca el bambú, en tiesto alto y porte 0.94). Un test en
+ *  especies (lo marca el olivo: tiesto alto, mucho hundimiento y porte 1). Un test en
  *  garden-pot.test.ts lo verifica, así que no puede desajustarse en silencio.
  *
  *  Vive aquí y no en garden-pot para no crear un ciclo entre los dos módulos. */
-export const REFERENCE_FOLIAGE = 0.56;
+export const REFERENCE_FOLIAGE = 0.54;
 
 /** Suelo de legibilidad, en % del alto de la escena **DE FOLLAJE VISIBLE**.
  *
@@ -297,16 +300,16 @@ export const REFERENCE_FOLIAGE = 0.56;
  *  lienzo— sacaba un 36 % más de follaje que una suculenta con el mismo
  *  mínimo. Puesto sobre el follaje, el suelo significa lo mismo para todas.
  *
- *  Un mismo porcentaje tampoco vale lo mismo en cada lienzo: 3.6 % son 26 px en
+ *  Un mismo porcentaje tampoco vale lo mismo en cada lienzo: 4.3 % son 31 px en
  *  la escena de escritorio y solo 13 px en el panel móvil. Por eso el móvil
  *  pide un suelo más alto.
  *
  *  Y el suelo de la habitación pide un mínimo mayor que las repisas: ahí una
  *  planta diminuta se ve perdida, no pequeña. */
 export const MIN_FOLIAGE: Record<GardenScene, { piso: number; repisa: number }> = {
-  wide: { piso: 5.5, repisa: 3.6 },
-  "movil-a": { piso: 8, repisa: 6 },
-  "movil-b": { piso: 8, repisa: 6 },
+  wide: { piso: 5.5, repisa: 4.3 },
+  "movil-a": { piso: 8, repisa: 6.8 },
+  "movil-b": { piso: 8, repisa: 6.8 },
 };
 
 export function speciesScale(species: string): number {
@@ -424,16 +427,41 @@ export function placePlants<T>(
   const sitios = orden.slice(0, dentro.length).flatMap((id) => byId.get(id) ?? []);
   if (!speciesOf) return sitios.map((slot, i) => ({ slot, plant: dentro[i] }));
 
-  // 2 · dónde: la mayor al sitio mayor. Los empates conservan la antigüedad,
-  //     así que el resultado no depende del orden de recorrido.
-  const porPorte = dentro
-    .map((plant, i) => ({ plant, i }))
-    .sort((a, b) => speciesScale(speciesOf(b.plant)) - speciesScale(speciesOf(a.plant)) || a.i - b.i);
+  // 2 · dónde: la mayor al sitio mayor.
+  //
+  //     Los empates de porte se rompen PRIMERO por variedad y luego por
+  //     antigüedad. Sin la variedad, dos monsteras del mismo porte se quedaban
+  //     con los dos sitios del suelo y un olivo —igual de grande— acababa en una
+  //     repisa, leyéndose como un arbolito. Repartir las especies antes de
+  //     repetir una es además lo que hace que el cuarto parezca compuesto.
   const porCapacidad = sitios
     .map((slot, i) => ({ slot, i }))
     .sort((a, b) => b.slot.height - a.slot.height || a.i - b.i);
 
-  return porPorte.map(({ plant }, k) => ({ slot: porCapacidad[k].slot, plant }));
+  const quedan = dentro.map((plant, i) => ({ plant, i }));
+  const puestas = new Map<string, number>();
+  const out: PlacedPlant<T>[] = [];
+
+  for (const { slot } of porCapacidad) {
+    if (!quedan.length) break;
+    let mejor = 0;
+    for (let k = 1; k < quedan.length; k++) {
+      const a = quedan[k],
+        b = quedan[mejor];
+      const spA = speciesOf(a.plant),
+        spB = speciesOf(b.plant);
+      const cmp =
+        speciesScale(spA) - speciesScale(spB) ||
+        (puestas.get(spB) ?? 0) - (puestas.get(spA) ?? 0) ||
+        b.i - a.i;
+      if (cmp > 0) mejor = k;
+    }
+    const [elegida] = quedan.splice(mejor, 1);
+    const sp = speciesOf(elegida.plant);
+    puestas.set(sp, (puestas.get(sp) ?? 0) + 1);
+    out.push({ slot, plant: elegida.plant });
+  }
+  return out;
 }
 
 /** Índice de llenado de un slot (su posición en FILL_ORDER). Sirve para saber

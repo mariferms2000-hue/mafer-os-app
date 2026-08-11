@@ -297,7 +297,10 @@ describe("porte por especie", () => {
   });
 
   it("el orden de porte es coherente de la mayor a la menor", () => {
-    const orden = ["monstera", "olivo", "sansevieria", "helecho", "lavanda", "cactus", "suculenta"];
+    // El olivo empata con la monstera a propósito: los dos encabezan el grupo
+    // de las grandes. La cadena comprueba el orden ESTRICTO del resto.
+    expect(SPECIES_SCALE.olivo).toBe(SPECIES_SCALE.monstera);
+    const orden = ["monstera", "palmera", "sansevieria", "helecho", "lavanda", "cactus", "suculenta"];
     for (let i = 1; i < orden.length; i++) {
       expect(SPECIES_SCALE[orden[i - 1]], `${orden[i - 1]} > ${orden[i]}`).toBeGreaterThan(
         SPECIES_SCALE[orden[i]]
@@ -461,5 +464,58 @@ describe("el porte decide dónde se posa cada planta", () => {
     const puestas = placePlants(muchas, "wide", (p) => p.species);
     expect(puestas).toHaveLength(roomCapacity("wide"));
     expect(puestas.some((p) => p.plant.species === "suculenta")).toBe(true);
+  });
+});
+
+describe("variedad en los mejores sitios", () => {
+  const especie = (p: { species: string }) => p.species;
+
+  it("con dos plantas del mismo porte, no se repite especie en el suelo", () => {
+    // Dos monsteras y dos olivos, todos de porte 1. Sin la regla de variedad
+    // las dos monsteras se quedaban con los dos sitios del suelo y el olivo
+    // —igual de grande— bajaba a una repisa y se leía como un arbolito.
+    // Seis: es cuando FILL_ORDER ya ha abierto los dos sitios del suelo.
+    const datos = ["monstera", "monstera", "olivo", "olivo", "helecho", "cactus"].map((species) => ({
+      species,
+    }));
+    const suelo = placePlants(datos, "wide", especie).filter((p) => p.slot.surface === "piso");
+    expect(suelo).toHaveLength(2);
+    expect(new Set(suelo.map((p) => p.plant.species)).size).toBe(2);
+  });
+
+  it("la variedad no rompe el orden de porte", () => {
+    const datos = ["suculenta", "monstera", "cactus", "olivo", "helecho", "palmera"].map((species) => ({
+      species,
+    }));
+    const puestas = placePlants(datos, "wide", especie);
+    for (let i = 1; i < puestas.length; i++) {
+      expect(puestas[i].slot.height).toBeLessThanOrEqual(puestas[i - 1].slot.height + 1e-9);
+    }
+  });
+
+  it("sigue siendo determinista", () => {
+    const datos = ["monstera", "olivo", "monstera", "olivo"].map((species) => ({ species }));
+    const a = placePlants(datos, "wide", especie).map((p) => `${p.plant.species}@${p.slot.id}`);
+    const b = placePlants(datos, "wide", especie).map((p) => `${p.plant.species}@${p.slot.id}`);
+    expect(a).toEqual(b);
+  });
+});
+
+describe("la planta actual del banco", () => {
+  it("es más discreta que cualquier planta de suelo", () => {
+    // Es provisional: sigue sin recipiente hasta el frasco de propagación, así
+    // que no debe robarle protagonismo a la colección.
+    const piso = GARDEN_SLOTS.wide.find((s) => s.surface === "piso")!;
+    expect(PROPAGATION_SPOT.wide.height).toBeLessThan(piso.height);
+  });
+
+  it("su línea de apoyo acompaña al alto para no dejarla flotando", () => {
+    // El dibujo del espécimen termina hacia el 82 % de su lienzo, así que al
+    // achicarlo hay que bajar el anclaje en 0.18 × la diferencia.
+    for (const bp of BREAKPOINTS) {
+      const p = PROPAGATION_SPOT[bp];
+      expect(p.baseline).toBeGreaterThan(0);
+      expect(p.baseline - p.height).toBeGreaterThan(0);
+    }
   });
 });
