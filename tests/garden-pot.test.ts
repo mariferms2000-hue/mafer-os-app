@@ -293,3 +293,35 @@ describe("composición dentro del sitio", () => {
     expect(a).toEqual(b);
   });
 });
+
+describe("la pilea", () => {
+  // Es la única pequeña sin maceta compuesta: a igual follaje, su objeto entero
+  // mide un tercio menos que el de una lavanda o un cactus, porque a ellas la
+  // cerámica les añade masa y a ella no. Por eso lleva más porte que el resto
+  // del grupo — para acabar leyéndose del mismo tamaño hacia arriba, no menor.
+  const foll = (sp: string, slot: (typeof GARDEN_SLOTS.wide)[number]) => {
+    const c = fitPotted(sp, slot, SCENE_ASPECT.wide);
+    const alto = c ? c.assemblyHeight : plantHeightIn(sp, slot);
+    return alto * foliageFraction(sp);
+  };
+
+  it("no lleva maceta compuesta: su lienzo es todo follaje", () => {
+    expect(hasPot("pilea")).toBe(false);
+    expect(foliageFraction("pilea")).toBeGreaterThan(0.9);
+  });
+
+  it("queda por encima del grupo más tímido y por debajo de las medianas", () => {
+    const rb = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-baja")!;
+    for (const menor of ["cactus", "suculenta", "lavanda", "potos"]) {
+      expect(foll("pilea", rb), `pilea vs ${menor}`).toBeGreaterThan(foll(menor, rb));
+    }
+    for (const mediana of ["eucalipto", "helecho", "sansevieria"]) {
+      expect(foll("pilea", rb), `pilea vs ${mediana}`).toBeLessThan(foll(mediana, rb));
+    }
+  });
+
+  it("sigue siendo pequeña: no llega ni a la mitad de una grande", () => {
+    const rb = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-baja")!;
+    expect(foll("pilea", rb)).toBeLessThan(foll("monstera", rb) * 0.7);
+  });
+});

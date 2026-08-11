@@ -243,9 +243,15 @@ export const SPECIES_SCALE: Record<string, number> = {
   helecho: 0.68,
   eucalipto: 0.64,
   // PEQUEÑAS — otro salto claro
+  // La pilea es la única pequeña SIN maceta compuesta, así que a igual follaje
+  // su objeto entero mide un tercio menos que el de una lavanda o un cactus
+  // —a ellas la cerámica les añade masa y a ella no—. Con 0.38 el mínimo la
+  // igualaba a las demás en follaje y aun así se leía más chica. Con 0.60
+  // supera el mínimo y sale por porte propio: queda por encima del grupo más
+  // tímido y por debajo del eucalipto, sin entrar en las medianas.
+  pilea: 0.6,
   potos: 0.46,
   lavanda: 0.42,
-  pilea: 0.38,
   cactus: 0.34,
   suculenta: 0.3,
 };
