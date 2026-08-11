@@ -30,7 +30,7 @@
    su base sin que haya que recortar la ilustración. Cuanto más ancha o más
    larga es la base de una especie, más hundida va. */
 
-import { plantAspect } from "./garden-layout";
+import { plantAspect, plantHeightIn } from "./garden-layout";
 
 // ── Las tres formas ──────────────────────────────────────────────
 
@@ -129,7 +129,14 @@ const round = (n: number) => Number(n.toFixed(4));
  *
  *  El conjunto nunca excede el alto del sitio ni su ancho máximo: si la planta
  *  o la maceta se pasan de ancho, se reduce TODO el conjunto en la misma
- *  proporción, de modo que la planta siga bien asentada en su maceta. */
+ *  proporción, de modo que la planta siga bien asentada en su maceta.
+ *
+ *  El porte de la especie (ver plantHeightIn) entra por el alto de partida, y
+ *  eso NO altera la composición: `pot` y `plant` se devuelven en % de la caja
+ *  del conjunto, y esos porcentajes son invariantes de escala —multiplicar
+ *  `alto` por k multiplica también `potH`, `baseP` y la línea de corte, así que
+ *  todos los cocientes salen idénticos—. Una planta más pequeña se asienta en
+ *  su maceta exactamente igual que una grande. */
 export function fitPotted(
   species: string,
   slot: { height: number; maxWidth: number },
@@ -140,7 +147,7 @@ export function fitPotted(
   const forma = POT_SHAPES[asign.shape];
 
   // Alturas dentro del conjunto, en % del alto de la escena
-  let alto = slot.height;
+  let alto = plantHeightIn(species, slot.height);
   let potH = alto * forma.heightFrac;
   const potTop = () => alto - potH;
   const baseP = () => potTop() + (potH * (forma.splitY + asign.sink)) / 100;

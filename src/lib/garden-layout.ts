@@ -111,9 +111,20 @@ const WIDE: GardenSlot[] = [
   slot("wide", "repisa-baja-5", "repisa-baja", 85, 51.68, 14, 9, 16),
   // Suelo — entre el banco (termina en el 40 %) y la caja de madera (empieza
   // en el 74 %). Más cerca del frente = más grandes.
-  slot("wide", "piso-1", "piso", 47, 89, 17, 9, 17),
-  slot("wide", "piso-2", "piso", 57, 92, 19, 9, 18),
-  slot("wide", "piso-3", "piso", 67, 87, 16, 9, 19),
+  //
+  // Los tres van reespaciados a 45.5 / 57 / 68.5 con 11 % de ancho. Antes
+  // estaban a 47 / 57 / 67 con los mismos 9 % de las repisas, y ese ancho era
+  // el que mandaba: una monstera de suelo topaba con el límite lateral y se
+  // quedaba en 13.7 % de alto, MENOS que la misma monstera en una repisa. Con
+  // 11 % el alto del sitio vuelve a ser lo que decide, y el suelo puede por fin
+  // sostener plantas mayores que las repisas.
+  //
+  // El reespaciado mantiene el conjunto entre el 40 % y el 74 %: la fila ocupa
+  // justo el hueco libre entre el banco y la caja de madera, sin tocar ninguno
+  // de los dos, y deja 0.5 % de aire entre plantas vecinas.
+  slot("wide", "piso-1", "piso", 45.5, 89, 17, 11, 17),
+  slot("wide", "piso-2", "piso", 57, 92, 19, 11, 18),
+  slot("wide", "piso-3", "piso", 68.5, 87, 16, 11, 19),
 ];
 
 /** Móvil: el mismo cuarto recorrido en dos vistas apiladas.
@@ -202,19 +213,73 @@ export function plantAspect(species: string): number {
   return w / h;
 }
 
+// ── Porte de cada especie ────────────────────────────────────────
+
+/** Qué parte del alto de un sitio le corresponde a cada especie.
+ *
+ *  POR QUÉ EXISTE. Antes el alto salía SOLO del sitio, así que dos plantas en
+ *  la misma repisa medían exactamente lo mismo: una suculenta se leía del
+ *  mismo porte que una monstera y la escena parecía un muestrario, no una
+ *  habitación. El sitio sigue poniendo el techo —lo que cabe ahí sin tocar la
+ *  repisa de arriba—; este factor dice qué parte de ese techo ocupa la especie.
+ *
+ *  No busca exactitud botánica al centímetro, sino relaciones plausibles: el
+ *  orden es el del porte de la planta adulta de interior, de la monstera de
+ *  suelo a la suculenta de escritorio.
+ *
+ *  NINGUNO PASA DE 1. Es lo que hace seguro todo el sistema: solo puede
+ *  achicar, así que ninguna planta puede desbordar su sitio ni invadir a su
+ *  vecina por culpa del porte. */
+export const SPECIES_SCALE: Record<string, number> = {
+  monstera: 1,
+  palmera: 1,
+  bambu: 0.98,
+  olivo: 0.95,
+  sansevieria: 0.88,
+  helecho: 0.8,
+  eucalipto: 0.78,
+  potos: 0.72,
+  lavanda: 0.68,
+  pilea: 0.62,
+  cactus: 0.58,
+  suculenta: 0.52,
+};
+
+/** Suelo de legibilidad, % del alto de la escena. Sin él, una suculenta en la
+ *  repisa alta del panel móvil bajaría a ~25 px y dejaría de leerse y de poder
+ *  tocarse; con él se queda en ~32 px. Solo actúa en los sitios más bajos: en
+ *  el suelo, donde el techo es holgado, la jerarquía sale entera. */
+export const MIN_PLANT_HEIGHT = 8.5;
+
+export function speciesScale(species: string): number {
+  return SPECIES_SCALE[species] ?? 1;
+}
+
+/** Alto que le toca a una especie en un sitio: el techo del sitio modulado por
+ *  el porte, con el suelo de legibilidad aplicado. Nunca supera el techo. */
+export function plantHeightIn(species: string, slotHeight: number): number {
+  const suelo = Math.min(MIN_PLANT_HEIGHT, slotHeight);
+  return round(Math.min(slotHeight, Math.max(slotHeight * speciesScale(species), suelo)));
+}
+
 export type PlantBox = { width: number; height: number };
 
 /** Convierte el alto objetivo del slot en una caja con la proporción REAL de
  *  la especie, recortada al ancho máximo del slot. Nunca deforma: si hay que
- *  recortar, se reduce el alto en la misma proporción. */
+ *  recortar, se reduce el alto en la misma proporción.
+ *
+ *  `porte: false` salta el sistema de porte y usa el alto del sitio tal cual.
+ *  Lo usa la mesa de propagación, cuya línea de apoyo está calculada a partir
+ *  de su alto (67.8 + 0.18 × alto): cambiarle el alto ahí dejaría a la planta
+ *  actual flotando sobre el banco. */
 export function fitPlant(
   species: string,
   slot: { height: number; maxWidth: number; scene: GardenScene },
-  scene?: GardenScene
+  opciones: { porte?: boolean } = {}
 ): PlantBox {
   const aspect = plantAspect(species);
-  const height = slot.height;
-  const width = (height * aspect) / SCENE_ASPECT[scene ?? slot.scene];
+  const height = opciones.porte === false ? slot.height : plantHeightIn(species, slot.height);
+  const width = (height * aspect) / SCENE_ASPECT[slot.scene];
   if (width <= slot.maxWidth) return { width: round(width), height: round(height) };
   const scale = slot.maxWidth / width;
   return { width: round(slot.maxWidth), height: round(height * scale) };

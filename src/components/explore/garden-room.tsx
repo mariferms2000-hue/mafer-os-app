@@ -66,9 +66,11 @@ function fecha(iso: string | null): string {
 
 type Spot = Pick<GardenSlot, "x" | "baseline" | "height" | "maxWidth" | "scene">;
 
-/** Posición y tamaño del sitio, en variables CSS. */
-function slotStyle(species: string, spot: Spot): React.CSSProperties {
-  const box = fitPlant(species, spot);
+/** Posición y tamaño del sitio, en variables CSS. `porte: false` deja el alto
+ *  del sitio tal cual — lo necesita la mesa de propagación, cuya línea de apoyo
+ *  se calculó a partir de su alto. */
+function slotStyle(species: string, spot: Spot, porte = true): React.CSSProperties {
+  const box = fitPlant(species, spot, { porte });
   return {
     "--gx": `${spot.x}%`,
     "--gy": `${spot.baseline}%`,
@@ -91,7 +93,7 @@ function CurrentPlant({
 }) {
   if (!current) {
     return (
-      <div className="garden-slot garden-slot-current garden-slot-quiet" style={slotStyle("helecho", spot)}>
+      <div className="garden-slot garden-slot-current garden-slot-quiet" style={slotStyle("helecho", spot, false)}>
         <PlantArt species="helecho" visualSeed={0} stage="semilla" className="h-full w-full text-sage-deep" />
       </div>
     );
@@ -103,7 +105,7 @@ function CurrentPlant({
       label={`Ver detalle de tu ${nombre} — planta actual, ${STAGE_LABEL[current.stage].toLowerCase()}`}
       testid={testid}
       className="garden-slot garden-slot-current"
-      style={slotStyle(current.species, spot)}
+      style={slotStyle(current.species, spot, false)}
     >
       <PlantArt
         species={asSpecies(current.species)}

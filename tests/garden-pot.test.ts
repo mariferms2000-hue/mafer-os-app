@@ -174,6 +174,32 @@ describe("composición dentro del sitio", () => {
     }
   });
 
+  it("el porte de la especie NO altera la composición interna", () => {
+    // La garantía que hace seguro el sistema de escala: pot y plant se
+    // devuelven en % de la caja del conjunto, y esos % son invariantes de
+    // escala. Una suculenta chica se asienta en su maceta exactamente igual
+    // que una monstera grande — no puede flotar, hundirse ni cortarse.
+    const slot = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    for (const sp of SPECIES_WITH_POT) {
+      const normal = fitPotted(sp, slot, SCENE_ASPECT.wide)!;
+      const enorme = fitPotted(sp, { ...slot, height: slot.height * 4, maxWidth: 999 }, SCENE_ASPECT.wide)!;
+      const chico = fitPotted(sp, { ...slot, height: slot.height / 4, maxWidth: 999 }, SCENE_ASPECT.wide)!;
+      for (const otro of [enorme, chico]) {
+        expect(otro.pot, sp).toEqual(normal.pot);
+        expect(otro.plant, sp).toEqual(normal.plant);
+        expect(otro.splitY, sp).toBe(normal.splitY);
+      }
+    }
+  });
+
+  it("con porte, la jerarquía llega al conjunto entero", () => {
+    for (const slot of SLOTS) {
+      const m = fitPotted("monstera", slot, SCENE_ASPECT[slot.scene])!;
+      const s = fitPotted("suculenta", slot, SCENE_ASPECT[slot.scene])!;
+      expect(m.assemblyHeight, slot.id).toBeGreaterThan(s.assemblyHeight);
+    }
+  });
+
   it("es determinista", () => {
     const slot = GARDEN_SLOTS.wide[5];
     const a = fitPotted("helecho", slot, SCENE_ASPECT.wide);
