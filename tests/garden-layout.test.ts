@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   GARDEN_SLOTS,
   MAX_ROOM_PLANTS,
-  MIN_PLANT_HEIGHT,
+  MIN_FOLIAGE,
   PLANT_INK,
   PROPAGATION_SPOT,
   SCENE_ASPECT,
@@ -285,15 +285,15 @@ describe("porte por especie", () => {
   it("el suelo pide un mínimo mayor: ahí una planta chica se vería perdida, no pequeña", () => {
     const repisa = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
     const piso = GARDEN_SLOTS.wide.find((s) => s.surface === "piso")!;
-    expect(MIN_PLANT_HEIGHT.wide.piso).toBeGreaterThan(MIN_PLANT_HEIGHT.wide.repisa);
+    expect(MIN_FOLIAGE.wide.piso).toBeGreaterThan(MIN_FOLIAGE.wide.repisa);
     // La misma suculenta es claramente mayor en el suelo que en la repisa.
     expect(plantHeightIn("suculenta", piso)).toBeGreaterThan(plantHeightIn("suculenta", repisa));
   });
 
   it("el móvil pide un mínimo mayor que el escritorio: el mismo % vale menos px", () => {
     // 6.5 % son 47 px en la escena amplia y solo 24 px en el panel móvil.
-    expect(MIN_PLANT_HEIGHT["movil-b"].repisa).toBeGreaterThan(MIN_PLANT_HEIGHT.wide.repisa);
-    expect(MIN_PLANT_HEIGHT["movil-b"].piso).toBeGreaterThan(MIN_PLANT_HEIGHT.wide.piso);
+    expect(MIN_FOLIAGE["movil-b"].repisa).toBeGreaterThan(MIN_FOLIAGE.wide.repisa);
+    expect(MIN_FOLIAGE["movil-b"].piso).toBeGreaterThan(MIN_FOLIAGE.wide.piso);
   });
 
   it("el orden de porte es coherente de la mayor a la menor", () => {
@@ -313,9 +313,10 @@ describe("porte por especie", () => {
         // El suelo de legibilidad se acota a lo que mediría la misma especie
         // con porte 1: nunca puede levantar a una pequeña por encima de una
         // grande. Por eso el mínimo efectivo es el menor de los dos.
-        const pedido = foliageTarget(sp, slot) / PLANT_INK[sp].fy;
+        const fy = PLANT_INK[sp].fy;
+        const pedido = foliageTarget(sp, slot) / fy;
         expect(h, `${sp} en ${slot.id}`).toBeGreaterThanOrEqual(
-          minHeightIn(slot, sp, pedido) - 1e-3 // plantHeightIn redondea a 4 decimales
+          minHeightIn(slot, fy, sp, pedido) - 1e-3 // plantHeightIn redondea a 4 decimales
         );
       }
     }

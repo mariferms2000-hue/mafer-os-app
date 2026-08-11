@@ -12,6 +12,7 @@ import {
 import {
   GARDEN_SLOTS,
   REFERENCE_FOLIAGE,
+  foliageTarget,
   minHeightIn,
   SCENE_ASPECT,
   SPECIES_SCALE,
@@ -244,8 +245,10 @@ describe("composición dentro del sitio", () => {
     for (const sp of ILLUSTRATED_PLANT_SPECIES) {
       const c = fitPotted(sp, slot, SCENE_ASPECT.wide);
       const alto = c ? c.assemblyHeight : plantHeightIn(sp, slot);
-      const topeAlto = alto >= slot.height - 1e-6;
-      const topeMinimo = alto <= minHeightIn(slot, sp, alto) + 1e-6;
+      // 1e-3: assemblyHeight viene redondeado a 4 decimales.
+      const topeAlto = alto >= slot.height - 1e-3;
+      const pedido = foliageTarget(sp, slot) / foliageFraction(sp);
+      const topeMinimo = alto <= minHeightIn(slot, foliageFraction(sp), sp, pedido) + 1e-3;
       // El porte se cumple salvo que tope con el techo del sitio o con el suelo
       // de legibilidad; en esos casos el límite manda y se declara aquí.
       if (topeAlto) {

@@ -289,19 +289,24 @@ export function plantInk(species: string): { fy: number; padBot: number } {
  *  Vive aquí y no en garden-pot para no crear un ciclo entre los dos módulos. */
 export const REFERENCE_FOLIAGE = 0.56;
 
-/** Suelo de legibilidad, % del alto de la escena, POR LIENZO Y POR SUPERFICIE.
+/** Suelo de legibilidad, en % del alto de la escena **DE FOLLAJE VISIBLE**.
  *
- *  Un mismo porcentaje no vale lo mismo en cada lienzo: el 6.5 % son 47 px en
- *  la escena de escritorio y solo 24 px en el panel móvil. Por eso el móvil
- *  pide un suelo más alto — es lo único que impide abrir más la jerarquía allí.
+ *  Antes estaba expresado sobre la caja del conjunto, y eso lo hacía injusto:
+ *  la caja incluye maceta y hundimiento, y esa parte cambia por especie. Con
+ *  un mínimo de caja, una pilea —que no lleva maceta y aprovecha el 99 % de su
+ *  lienzo— sacaba un 36 % más de follaje que una suculenta con el mismo
+ *  mínimo. Puesto sobre el follaje, el suelo significa lo mismo para todas.
  *
- *  Y el suelo de la habitación pide un mínimo MAYOR que las repisas: una
- *  suculenta diminuta en mitad del piso se ve perdida, no pequeña. En una
- *  habitación real lo que se pone en el suelo va en un recipiente de suelo. */
-export const MIN_PLANT_HEIGHT: Record<GardenScene, { piso: number; repisa: number }> = {
-  wide: { piso: 8, repisa: 3.5 },
-  "movil-a": { piso: 11, repisa: 8 },
-  "movil-b": { piso: 11, repisa: 8 },
+ *  Un mismo porcentaje tampoco vale lo mismo en cada lienzo: 3.6 % son 26 px en
+ *  la escena de escritorio y solo 13 px en el panel móvil. Por eso el móvil
+ *  pide un suelo más alto.
+ *
+ *  Y el suelo de la habitación pide un mínimo mayor que las repisas: ahí una
+ *  planta diminuta se ve perdida, no pequeña. */
+export const MIN_FOLIAGE: Record<GardenScene, { piso: number; repisa: number }> = {
+  wide: { piso: 5.5, repisa: 3.6 },
+  "movil-a": { piso: 8, repisa: 6 },
+  "movil-b": { piso: 8, repisa: 6 },
 };
 
 export function speciesScale(species: string): number {
@@ -322,16 +327,22 @@ export function foliageTarget(species: string, slot: SlotSize): number {
   return round(slot.height * REFERENCE_FOLIAGE * speciesScale(species));
 }
 
-/** Suelo de legibilidad del CONJUNTO en ese sitio.
+/** Alto de caja mínimo en ese sitio, traducido desde el follaje mínimo.
  *
- *  `pedido` es el alto que le tocaría a ESA especie por su porte. El suelo se
- *  acota a `pedido / porte`, que es lo que mediría la misma especie con porte 1:
- *  así el mínimo nunca puede levantar a una planta pequeña por encima de una
- *  grande. Sin este tope, en sitios muy bajos —la repisa alta del panel móvil—
- *  el mínimo alcanzaba a todas y volvía a aplanar la jerarquía. */
-export function minHeightIn(slot: SlotSize, species?: string, pedido?: number): number {
-  const m = MIN_PLANT_HEIGHT[slot.scene];
-  let suelo = Math.min(slot.surface === "piso" ? m.piso : m.repisa, slot.height);
+ *  `foliageFrac` es qué parte del conjunto llega a verse en esa especie (1 si
+ *  no lleva maceta). `pedido` es el alto que le tocaría por su porte: el suelo
+ *  se acota a `pedido / porte`, que es lo que mediría la misma especie con
+ *  porte 1, para que el mínimo nunca levante a una pequeña por encima de una
+ *  grande. */
+export function minHeightIn(
+  slot: SlotSize,
+  foliageFrac = 1,
+  species?: string,
+  pedido?: number
+): number {
+  const m = MIN_FOLIAGE[slot.scene];
+  const objetivo = slot.surface === "piso" ? m.piso : m.repisa;
+  let suelo = Math.min(objetivo / foliageFrac, slot.height);
   if (species !== undefined && pedido !== undefined) {
     suelo = Math.min(suelo, pedido / speciesScale(species));
   }
@@ -343,7 +354,7 @@ export function minHeightIn(slot: SlotSize, species?: string, pedido?: number): 
 export function plantHeightIn(species: string, slot: SlotSize): number {
   const { fy } = plantInk(species);
   const pedido = foliageTarget(species, slot) / fy;
-  return round(Math.min(slot.height, Math.max(pedido, minHeightIn(slot, species, pedido))));
+  return round(Math.min(slot.height, Math.max(pedido, minHeightIn(slot, fy, species, pedido))));
 }
 
 export type PlantBox = { width: number; height: number };

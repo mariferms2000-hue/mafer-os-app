@@ -187,7 +187,7 @@ export function fitPotted(
   // especies con el mismo porte pero distinta maceta se ven de tamaños muy
   // distintos — que era exactamente el fallo.
   const pedido = foliageTarget(species, slot) / foliageFraction(species);
-  let alto = Math.min(slot.height, Math.max(pedido, minHeightIn(slot, species, pedido)));
+  let alto = Math.min(slot.height, Math.max(pedido, minHeightIn(slot, foliageFraction(species), species, pedido)));
   let potH = alto * forma.heightFrac;
   const potTop = () => alto - potH;
   const baseP = () => potTop() + (potH * (forma.splitY + asign.sink)) / 100;
