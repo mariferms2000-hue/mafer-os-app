@@ -96,35 +96,33 @@ const WIDE: GardenSlot[] = [
   slot("wide", "repisa-alta-4", "repisa-alta", 75, 13.56, 11, 9, 3),
   slot("wide", "repisa-alta-5", "repisa-alta", 85, 12.66, 11, 9, 4),
   slot("wide", "repisa-alta-6", "repisa-alta", 95, 11.76, 11, 9, 5),
-  // Repisa media — casi horizontal
-  slot("wide", "repisa-media-1", "repisa-media", 45, 34.02, 14, 9, 6),
-  slot("wide", "repisa-media-2", "repisa-media", 55, 33.75, 14, 9, 7),
-  slot("wide", "repisa-media-3", "repisa-media", 65, 33.48, 14, 9, 8),
-  slot("wide", "repisa-media-4", "repisa-media", 75, 33.22, 14, 9, 9),
-  slot("wide", "repisa-media-5", "repisa-media", 85, 32.95, 14, 9, 10),
-  slot("wide", "repisa-media-6", "repisa-media", 95, 32.68, 14, 9, 11),
-  // Repisa baja — baja hacia la derecha y termina antes (94.5 %)
-  slot("wide", "repisa-baja-1", "repisa-baja", 45, 49.32, 14, 9, 12),
-  slot("wide", "repisa-baja-2", "repisa-baja", 55, 49.91, 14, 9, 13),
-  slot("wide", "repisa-baja-3", "repisa-baja", 65, 50.50, 14, 9, 14),
-  slot("wide", "repisa-baja-4", "repisa-baja", 75, 51.09, 14, 9, 15),
-  slot("wide", "repisa-baja-5", "repisa-baja", 85, 51.68, 14, 9, 16),
+  // Repisa media — casi horizontal. Alto 16: usa el aire que quedaba hasta la
+  // repisa alta (baseline 32.68 − 16 = 16.68, justo por debajo del 16.26 de
+  // arriba). Con 14 el techo recortaba a todas las especies grandes por igual.
+  slot("wide", "repisa-media-1", "repisa-media", 45, 34.02, 16, 9, 6),
+  slot("wide", "repisa-media-2", "repisa-media", 55, 33.75, 16, 9, 7),
+  slot("wide", "repisa-media-3", "repisa-media", 65, 33.48, 16, 9, 8),
+  slot("wide", "repisa-media-4", "repisa-media", 75, 33.22, 16, 9, 9),
+  slot("wide", "repisa-media-5", "repisa-media", 85, 32.95, 16, 9, 10),
+  slot("wide", "repisa-media-6", "repisa-media", 95, 32.68, 16, 9, 11),
+  // Repisa baja — baja hacia la derecha y termina antes (94.5 %). Alto 15 por
+  // el mismo motivo; aquí el aire disponible es menor (49.32 − 15 = 34.32).
+  slot("wide", "repisa-baja-1", "repisa-baja", 45, 49.32, 15, 9, 12),
+  slot("wide", "repisa-baja-2", "repisa-baja", 55, 49.91, 15, 9, 13),
+  slot("wide", "repisa-baja-3", "repisa-baja", 65, 50.50, 15, 9, 14),
+  slot("wide", "repisa-baja-4", "repisa-baja", 75, 51.09, 15, 9, 15),
+  slot("wide", "repisa-baja-5", "repisa-baja", 85, 51.68, 15, 9, 16),
   // Suelo — entre el banco (termina en el 40 %) y la caja de madera (empieza
-  // en el 74 %). Más cerca del frente = más grandes.
+  // en el 74 %). Es la superficie donde una planta puede ser GRANDE.
   //
-  // Los tres van reespaciados a 45.5 / 57 / 68.5 con 11 % de ancho. Antes
-  // estaban a 47 / 57 / 67 con los mismos 9 % de las repisas, y ese ancho era
-  // el que mandaba: una monstera de suelo topaba con el límite lateral y se
-  // quedaba en 13.7 % de alto, MENOS que la misma monstera en una repisa. Con
-  // 11 % el alto del sitio vuelve a ser lo que decide, y el suelo puede por fin
-  // sostener plantas mayores que las repisas.
-  //
-  // El reespaciado mantiene el conjunto entre el 40 % y el 74 %: la fila ocupa
-  // justo el hueco libre entre el banco y la caja de madera, sin tocar ninguno
-  // de los dos, y deja 0.5 % de aire entre plantas vecinas.
-  slot("wide", "piso-1", "piso", 45.5, 89, 17, 11, 17),
-  slot("wide", "piso-2", "piso", 57, 92, 19, 11, 18),
-  slot("wide", "piso-3", "piso", 68.5, 87, 16, 11, 19),
+  // El hueco libre mide 34 puntos de ancho, y con TRES sitios ninguno podía
+  // pasar de 11 sin chocar. Ese ancho era el techo real del suelo: una monstera
+  // topaba de lado y se quedaba en un alto de repisa. Con DOS sitios de 15 cabe
+  // el porte que corresponde a una planta de piso, y el suelo pasa a sostener
+  // dos ejemplares grandes en vez de tres medianos — que es además lo que hace
+  // una habitación de verdad.
+  slot("wide", "piso-1", "piso", 50, 90, 27, 15, 17),
+  slot("wide", "piso-2", "piso", 66, 87, 24, 15, 18),
 ];
 
 /** Móvil: el mismo cuarto recorrido en dos vistas apiladas.
@@ -154,9 +152,10 @@ const NARROW: GardenSlot[] = [
   slot("movil-b", "repisa-baja-3", "repisa-baja", 50, 53.48, 15, 18, 11),
   slot("movil-b", "repisa-baja-4", "repisa-baja", 69, 54.21, 15, 18, 12),
   slot("movil-b", "repisa-baja-5", "repisa-baja", 88, 54.95, 15, 18, 13),
-  // La caja de madera empieza en el 58 % de este recorte
-  slot("movil-b", "piso-1", "piso", 18, 92, 20, 20, 14),
-  slot("movil-b", "piso-2", "piso", 40, 88, 18, 20, 15),
+  // La caja de madera empieza en el 58 % de este recorte. Mismo criterio que en
+  // escritorio: el suelo necesita ancho para que el porte llegue a verse.
+  slot("movil-b", "piso-1", "piso", 20, 92, 25, 23, 14),
+  slot("movil-b", "piso-2", "piso", 45, 88, 22, 23, 15),
 ];
 
 export const GARDEN_SLOTS: Record<GardenBreakpoint, GardenSlot[]> = { wide: WIDE, narrow: NARROW };
@@ -181,9 +180,9 @@ export const PROPAGATION_SPOT: Record<GardenBreakpoint, Omit<GardenSlot, "surfac
 const FILL_ORDER: Record<GardenBreakpoint, string[]> = {
   wide: [
     "repisa-media-2", "piso-2", "repisa-alta-4", "repisa-baja-1", "repisa-media-5",
-    "piso-1", "repisa-alta-1", "repisa-baja-3", "repisa-media-3", "piso-3",
+    "piso-1", "repisa-alta-1", "repisa-baja-3", "repisa-media-3", "repisa-alta-3",
     "repisa-alta-6", "repisa-baja-5", "repisa-media-1", "repisa-alta-2", "repisa-baja-2",
-    "repisa-media-6", "repisa-alta-5", "repisa-baja-4", "repisa-media-4", "repisa-alta-3",
+    "repisa-media-6", "repisa-alta-5", "repisa-baja-4", "repisa-media-4",
   ],
   narrow: [
     "repisa-media-3", "piso-1", "repisa-alta-2", "repisa-baja-4", "repisa-media-1",
@@ -231,19 +230,64 @@ export function plantAspect(species: string): number {
  *  achicar, así que ninguna planta puede desbordar su sitio ni invadir a su
  *  vecina por culpa del porte. */
 export const SPECIES_SCALE: Record<string, number> = {
+  // GRANDES — presencia dominante
   monstera: 1,
-  palmera: 0.98,
-  bambu: 0.95,
+  palmera: 0.97,
+  bambu: 0.94,
   olivo: 0.92,
-  sansevieria: 0.82,
-  helecho: 0.72,
-  eucalipto: 0.7,
-  potos: 0.62,
-  lavanda: 0.56,
-  pilea: 0.5,
-  cactus: 0.46,
-  suculenta: 0.42,
+  // MEDIANAS — salto claro respecto a las grandes
+  sansevieria: 0.72,
+  helecho: 0.68,
+  eucalipto: 0.64,
+  // PEQUEÑAS — otro salto claro
+  potos: 0.46,
+  lavanda: 0.42,
+  pilea: 0.38,
+  cactus: 0.34,
+  suculenta: 0.3,
 };
+
+/** Alto de la TINTA de cada lámina, en fracción de su lienzo, y cuánto lienzo
+ *  vacío queda por debajo. Medido sobre el canal alfa de los WebP reales.
+ *
+ *  Hace falta porque el lienzo no es el dibujo: la monstera solo pinta el 89.9 %
+ *  de su alto y deja un 5.2 % de aire abajo, mientras el olivo pinta el 99.6 %.
+ *  Sin esto, dos plantas con el mismo alto de caja se ven de tamaños distintos. */
+export const PLANT_INK: Record<string, { fy: number; padBot: number }> = {
+  monstera: { fy: 0.899, padBot: 0.052 },
+  lavanda: { fy: 0.913, padBot: 0.036 },
+  cactus: { fy: 0.943, padBot: 0.03 },
+  helecho: { fy: 0.995, padBot: 0.005 },
+  suculenta: { fy: 0.991, padBot: 0.005 },
+  olivo: { fy: 0.996, padBot: 0.004 },
+  bambu: { fy: 0.972, padBot: 0.007 },
+  potos: { fy: 0.986, padBot: 0.007 },
+  sansevieria: { fy: 0.993, padBot: 0.004 },
+  pilea: { fy: 0.986, padBot: 0.007 },
+  palmera: { fy: 0.985, padBot: 0.008 },
+  eucalipto: { fy: 0.994, padBot: 0 },
+};
+
+export function plantInk(species: string): { fy: number; padBot: number } {
+  return PLANT_INK[species] ?? { fy: 1, padBot: 0 };
+}
+
+/** Presupuesto de follaje de una especie de porte 1, en fracción del alto del
+ *  sitio. Es la constante que traduce «porte» a «alto de caja».
+ *
+ *  NO PUEDE SUBIRSE A OJO. Cada especie necesita una caja de
+ *  `alto × REFERENCE_FOLIAGE × porte / foliageFraction`, y esa caja no puede
+ *  pasar del alto del sitio. Si el presupuesto es demasiado alto, las especies
+ *  de porte mayor topan TODAS con el techo y salen exactamente iguales — que es
+ *  justo lo que se veía: monstera, olivo y bambú pegadas al techo de la repisa,
+ *  con la misma caja de 101 px.
+ *
+ *  El tope seguro es el mínimo de `foliageFraction / porte` entre todas las
+ *  especies (lo marca el bambú, en tiesto alto y porte 0.94). Un test en
+ *  garden-pot.test.ts lo verifica, así que no puede desajustarse en silencio.
+ *
+ *  Vive aquí y no en garden-pot para no crear un ciclo entre los dos módulos. */
+export const REFERENCE_FOLIAGE = 0.56;
 
 /** Suelo de legibilidad, % del alto de la escena, POR LIENZO Y POR SUPERFICIE.
  *
@@ -255,9 +299,9 @@ export const SPECIES_SCALE: Record<string, number> = {
  *  suculenta diminuta en mitad del piso se ve perdida, no pequeña. En una
  *  habitación real lo que se pone en el suelo va en un recipiente de suelo. */
 export const MIN_PLANT_HEIGHT: Record<GardenScene, { piso: number; repisa: number }> = {
-  wide: { piso: 11, repisa: 6.5 },
-  "movil-a": { piso: 13, repisa: 9.5 },
-  "movil-b": { piso: 13, repisa: 9.5 },
+  wide: { piso: 8, repisa: 4.5 },
+  "movil-a": { piso: 11, repisa: 8 },
+  "movil-b": { piso: 11, repisa: 8 },
 };
 
 export function speciesScale(species: string): number {
@@ -266,13 +310,40 @@ export function speciesScale(species: string): number {
 
 export type SlotSize = { height: number; surface: GardenSurface; scene: GardenScene };
 
-/** Alto que le toca a una especie en un sitio: el techo del sitio modulado por
- *  el porte, con el suelo de legibilidad de esa superficie. Nunca supera el
- *  techo, así que el porte solo puede achicar. */
+/** Alto de FOLLAJE VISIBLE que le toca a una especie en un sitio, en % del alto
+ *  de la escena.
+ *
+ *  Es el objetivo, no el resultado: quien lo consume debe convertirlo a alto de
+ *  caja dividiendo por la fracción de follaje de esa especie (ver
+ *  foliageFraction en garden-pot). Esa vuelta es justamente lo que faltaba —
+ *  antes el porte fijaba el alto de la CAJA, y entre la caja y el follaje se
+ *  interponen la maceta y el hundimiento, que se comían la jerarquía. */
+export function foliageTarget(species: string, slot: SlotSize): number {
+  return round(slot.height * REFERENCE_FOLIAGE * speciesScale(species));
+}
+
+/** Suelo de legibilidad del CONJUNTO en ese sitio.
+ *
+ *  `pedido` es el alto que le tocaría a ESA especie por su porte. El suelo se
+ *  acota a `pedido / porte`, que es lo que mediría la misma especie con porte 1:
+ *  así el mínimo nunca puede levantar a una planta pequeña por encima de una
+ *  grande. Sin este tope, en sitios muy bajos —la repisa alta del panel móvil—
+ *  el mínimo alcanzaba a todas y volvía a aplanar la jerarquía. */
+export function minHeightIn(slot: SlotSize, species?: string, pedido?: number): number {
+  const m = MIN_PLANT_HEIGHT[slot.scene];
+  let suelo = Math.min(slot.surface === "piso" ? m.piso : m.repisa, slot.height);
+  if (species !== undefined && pedido !== undefined) {
+    suelo = Math.min(suelo, pedido / speciesScale(species));
+  }
+  return suelo;
+}
+
+/** Alto de caja de una especie SIN maceta: aquí todo el lienzo es follaje, así
+ *  que basta descontar el aire del propio dibujo. */
 export function plantHeightIn(species: string, slot: SlotSize): number {
-  const minimos = MIN_PLANT_HEIGHT[slot.scene];
-  const suelo = Math.min(slot.surface === "piso" ? minimos.piso : minimos.repisa, slot.height);
-  return round(Math.min(slot.height, Math.max(slot.height * speciesScale(species), suelo)));
+  const { fy } = plantInk(species);
+  const pedido = foliageTarget(species, slot) / fy;
+  return round(Math.min(slot.height, Math.max(pedido, minHeightIn(slot, species, pedido))));
 }
 
 export type PlantBox = { width: number; height: number };

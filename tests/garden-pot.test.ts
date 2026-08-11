@@ -3,12 +3,21 @@ import {
   POT_SHAPES,
   SPECIES_WITH_POT,
   fitPotted,
+  foliageFraction,
   hasPot,
   potAssetPath,
   potFor,
   type PotShape,
 } from "../src/lib/garden-pot";
-import { GARDEN_SLOTS, SCENE_ASPECT, plantAspect } from "../src/lib/garden-layout";
+import {
+  GARDEN_SLOTS,
+  REFERENCE_FOLIAGE,
+  minHeightIn,
+  SCENE_ASPECT,
+  SPECIES_SCALE,
+  plantAspect,
+  plantHeightIn,
+} from "../src/lib/garden-layout";
 import { ILLUSTRATED_PLANT_SPECIES } from "../src/lib/plant-assets";
 
 const FORMAS: PotShape[] = ["baja", "media", "alta"];
@@ -198,6 +207,80 @@ describe("composición dentro del sitio", () => {
       const s = fitPotted("suculenta", slot, SCENE_ASPECT[slot.scene])!;
       expect(m.assemblyHeight, slot.id).toBeGreaterThan(s.assemblyHeight);
     }
+  });
+
+  it("el presupuesto de follaje no pinza a ninguna especie contra el techo", () => {
+    // LA INVARIANTE QUE HACE QUE EL PORTE LLEGUE A PANTALLA. Si REFERENCE_FOLIAGE
+    // supera el mínimo de foliageFraction/porte, las especies de porte mayor
+    // topan TODAS con el alto del sitio y salen exactamente iguales — el fallo
+    // que se veía en la escena. REFERENCE_FOLIAGE vive en garden-layout para no
+    // crear un ciclo entre los módulos; este test lo mantiene honesto.
+    const tope = Math.min(
+      ...ILLUSTRATED_PLANT_SPECIES.map((s) => foliageFraction(s) / SPECIES_SCALE[s])
+    );
+    expect(REFERENCE_FOLIAGE).toBeLessThanOrEqual(tope);
+    // Y que no se quede muy por debajo: sería desaprovechar el sitio.
+    expect(REFERENCE_FOLIAGE).toBeGreaterThan(tope * 0.9);
+  });
+
+  it("la maceta se come una fracción MUY distinta según la forma", () => {
+    // Es la causa del fallo original: el tiesto alto le toca a las especies de
+    // porte mayor, así que la maceta anulaba la jerarquía.
+    const f = SPECIES_WITH_POT.map((s) => foliageFraction(s));
+    expect(Math.max(...f) / Math.min(...f)).toBeGreaterThan(1.3);
+    expect(foliageFraction("olivo")).toBeLessThan(foliageFraction("suculenta"));
+  });
+
+  it("el porte se cumple sobre el FOLLAJE, que es lo que se ve", () => {
+    // La prueba que faltaba. Antes se comprobaba sobre la caja del conjunto, y
+    // por eso pasaba en verde mientras la escena se veía plana.
+    const slot = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    const follaje = (sp: string) => {
+      const c = fitPotted(sp, slot, SCENE_ASPECT.wide);
+      const alto = c ? c.assemblyHeight : plantHeightIn(sp, slot);
+      return alto * foliageFraction(sp);
+    };
+    const ref = follaje("monstera");
+    for (const sp of ILLUSTRATED_PLANT_SPECIES) {
+      const c = fitPotted(sp, slot, SCENE_ASPECT.wide);
+      const alto = c ? c.assemblyHeight : plantHeightIn(sp, slot);
+      const topeAlto = alto >= slot.height - 1e-6;
+      const topeMinimo = alto <= minHeightIn(slot, sp, alto) + 1e-6;
+      // El porte se cumple salvo que tope con el techo del sitio o con el suelo
+      // de legibilidad; en esos casos el límite manda y se declara aquí.
+      if (topeAlto) {
+        // el techo del sitio no la dejó llegar
+        expect(follaje(sp) / ref, `${sp} topa arriba`).toBeLessThanOrEqual(SPECIES_SCALE[sp] + 1e-6);
+        continue;
+      }
+      if (topeMinimo) {
+        // el suelo de legibilidad la levantó
+        expect(follaje(sp) / ref, `${sp} topa abajo`).toBeGreaterThanOrEqual(SPECIES_SCALE[sp] - 1e-6);
+        continue;
+      }
+      expect(follaje(sp) / ref, sp).toBeCloseTo(SPECIES_SCALE[sp], 1);
+    }
+  });
+
+  it("los tres grupos de porte se leen sin ambigüedad", () => {
+    const slot = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    const follaje = (sp: string) => fitPotted(sp, slot, SCENE_ASPECT.wide)!.assemblyHeight * foliageFraction(sp);
+    const grandes = ["monstera", "palmera", "bambu", "olivo"];
+    const medianas = ["sansevieria", "helecho", "eucalipto"];
+    const pequenas = ["cactus", "suculenta", "lavanda"];
+    // Cada grupo entero por encima del siguiente, sin solaparse.
+    expect(Math.min(...grandes.map(follaje))).toBeGreaterThan(Math.max(...medianas.map(follaje)));
+    expect(Math.min(...medianas.map(follaje))).toBeGreaterThan(Math.max(...pequenas.map(follaje)));
+  });
+
+  it("una especie grande crece de verdad al bajar al suelo", () => {
+    const repisa = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    const suelo = GARDEN_SLOTS.wide.find((s) => s.surface === "piso")!;
+    const follaje = (sp: string, s: typeof repisa) =>
+      fitPotted(sp, s, SCENE_ASPECT.wide)!.assemblyHeight * foliageFraction(sp);
+    expect(follaje("monstera", suelo) / follaje("monstera", repisa)).toBeGreaterThan(1.6);
+    // …y una pequeña sigue siendo pequeña ahí abajo.
+    expect(follaje("suculenta", suelo)).toBeLessThan(follaje("monstera", suelo) * 0.6);
   });
 
   it("es determinista", () => {
