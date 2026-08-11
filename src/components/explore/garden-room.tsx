@@ -237,8 +237,9 @@ function plantaStyle(c: NonNullable<ReturnType<typeof fitPotted>>): React.CSSPro
 
 export function GardenRoom({ garden }: { garden: GardenData }) {
   const c = garden.current;
-  const wide = placePlants<GardenPlant>(garden.completed, "wide");
-  const narrow = placePlants<GardenPlant>(garden.completed, "narrow");
+  const especie = (p: GardenPlant) => p.species;
+  const wide = placePlants<GardenPlant>(garden.completed, "wide", especie);
+  const narrow = placePlants<GardenPlant>(garden.completed, "narrow", especie);
 
   // DOM en orden de lectura visual: es el orden en que el tabulador recorre.
   const porOrden = (a: { slot: GardenSlot }, b: { slot: GardenSlot }) => a.slot.order - b.slot.order;

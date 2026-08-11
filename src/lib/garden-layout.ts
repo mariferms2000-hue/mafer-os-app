@@ -299,7 +299,7 @@ export const REFERENCE_FOLIAGE = 0.56;
  *  suculenta diminuta en mitad del piso se ve perdida, no pequeña. En una
  *  habitación real lo que se pone en el suelo va en un recipiente de suelo. */
 export const MIN_PLANT_HEIGHT: Record<GardenScene, { piso: number; repisa: number }> = {
-  wide: { piso: 8, repisa: 4.5 },
+  wide: { piso: 8, repisa: 3.5 },
   "movil-a": { piso: 11, repisa: 8 },
   "movil-b": { piso: 11, repisa: 8 },
 };
@@ -379,18 +379,50 @@ const round = (n: number) => Number(n.toFixed(4));
 export type PlacedPlant<T> = { slot: GardenSlot; plant: T };
 
 /** Reparte las plantas (ya ordenadas: la más reciente primero) entre los
- *  sitios del cuarto, siguiendo el orden de llenado. Las que no caben quedan
- *  fuera del cuarto — el invernadero las sigue mostrando todas. */
-export function placePlants<T>(plants: T[], breakpoint: GardenBreakpoint): PlacedPlant<T>[] {
+ *  sitios del cuarto. Las que no caben quedan fuera — el invernadero las sigue
+ *  mostrando todas.
+ *
+ *  DOS DECISIONES SEPARADAS, y ese es el punto:
+ *
+ *  1. QUIÉN ENTRA lo decide la antigüedad, recorriendo FILL_ORDER. Las plantas
+ *     recientes entran al cuarto; el resto vive en el invernadero.
+ *
+ *  2. DÓNDE SE POSA lo decide el PORTE. Sin esto el sistema de escala no llega
+ *     a verse: los sitios de este cuarto van de 11 a 27 de alto (2.45×) y el
+ *     porte de 0.30 a 1.00 (3.33×), y al asignarse por separado se cancelaban.
+ *     Una suculenta caía en el suelo —el mejor sitio— y una palmera en la
+ *     repisa alta, así que la pequeña se veía mayor que la grande.
+ *
+ *     Emparejando la planta mayor con el sitio mayor, la perspectiva del cuarto
+ *     deja de pelearse con el porte y lo REFUERZA: las grandes abajo, las
+ *     pequeñas en la repisa alta. Es además lo que uno hace de verdad al
+ *     colocar plantas en una habitación.
+ *
+ *  Sigue siendo determinista: mismos datos, misma escena. `speciesOf` es
+ *  opcional para no obligar a los tests de reparto a inventar especies. */
+export function placePlants<T>(
+  plants: T[],
+  breakpoint: GardenBreakpoint,
+  speciesOf?: (plant: T) => string
+): PlacedPlant<T>[] {
   const byId = new Map(GARDEN_SLOTS[breakpoint].map((s) => [s.id, s]));
-  const out: PlacedPlant<T>[] = [];
-  FILL_ORDER[breakpoint].forEach((slotId, i) => {
-    const plant = plants[i];
-    const slot = byId.get(slotId);
-    if (plant === undefined || !slot) return;
-    out.push({ slot, plant });
-  });
-  return out;
+  const orden = FILL_ORDER[breakpoint];
+
+  // 1 · quién entra: por antigüedad, hasta agotar los sitios
+  const dentro = plants.slice(0, orden.length);
+  const sitios = orden.slice(0, dentro.length).flatMap((id) => byId.get(id) ?? []);
+  if (!speciesOf) return sitios.map((slot, i) => ({ slot, plant: dentro[i] }));
+
+  // 2 · dónde: la mayor al sitio mayor. Los empates conservan la antigüedad,
+  //     así que el resultado no depende del orden de recorrido.
+  const porPorte = dentro
+    .map((plant, i) => ({ plant, i }))
+    .sort((a, b) => speciesScale(speciesOf(b.plant)) - speciesScale(speciesOf(a.plant)) || a.i - b.i);
+  const porCapacidad = sitios
+    .map((slot, i) => ({ slot, i }))
+    .sort((a, b) => b.slot.height - a.slot.height || a.i - b.i);
+
+  return porPorte.map(({ plant }, k) => ({ slot: porCapacidad[k].slot, plant }));
 }
 
 /** Índice de llenado de un slot (su posición en FILL_ORDER). Sirve para saber

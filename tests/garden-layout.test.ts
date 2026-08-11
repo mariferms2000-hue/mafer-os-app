@@ -402,3 +402,63 @@ describe("reparto de plantas", () => {
     expect(new Set(puestas.map((p) => p.slot.surface)).size).toBe(4);
   });
 });
+
+describe("el porte decide dónde se posa cada planta", () => {
+  // Los sitios de este cuarto van de 11 a 27 de alto (2.45×) y el porte de
+  // 0.30 a 1.00 (3.33×). Repartidos por separado se cancelaban: una suculenta
+  // caía en el suelo y una palmera en la repisa alta.
+  const MUESTRA = [
+    "suculenta", "monstera", "cactus", "palmera", "lavanda", "bambu",
+    "pilea", "olivo", "potos", "helecho", "eucalipto", "sansevieria",
+  ].map((species, i) => ({ species, i }));
+  const especie = (p: { species: string }) => p.species;
+
+  for (const bp of BREAKPOINTS) {
+    it(`la planta de mayor porte ocupa el sitio mayor (${bp})`, () => {
+      const puestas = placePlants(MUESTRA, bp, especie);
+      const alturas = puestas.map((p) => p.slot.height);
+      const portes = puestas.map((p) => speciesScale(p.plant.species));
+      // Monótono: a más porte, sitio no menor.
+      for (let i = 1; i < puestas.length; i++) {
+        expect(alturas[i], `${puestas[i - 1].plant.species} → ${puestas[i].plant.species}`).toBeLessThanOrEqual(
+          alturas[i - 1] + 1e-9
+        );
+        expect(portes[i]).toBeLessThanOrEqual(portes[i - 1] + 1e-9);
+      }
+    });
+
+    it(`la mayor y la menor acaban en extremos opuestos (${bp})`, () => {
+      const puestas = placePlants(MUESTRA, bp, especie);
+      const monstera = puestas.find((p) => p.plant.species === "monstera")!;
+      const suculenta = puestas.find((p) => p.plant.species === "suculenta")!;
+      expect(monstera.slot.height).toBeGreaterThan(suculenta.slot.height);
+      expect(monstera.slot.surface).toBe("piso");
+    });
+  }
+
+  it("sin especie, el reparto sigue siendo el de antes", () => {
+    const plantas = Array.from({ length: 5 }, (_, i) => ({ id: `p${i}` }));
+    const a = placePlants(plantas, "wide");
+    expect(a).toHaveLength(5);
+    expect(a[0].slot.id).toBe("repisa-media-2");
+  });
+
+  it("es determinista y no depende del orden de llegada de los empates", () => {
+    const a = placePlants(MUESTRA, "wide", especie);
+    const b = placePlants(MUESTRA, "wide", especie);
+    expect(a.map((p) => `${p.plant.species}@${p.slot.id}`)).toEqual(
+      b.map((p) => `${p.plant.species}@${p.slot.id}`)
+    );
+  });
+
+  it("quién ENTRA lo sigue decidiendo la antigüedad, no el porte", () => {
+    // Una suculenta reciente entra al cuarto aunque sea la más pequeña; lo que
+    // cambia es dónde se posa, no si aparece.
+    const muchas = Array.from({ length: 40 }, (_, i) => ({
+      species: i === 0 ? "suculenta" : "monstera",
+    }));
+    const puestas = placePlants(muchas, "wide", (p) => p.species);
+    expect(puestas).toHaveLength(roomCapacity("wide"));
+    expect(puestas.some((p) => p.plant.species === "suculenta")).toBe(true);
+  });
+});
