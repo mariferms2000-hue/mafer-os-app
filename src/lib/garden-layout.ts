@@ -232,34 +232,47 @@ export function plantAspect(species: string): number {
  *  vecina por culpa del porte. */
 export const SPECIES_SCALE: Record<string, number> = {
   monstera: 1,
-  palmera: 1,
-  bambu: 0.98,
-  olivo: 0.95,
-  sansevieria: 0.88,
-  helecho: 0.8,
-  eucalipto: 0.78,
-  potos: 0.72,
-  lavanda: 0.68,
-  pilea: 0.62,
-  cactus: 0.58,
-  suculenta: 0.52,
+  palmera: 0.98,
+  bambu: 0.95,
+  olivo: 0.92,
+  sansevieria: 0.82,
+  helecho: 0.72,
+  eucalipto: 0.7,
+  potos: 0.62,
+  lavanda: 0.56,
+  pilea: 0.5,
+  cactus: 0.46,
+  suculenta: 0.42,
 };
 
-/** Suelo de legibilidad, % del alto de la escena. Sin él, una suculenta en la
- *  repisa alta del panel móvil bajaría a ~25 px y dejaría de leerse y de poder
- *  tocarse; con él se queda en ~32 px. Solo actúa en los sitios más bajos: en
- *  el suelo, donde el techo es holgado, la jerarquía sale entera. */
-export const MIN_PLANT_HEIGHT = 8.5;
+/** Suelo de legibilidad, % del alto de la escena, POR LIENZO Y POR SUPERFICIE.
+ *
+ *  Un mismo porcentaje no vale lo mismo en cada lienzo: el 6.5 % son 47 px en
+ *  la escena de escritorio y solo 24 px en el panel móvil. Por eso el móvil
+ *  pide un suelo más alto — es lo único que impide abrir más la jerarquía allí.
+ *
+ *  Y el suelo de la habitación pide un mínimo MAYOR que las repisas: una
+ *  suculenta diminuta en mitad del piso se ve perdida, no pequeña. En una
+ *  habitación real lo que se pone en el suelo va en un recipiente de suelo. */
+export const MIN_PLANT_HEIGHT: Record<GardenScene, { piso: number; repisa: number }> = {
+  wide: { piso: 11, repisa: 6.5 },
+  "movil-a": { piso: 13, repisa: 9.5 },
+  "movil-b": { piso: 13, repisa: 9.5 },
+};
 
 export function speciesScale(species: string): number {
   return SPECIES_SCALE[species] ?? 1;
 }
 
+export type SlotSize = { height: number; surface: GardenSurface; scene: GardenScene };
+
 /** Alto que le toca a una especie en un sitio: el techo del sitio modulado por
- *  el porte, con el suelo de legibilidad aplicado. Nunca supera el techo. */
-export function plantHeightIn(species: string, slotHeight: number): number {
-  const suelo = Math.min(MIN_PLANT_HEIGHT, slotHeight);
-  return round(Math.min(slotHeight, Math.max(slotHeight * speciesScale(species), suelo)));
+ *  el porte, con el suelo de legibilidad de esa superficie. Nunca supera el
+ *  techo, así que el porte solo puede achicar. */
+export function plantHeightIn(species: string, slot: SlotSize): number {
+  const minimos = MIN_PLANT_HEIGHT[slot.scene];
+  const suelo = Math.min(slot.surface === "piso" ? minimos.piso : minimos.repisa, slot.height);
+  return round(Math.min(slot.height, Math.max(slot.height * speciesScale(species), suelo)));
 }
 
 export type PlantBox = { width: number; height: number };
@@ -274,11 +287,14 @@ export type PlantBox = { width: number; height: number };
  *  actual flotando sobre el banco. */
 export function fitPlant(
   species: string,
-  slot: { height: number; maxWidth: number; scene: GardenScene },
+  slot: { height: number; maxWidth: number; scene: GardenScene; surface?: GardenSurface },
   opciones: { porte?: boolean } = {}
 ): PlantBox {
   const aspect = plantAspect(species);
-  const height = opciones.porte === false ? slot.height : plantHeightIn(species, slot.height);
+  const height =
+    opciones.porte === false
+      ? slot.height
+      : plantHeightIn(species, { ...slot, surface: slot.surface ?? "repisa-media" });
   const width = (height * aspect) / SCENE_ASPECT[slot.scene];
   if (width <= slot.maxWidth) return { width: round(width), height: round(height) };
   const scale = slot.maxWidth / width;

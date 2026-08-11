@@ -506,12 +506,18 @@ html[data-theme="dark"] .plant-illus-dark { display: block; }
   /* TRATAMIENTO DE ESCENA. Medido sobre las ilustraciones reales: el muro claro
      está a S 0.40 y el follaje a S 0.17 — el fondo es 2.3 veces más cromático
      que las plantas (y el piso, 2.9). Por eso se pierden: no es falta de brillo,
-     es que el muro tiene más color que las hojas. Se le baja croma al fondo sin
-     tocarle luminancia (0.371 → 0.299 medido) y se le devuelve algo al follaje
-     (0.184 → 0.247). Nadie sube el brillo, así que la escena no se vuelve
-     chillona: solo cambia dónde vive el color. */
-  --garden-fondo-filtro: saturate(0.78);
-  --garden-planta-filtro: saturate(1.15) contrast(1.08);
+     es que el muro tiene más color que las hojas.
+
+     Al fondo se le baja croma y se le quita un punto de contraste para que
+     RETROCEDA, conservándole la luminancia (medido en la zona del muro:
+     L 0.683 → 0.680, S 0.405 → 0.256). Con el follaje calibrado a S 0.26, la
+     relación se invierte: la planta pasa a ser tan cromática como el muro en
+     vez de tres veces menos. Nadie sube el brillo, así que no aparece
+     saturación de más — solo cambia dónde vive el color.
+
+     La exposición de cada planta NO va aquí: es por especie (ver garden-light)
+     y llega como --gfx-claro / --gfx-oscuro desde el componente. */
+  --garden-fondo-filtro: saturate(0.62) brightness(1.02) contrast(0.96);
 }
 
 html[data-theme="dark"] {
@@ -520,18 +526,6 @@ html[data-theme="dark"] {
 
   /* El cuarto nocturno ya es de croma bajo (S 0.17): quitarle más lo apagaría. */
   --garden-fondo-filtro: none;
-
-  /* Las 240 láminas botánicas se gradaron contra la tarjeta neutra del
-     catálogo, no contra esta habitación: del claro al oscuro el cuarto baja de
-     L 0.546 a 0.038 y las macetas de 0.689 a 0.155, pero las plantas SUBEN de
-     0.351 a 0.503. Quedan iluminadas de día dentro de un cuarto de noche, y por
-     eso se leen como recortes pegados encima en vez de objetos de la escena.
-     brightness las baja a L 0.195 —apenas por encima de su propia maceta, como
-     una hoja que recibe algo más de luz que la cerámica— y deja el contraste
-     contra el muro en 2.27:1, en la misma familia que el 1.9:1 de la maceta.
-     El saturate NO exagera: recupera el croma que se lleva la cuantización de
-     8 bits al multiplicar (medido: S 0.256 → 0.116 sin compensar). */
-  --garden-planta-filtro: brightness(0.65) saturate(1.5);
 }
 
 .garden-scene {
@@ -722,5 +716,9 @@ html[data-theme="dark"] .garden-pot-dark { display: block; }
    puede alterar el sándwich maceta trasera (z 1) → planta (z 2) → maceta
    frontal (z 3), porque esos tres son hermanos y conservan su z-index. */
 .garden-scene [data-illustrated="true"] {
-  filter: var(--garden-planta-filtro);
+  filter: var(--gfx-claro, none);
+}
+
+html[data-theme="dark"] .garden-scene [data-illustrated="true"] {
+  filter: var(--gfx-oscuro, none);
 }

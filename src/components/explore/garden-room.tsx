@@ -14,6 +14,7 @@ import {
   type GardenSlot,
 } from "@/lib/garden-layout";
 import { POT_SHAPES, fitPotted, potAssetPath, potFor } from "@/lib/garden-pot";
+import { plantFilter } from "@/lib/garden-light";
 
 /* La escena de «Mi jardín»: el cuarto botánico.
 
@@ -59,6 +60,17 @@ function asSpecies(s: string): PlantSpeciesV2 {
   return (s in SPECIES_LABEL ? s : "helecho") as PlantSpeciesV2;
 }
 
+/** Exposición de la lámina dentro del cuarto, calibrada por especie (ver
+ *  garden-light). Se entregan LAS DOS variantes como variables CSS y el tema
+ *  activo decide cuál se aplica: el cambio de tema es solo CSS, así que no
+ *  puede resolverse aquí en el servidor. */
+function exposicion(species: string): React.CSSProperties {
+  return {
+    "--gfx-claro": plantFilter(species, "claro"),
+    "--gfx-oscuro": plantFilter(species, "oscuro"),
+  } as React.CSSProperties;
+}
+
 function fecha(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
@@ -72,6 +84,7 @@ type Spot = Pick<GardenSlot, "x" | "baseline" | "height" | "maxWidth" | "scene">
 function slotStyle(species: string, spot: Spot, porte = true): React.CSSProperties {
   const box = fitPlant(species, spot, { porte });
   return {
+    ...exposicion(species),
     "--gx": `${spot.x}%`,
     "--gy": `${spot.baseline}%`,
     "--gw": `${box.width}%`,
@@ -144,6 +157,7 @@ function CompletedPlant({ plant, slot, testid }: { plant: GardenPlant; slot: Gar
       style={
         capas
           ? ({
+              ...exposicion(plant.species),
               "--gx": `${slot.x}%`,
               "--gy": `${slot.baseline}%`,
               "--gw": `${capas.assemblyWidth}%`,

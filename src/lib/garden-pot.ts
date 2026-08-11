@@ -30,7 +30,7 @@
    su base sin que haya que recortar la ilustración. Cuanto más ancha o más
    larga es la base de una especie, más hundida va. */
 
-import { plantAspect, plantHeightIn } from "./garden-layout";
+import { plantAspect, plantHeightIn, type GardenScene, type GardenSurface } from "./garden-layout";
 
 // ── Las tres formas ──────────────────────────────────────────────
 
@@ -139,7 +139,7 @@ const round = (n: number) => Number(n.toFixed(4));
  *  su maceta exactamente igual que una grande. */
 export function fitPotted(
   species: string,
-  slot: { height: number; maxWidth: number },
+  slot: { height: number; maxWidth: number; surface: GardenSurface; scene: GardenScene },
   sceneAspect: number
 ): PottedLayout | null {
   const asign = potFor(species);
@@ -147,7 +147,7 @@ export function fitPotted(
   const forma = POT_SHAPES[asign.shape];
 
   // Alturas dentro del conjunto, en % del alto de la escena
-  let alto = plantHeightIn(species, slot.height);
+  let alto = plantHeightIn(species, slot);
   let potH = alto * forma.heightFrac;
   const potTop = () => alto - potH;
   const baseP = () => potTop() + (potH * (forma.splitY + asign.sink)) / 100;

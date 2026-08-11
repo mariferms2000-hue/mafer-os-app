@@ -193,8 +193,8 @@ describe("tamaño de cada planta", () => {
     const slot = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
     const monstera = fitPlant("monstera", slot); // 411×318, apaisada
     const bambu = fitPlant("bambu", slot); // 263×282, vertical
-    expect(monstera.height).toBeLessThan(plantHeightIn("monstera", slot.height)); // recortada
-    expect(bambu.height).toBeCloseTo(plantHeightIn("bambu", slot.height), 4); // cabe entera
+    expect(monstera.height).toBeLessThan(plantHeightIn("monstera", slot)); // recortada
+    expect(bambu.height).toBeCloseTo(plantHeightIn("bambu", slot), 4); // cabe entera
   });
 });
 
@@ -261,19 +261,32 @@ describe("porte por especie", () => {
 
   it("una especie desconocida conserva el alto del sitio", () => {
     expect(speciesScale("brote-comun")).toBe(1);
-    expect(plantHeightIn("brote-comun", 14)).toBeCloseTo(14, 6);
+    expect(plantHeightIn("brote-comun", GARDEN_SLOTS.wide[0])).toBeCloseTo(GARDEN_SLOTS.wide[0].height, 6);
   });
 
   it("la jerarquía se nota: una monstera no se lee como una suculenta", () => {
     for (const slot of SLOTS) {
-      const m = plantHeightIn("monstera", slot.height);
-      const s = plantHeightIn("suculenta", slot.height);
+      const m = plantHeightIn("monstera", slot);
+      const s = plantHeightIn("suculenta", slot);
       expect(m, slot.id).toBeGreaterThan(s);
     }
-    // En el sitio más holgado (el suelo) la relación sale entera.
+    // En la repisa, donde el mínimo es más bajo, la jerarquía sale entera.
+    const repisa = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    expect(plantHeightIn("monstera", repisa) / plantHeightIn("suculenta", repisa)).toBeGreaterThan(2);
+  });
+
+  it("el suelo pide un mínimo mayor: ahí una planta chica se vería perdida, no pequeña", () => {
+    const repisa = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
     const piso = GARDEN_SLOTS.wide.find((s) => s.surface === "piso" && s.height === 19)!;
-    const ratio = plantHeightIn("monstera", piso.height) / plantHeightIn("suculenta", piso.height);
-    expect(ratio).toBeGreaterThan(1.8);
+    expect(MIN_PLANT_HEIGHT.wide.piso).toBeGreaterThan(MIN_PLANT_HEIGHT.wide.repisa);
+    // La misma suculenta es claramente mayor en el suelo que en la repisa.
+    expect(plantHeightIn("suculenta", piso)).toBeGreaterThan(plantHeightIn("suculenta", repisa));
+  });
+
+  it("el móvil pide un mínimo mayor que el escritorio: el mismo % vale menos px", () => {
+    // 6.5 % son 47 px en la escena amplia y solo 24 px en el panel móvil.
+    expect(MIN_PLANT_HEIGHT["movil-b"].repisa).toBeGreaterThan(MIN_PLANT_HEIGHT.wide.repisa);
+    expect(MIN_PLANT_HEIGHT["movil-b"].piso).toBeGreaterThan(MIN_PLANT_HEIGHT.wide.piso);
   });
 
   it("el orden de porte es coherente de la mayor a la menor", () => {
@@ -288,11 +301,11 @@ describe("porte por especie", () => {
   it("nunca supera el alto del sitio ni baja del suelo de legibilidad", () => {
     for (const slot of SLOTS) {
       for (const sp of ILLUSTRATED_PLANT_SPECIES) {
-        const h = plantHeightIn(sp, slot.height);
+        const h = plantHeightIn(sp, slot);
         expect(h, `${sp} en ${slot.id}`).toBeLessThanOrEqual(slot.height + 1e-6);
-        expect(h, `${sp} en ${slot.id}`).toBeGreaterThanOrEqual(
-          Math.min(MIN_PLANT_HEIGHT, slot.height) - 1e-6
-        );
+        const min = MIN_PLANT_HEIGHT[slot.scene];
+        const suelo = Math.min(slot.surface === "piso" ? min.piso : min.repisa, slot.height);
+        expect(h, `${sp} en ${slot.id}`).toBeGreaterThanOrEqual(suelo - 1e-6);
       }
     }
   });
