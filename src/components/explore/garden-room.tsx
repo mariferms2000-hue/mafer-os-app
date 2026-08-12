@@ -14,6 +14,7 @@ import {
   type GardenSlot,
 } from "@/lib/garden-layout";
 import { POT_SHAPES, fitPotted, potAssetPath, potFor } from "@/lib/garden-pot";
+import { plantFilter } from "@/lib/garden-light";
 
 /* La escena de «Mi jardín»: el cuarto botánico.
 
@@ -59,6 +60,17 @@ function asSpecies(s: string): PlantSpeciesV2 {
   return (s in SPECIES_LABEL ? s : "helecho") as PlantSpeciesV2;
 }
 
+/** Exposición de la lámina dentro del cuarto, calibrada por especie (ver
+ *  garden-light). Se entregan LAS DOS variantes como variables CSS y el tema
+ *  activo decide cuál se aplica: el cambio de tema es solo CSS, así que no
+ *  puede resolverse aquí en el servidor. */
+function exposicion(species: string): React.CSSProperties {
+  return {
+    "--gfx-claro": plantFilter(species, "claro"),
+    "--gfx-oscuro": plantFilter(species, "oscuro"),
+  } as React.CSSProperties;
+}
+
 function fecha(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
@@ -66,10 +78,13 @@ function fecha(iso: string | null): string {
 
 type Spot = Pick<GardenSlot, "x" | "baseline" | "height" | "maxWidth" | "scene">;
 
-/** Posición y tamaño del sitio, en variables CSS. */
-function slotStyle(species: string, spot: Spot): React.CSSProperties {
-  const box = fitPlant(species, spot);
+/** Posición y tamaño del sitio, en variables CSS. `porte: false` deja el alto
+ *  del sitio tal cual — lo necesita la mesa de propagación, cuya línea de apoyo
+ *  se calculó a partir de su alto. */
+function slotStyle(species: string, spot: Spot, porte = true): React.CSSProperties {
+  const box = fitPlant(species, spot, { porte });
   return {
+    ...exposicion(species),
     "--gx": `${spot.x}%`,
     "--gy": `${spot.baseline}%`,
     "--gw": `${box.width}%`,
@@ -91,7 +106,7 @@ function CurrentPlant({
 }) {
   if (!current) {
     return (
-      <div className="garden-slot garden-slot-current garden-slot-quiet" style={slotStyle("helecho", spot)}>
+      <div className="garden-slot garden-slot-current garden-slot-quiet" style={slotStyle("helecho", spot, false)}>
         <PlantArt species="helecho" visualSeed={0} stage="semilla" className="h-full w-full text-sage-deep" />
       </div>
     );
@@ -103,7 +118,7 @@ function CurrentPlant({
       label={`Ver detalle de tu ${nombre} — planta actual, ${STAGE_LABEL[current.stage].toLowerCase()}`}
       testid={testid}
       className="garden-slot garden-slot-current"
-      style={slotStyle(current.species, spot)}
+      style={slotStyle(current.species, spot, false)}
     >
       <PlantArt
         species={asSpecies(current.species)}
@@ -142,6 +157,7 @@ function CompletedPlant({ plant, slot, testid }: { plant: GardenPlant; slot: Gar
       style={
         capas
           ? ({
+              ...exposicion(plant.species),
               "--gx": `${slot.x}%`,
               "--gy": `${slot.baseline}%`,
               "--gw": `${capas.assemblyWidth}%`,
@@ -221,8 +237,9 @@ function plantaStyle(c: NonNullable<ReturnType<typeof fitPotted>>): React.CSSPro
 
 export function GardenRoom({ garden }: { garden: GardenData }) {
   const c = garden.current;
-  const wide = placePlants<GardenPlant>(garden.completed, "wide");
-  const narrow = placePlants<GardenPlant>(garden.completed, "narrow");
+  const especie = (p: GardenPlant) => p.species;
+  const wide = placePlants<GardenPlant>(garden.completed, "wide", especie);
+  const narrow = placePlants<GardenPlant>(garden.completed, "narrow", especie);
 
   // DOM en orden de lectura visual: es el orden en que el tabulador recorre.
   const porOrden = (a: { slot: GardenSlot }, b: { slot: GardenSlot }) => a.slot.order - b.slot.order;

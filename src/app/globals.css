@@ -502,11 +502,30 @@ html[data-theme="dark"] .plant-illus-dark { display: block; }
 :root {
   --garden-shadow: #6b6355;
   --garden-fallback: #efe9dc;  /* color mientras carga la ilustración */
+
+  /* TRATAMIENTO DE ESCENA. Medido sobre las ilustraciones reales: el muro claro
+     está a S 0.40 y el follaje a S 0.17 — el fondo es 2.3 veces más cromático
+     que las plantas (y el piso, 2.9). Por eso se pierden: no es falta de brillo,
+     es que el muro tiene más color que las hojas.
+
+     Al fondo se le baja croma y se le quita un punto de contraste para que
+     RETROCEDA, conservándole la luminancia (medido en la zona del muro:
+     L 0.683 → 0.680, S 0.405 → 0.256). Con el follaje calibrado a S 0.26, la
+     relación se invierte: la planta pasa a ser tan cromática como el muro en
+     vez de tres veces menos. Nadie sube el brillo, así que no aparece
+     saturación de más — solo cambia dónde vive el color.
+
+     La exposición de cada planta NO va aquí: es por especie (ver garden-light)
+     y llega como --gfx-claro / --gfx-oscuro desde el componente. */
+  --garden-fondo-filtro: saturate(0.62) brightness(1.02) contrast(0.96);
 }
 
 html[data-theme="dark"] {
   --garden-shadow: #000000;
   --garden-fallback: #171d14;
+
+  /* El cuarto nocturno ya es de croma bajo (S 0.17): quitarle más lo apagaría. */
+  --garden-fondo-filtro: none;
 }
 
 .garden-scene {
@@ -514,21 +533,35 @@ html[data-theme="dark"] {
   width: 100%;
   overflow: hidden;
   background-color: var(--garden-fallback);
+}
+
+/* La ilustración vive en su PROPIA capa, no en el fondo del contenedor: así se
+   la puede tratar sin que el filtro caiga también sobre plantas y macetas (un
+   `filter` en el contenedor afectaría a toda su descendencia). z-index 0 la
+   deja por debajo de los sitios —que van en 1— y de la costura de los paneles
+   móviles. */
+.garden-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   background-size: 100% 100%;
   background-repeat: no-repeat;
+  filter: var(--garden-fondo-filtro);
+  pointer-events: none;
 }
 
 .garden-scene-wide { display: none; aspect-ratio: 1586 / 991; }
 .garden-panel-a { aspect-ratio: 700 / 780; }
 .garden-panel-b { aspect-ratio: 986 / 940; }
 
-.garden-scene-wide { background-image: url("/garden/cuarto-claro.webp"); }
-.garden-panel-a { background-image: url("/garden/movil-a-claro.webp"); }
-.garden-panel-b { background-image: url("/garden/movil-b-claro.webp"); }
+.garden-scene-wide::before { background-image: url("/garden/cuarto-claro.webp"); }
+.garden-panel-a::before { background-image: url("/garden/movil-a-claro.webp"); }
+.garden-panel-b::before { background-image: url("/garden/movil-b-claro.webp"); }
 
-html[data-theme="dark"] .garden-scene-wide { background-image: url("/garden/cuarto-oscuro.webp"); }
-html[data-theme="dark"] .garden-panel-a { background-image: url("/garden/movil-a-oscuro.webp"); }
-html[data-theme="dark"] .garden-panel-b { background-image: url("/garden/movil-b-oscuro.webp"); }
+html[data-theme="dark"] .garden-scene-wide::before { background-image: url("/garden/cuarto-oscuro.webp"); }
+html[data-theme="dark"] .garden-panel-a::before { background-image: url("/garden/movil-a-oscuro.webp"); }
+html[data-theme="dark"] .garden-panel-b::before { background-image: url("/garden/movil-b-oscuro.webp"); }
 
 /* Las dos vistas se apilan sin borde ni separación: la costura se disuelve con
    un degradado hacia la superficie de la tarjeta, para que se lean como un
@@ -669,3 +702,23 @@ html[data-theme="dark"] .garden-pot-dark { display: block; }
 /* Con maceta la sombra de contacto se ciñe al pie de la cerámica, que es
    más estrecho que el follaje. */
 .garden-slot-potted::after { width: 46%; opacity: 0.22; }
+
+/* ─── Exposición de la planta DENTRO del cuarto ───────────────────
+   Pone la lámina botánica bajo la misma luz que la habitación y su maceta
+   (ver los tokens --garden-planta-filtro y el porqué medido de cada valor).
+
+   SOLO AQUÍ. La regla cuelga de .garden-scene, así que el catálogo, las
+   especies, el invernadero, el popup de detalle y el overlay de enfoque siguen
+   mostrando la lámina sin tratar. Los 240 WebP no se tocan.
+
+   El filtro va sobre el lienzo de PlantArt, que es hijo de .garden-planta, y
+   NO sobre .garden-planta: crear un contexto de apilamiento aquí dentro no
+   puede alterar el sándwich maceta trasera (z 1) → planta (z 2) → maceta
+   frontal (z 3), porque esos tres son hermanos y conservan su z-index. */
+.garden-scene [data-illustrated="true"] {
+  filter: var(--gfx-claro, none);
+}
+
+html[data-theme="dark"] .garden-scene [data-illustrated="true"] {
+  filter: var(--gfx-oscuro, none);
+}

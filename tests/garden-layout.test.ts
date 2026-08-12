@@ -2,18 +2,26 @@ import { describe, expect, it } from "vitest";
 import {
   GARDEN_SLOTS,
   MAX_ROOM_PLANTS,
+  MIN_FOLIAGE,
+  PLANT_INK,
   PROPAGATION_SPOT,
   SCENE_ASPECT,
   SCENES_FOR,
+  SPECIES_SCALE,
   fillIndex,
   fitPlant,
+  foliageTarget,
+  minHeightIn,
   placePlants,
   plantAspect,
+  plantHeightIn,
   roomCapacity,
+  speciesScale,
   type GardenBreakpoint,
   type GardenSlot,
 } from "../src/lib/garden-layout";
 import { ILLUSTRATED_PLANT_SPECIES, PLANT_ASSET_DIMS } from "../src/lib/plant-assets";
+import { SPECIES_WITH_POT, fitPotted } from "../src/lib/garden-pot";
 
 const BREAKPOINTS: GardenBreakpoint[] = ["wide", "narrow"];
 
@@ -133,11 +141,11 @@ describe("slots de la escena", () => {
   });
 
   it("el cuarto es una vitrina: capacidad acotada y menor en móvil", () => {
-    expect(roomCapacity("wide")).toBe(20);
+    expect(roomCapacity("wide")).toBe(19);
     // Móvil reparte el cuarto en dos vistas y recupera casi todo el aforo.
     expect(roomCapacity("narrow")).toBe(16);
     expect(roomCapacity("narrow")).toBeLessThan(roomCapacity("wide"));
-    expect(MAX_ROOM_PLANTS).toBe(20);
+    expect(MAX_ROOM_PLANTS).toBe(19);
   });
 });
 
@@ -181,14 +189,158 @@ describe("tamaño de cada planta", () => {
     }
   });
 
-  it("una especie ancha se recorta y una estrecha no", () => {
-    // La repisa media es la de plantas más altas del escritorio: ahí una
-    // especie apaisada topa con el ancho máximo y una vertical no.
-    const slot = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
-    const monstera = fitPlant("monstera", slot); // 411×318, apaisada
-    const bambu = fitPlant("bambu", slot); // 263×282, vertical
-    expect(monstera.height).toBeLessThan(slot.height); // recortada
-    expect(bambu.height).toBeCloseTo(slot.height, 4); // cabe entera
+  it("recorta por ancho solo cuando hace falta, y sin deformar", () => {
+    // Un sitio deliberadamente estrecho: la especie apaisada topa de lado y la
+    // vertical no. Lo que no puede pasar nunca es que se deforme.
+    const base = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    const estrecho = { ...base, maxWidth: 5.5 };
+    const monstera = fitPlant("monstera", estrecho); // 411×318, apaisada
+    const bambu = fitPlant("bambu", estrecho); // 263×282, vertical
+    expect(monstera.width).toBeCloseTo(5.5, 4);
+    expect(monstera.height).toBeLessThan(plantHeightIn("monstera", estrecho));
+    expect(bambu.height).toBeCloseTo(plantHeightIn("bambu", estrecho), 4);
+  });
+});
+
+describe("el suelo del escritorio", () => {
+  // El hueco libre del cuarto: el banco de propagación termina en el 40 % y la
+  // caja de madera (con la regadera detrás) empieza en el 74 %.
+  const BANCO_FIN = 40;
+  const CAJA_INICIO = 74;
+  const piso = GARDEN_SLOTS.wide.filter((s) => s.surface === "piso").sort((a, b) => a.x - b.x);
+
+  it("la fila entera cabe entre el banco y la caja de madera", () => {
+    for (const s of piso) {
+      expect(s.x - s.maxWidth / 2, `${s.id} pisa el banco`).toBeGreaterThanOrEqual(BANCO_FIN);
+      expect(s.x + s.maxWidth / 2, `${s.id} pisa la caja`).toBeLessThanOrEqual(CAJA_INICIO);
+    }
+  });
+
+  it("ningún conjunto planta+maceta choca con su vecino", () => {
+    // Se comprueba con el ancho REAL de cada conjunto, no con el ancho máximo
+    // del sitio: es lo que de verdad se pinta.
+    for (let i = 1; i < piso.length; i++) {
+      for (const a of SPECIES_WITH_POT) {
+        for (const b of SPECIES_WITH_POT) {
+          const izq = fitPotted(a, piso[i - 1], SCENE_ASPECT.wide)!;
+          const der = fitPotted(b, piso[i], SCENE_ASPECT.wide)!;
+          const separacion = piso[i].x - piso[i - 1].x;
+          const necesaria = izq.assemblyWidth / 2 + der.assemblyWidth / 2;
+          expect(separacion, `${a} ↔ ${b} en el suelo`).toBeGreaterThanOrEqual(necesaria);
+        }
+      }
+    }
+  });
+
+  it("el ancho ya no es lo que manda: una planta de suelo supera a la misma en repisa", () => {
+    // Era el fallo original: con maxWidth 9 la monstera de suelo topaba de lado
+    // y se quedaba MÁS BAJA que la de repisa, anulando la profundidad.
+    const repisa = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    const suelo = piso[0];
+    for (const sp of SPECIES_WITH_POT) {
+      const enRepisa = fitPotted(sp, repisa, SCENE_ASPECT.wide)!;
+      const enSuelo = fitPotted(sp, suelo, SCENE_ASPECT.wide)!;
+      expect(enSuelo.assemblyHeight, sp).toBeGreaterThan(enRepisa.assemblyHeight);
+    }
+  });
+});
+
+describe("porte por especie", () => {
+  const SLOTS = [...GARDEN_SLOTS.wide, ...GARDEN_SLOTS.narrow];
+
+  it("las 12 especies ilustradas tienen porte decidido — ninguna al azar", () => {
+    for (const sp of ILLUSTRATED_PLANT_SPECIES) {
+      expect(SPECIES_SCALE[sp], sp).toBeGreaterThan(0);
+    }
+  });
+
+  it("ningún porte pasa de 1: el sistema solo puede achicar", () => {
+    // Es la garantía de que el porte jamás desborda un sitio ni invade a la
+    // vecina: el alto del sitio sigue siendo un techo duro.
+    for (const [sp, k] of Object.entries(SPECIES_SCALE)) {
+      expect(k, sp).toBeLessThanOrEqual(1);
+      expect(k, sp).toBeGreaterThan(0);
+    }
+  });
+
+  it("una especie desconocida conserva el alto del sitio", () => {
+    expect(speciesScale("brote-comun")).toBe(1);
+    // Sin lámina medida se asume tinta llena, así que el alto es el objetivo de
+    // follaje de una especie de porte 1: nunca una corrección inventada.
+    const slot = GARDEN_SLOTS.wide[0];
+    expect(plantHeightIn("brote-comun", slot)).toBeCloseTo(foliageTarget("brote-comun", slot), 4);
+  });
+
+  it("la jerarquía se nota: una monstera no se lee como una suculenta", () => {
+    for (const slot of SLOTS) {
+      const m = plantHeightIn("monstera", slot);
+      const s = plantHeightIn("suculenta", slot);
+      expect(m, slot.id).toBeGreaterThan(s);
+    }
+    // En la repisa, donde el mínimo es más bajo, la jerarquía sale entera.
+    const repisa = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    expect(plantHeightIn("monstera", repisa) / plantHeightIn("suculenta", repisa)).toBeGreaterThan(2);
+  });
+
+  it("el suelo pide un mínimo mayor: ahí una planta chica se vería perdida, no pequeña", () => {
+    const repisa = GARDEN_SLOTS.wide.find((s) => s.surface === "repisa-media")!;
+    const piso = GARDEN_SLOTS.wide.find((s) => s.surface === "piso")!;
+    expect(MIN_FOLIAGE.wide.piso).toBeGreaterThan(MIN_FOLIAGE.wide.repisa);
+    // La misma suculenta es claramente mayor en el suelo que en la repisa.
+    expect(plantHeightIn("suculenta", piso)).toBeGreaterThan(plantHeightIn("suculenta", repisa));
+  });
+
+  it("el móvil pide un mínimo mayor que el escritorio: el mismo % vale menos px", () => {
+    // 6.5 % son 47 px en la escena amplia y solo 24 px en el panel móvil.
+    expect(MIN_FOLIAGE["movil-b"].repisa).toBeGreaterThan(MIN_FOLIAGE.wide.repisa);
+    expect(MIN_FOLIAGE["movil-b"].piso).toBeGreaterThan(MIN_FOLIAGE.wide.piso);
+  });
+
+  it("el orden de porte es coherente de la mayor a la menor", () => {
+    // El olivo empata con la monstera a propósito: los dos encabezan el grupo
+    // de las grandes. La cadena comprueba el orden ESTRICTO del resto.
+    expect(SPECIES_SCALE.olivo).toBe(SPECIES_SCALE.monstera);
+    const orden = ["monstera", "palmera", "sansevieria", "helecho", "lavanda", "cactus", "suculenta"];
+    for (let i = 1; i < orden.length; i++) {
+      expect(SPECIES_SCALE[orden[i - 1]], `${orden[i - 1]} > ${orden[i]}`).toBeGreaterThan(
+        SPECIES_SCALE[orden[i]]
+      );
+    }
+  });
+
+  it("nunca supera el alto del sitio ni baja del suelo de legibilidad", () => {
+    for (const slot of SLOTS) {
+      for (const sp of ILLUSTRATED_PLANT_SPECIES) {
+        const h = plantHeightIn(sp, slot);
+        expect(h, `${sp} en ${slot.id}`).toBeLessThanOrEqual(slot.height + 1e-6);
+        // El suelo de legibilidad se acota a lo que mediría la misma especie
+        // con porte 1: nunca puede levantar a una pequeña por encima de una
+        // grande. Por eso el mínimo efectivo es el menor de los dos.
+        const fy = PLANT_INK[sp].fy;
+        const pedido = foliageTarget(sp, slot) / fy;
+        expect(h, `${sp} en ${slot.id}`).toBeGreaterThanOrEqual(
+          minHeightIn(slot, fy, sp, pedido) - 1e-3 // plantHeightIn redondea a 4 decimales
+        );
+      }
+    }
+  });
+
+  it("la mesa de propagación se salta el porte: su apoyo depende de su alto", () => {
+    // La línea de apoyo del banco es 67.8 + 0.18 × alto. Si el porte le
+    // cambiara el alto, la planta actual flotaría sobre la madera.
+    for (const bp of BREAKPOINTS) {
+      const p = PROPAGATION_SPOT[bp];
+      expect(fitPlant("helecho", p).height, bp).toBeLessThanOrEqual(
+        fitPlant("helecho", p, { porte: false }).height
+      );
+    }
+    // En escritorio el banco no recorta por ancho, así que el alto crudo se ve
+    // tal cual y la diferencia queda a la vista. (En móvil el ancho del banco
+    // manda y las dos rutas coinciden: por eso allí solo se exige que el porte
+    // nunca agrande.)
+    const p = PROPAGATION_SPOT.wide;
+    expect(fitPlant("helecho", p, { porte: false }).height).toBeCloseTo(p.height, 4);
+    expect(fitPlant("helecho", p).height).toBeLessThan(p.height);
   });
 });
 
@@ -252,5 +404,118 @@ describe("reparto de plantas", () => {
   it("móvil reparte entre las cuatro superficies desde el principio, no una y luego otra", () => {
     const puestas = placePlants(plantas(5), "narrow");
     expect(new Set(puestas.map((p) => p.slot.surface)).size).toBe(4);
+  });
+});
+
+describe("el porte decide dónde se posa cada planta", () => {
+  // Los sitios de este cuarto van de 11 a 27 de alto (2.45×) y el porte de
+  // 0.30 a 1.00 (3.33×). Repartidos por separado se cancelaban: una suculenta
+  // caía en el suelo y una palmera en la repisa alta.
+  const MUESTRA = [
+    "suculenta", "monstera", "cactus", "palmera", "lavanda", "bambu",
+    "pilea", "olivo", "potos", "helecho", "eucalipto", "sansevieria",
+  ].map((species, i) => ({ species, i }));
+  const especie = (p: { species: string }) => p.species;
+
+  for (const bp of BREAKPOINTS) {
+    it(`la planta de mayor porte ocupa el sitio mayor (${bp})`, () => {
+      const puestas = placePlants(MUESTRA, bp, especie);
+      const alturas = puestas.map((p) => p.slot.height);
+      const portes = puestas.map((p) => speciesScale(p.plant.species));
+      // Monótono: a más porte, sitio no menor.
+      for (let i = 1; i < puestas.length; i++) {
+        expect(alturas[i], `${puestas[i - 1].plant.species} → ${puestas[i].plant.species}`).toBeLessThanOrEqual(
+          alturas[i - 1] + 1e-9
+        );
+        expect(portes[i]).toBeLessThanOrEqual(portes[i - 1] + 1e-9);
+      }
+    });
+
+    it(`la mayor y la menor acaban en extremos opuestos (${bp})`, () => {
+      const puestas = placePlants(MUESTRA, bp, especie);
+      const monstera = puestas.find((p) => p.plant.species === "monstera")!;
+      const suculenta = puestas.find((p) => p.plant.species === "suculenta")!;
+      expect(monstera.slot.height).toBeGreaterThan(suculenta.slot.height);
+      expect(monstera.slot.surface).toBe("piso");
+    });
+  }
+
+  it("sin especie, el reparto sigue siendo el de antes", () => {
+    const plantas = Array.from({ length: 5 }, (_, i) => ({ id: `p${i}` }));
+    const a = placePlants(plantas, "wide");
+    expect(a).toHaveLength(5);
+    expect(a[0].slot.id).toBe("repisa-media-2");
+  });
+
+  it("es determinista y no depende del orden de llegada de los empates", () => {
+    const a = placePlants(MUESTRA, "wide", especie);
+    const b = placePlants(MUESTRA, "wide", especie);
+    expect(a.map((p) => `${p.plant.species}@${p.slot.id}`)).toEqual(
+      b.map((p) => `${p.plant.species}@${p.slot.id}`)
+    );
+  });
+
+  it("quién ENTRA lo sigue decidiendo la antigüedad, no el porte", () => {
+    // Una suculenta reciente entra al cuarto aunque sea la más pequeña; lo que
+    // cambia es dónde se posa, no si aparece.
+    const muchas = Array.from({ length: 40 }, (_, i) => ({
+      species: i === 0 ? "suculenta" : "monstera",
+    }));
+    const puestas = placePlants(muchas, "wide", (p) => p.species);
+    expect(puestas).toHaveLength(roomCapacity("wide"));
+    expect(puestas.some((p) => p.plant.species === "suculenta")).toBe(true);
+  });
+});
+
+describe("variedad en los mejores sitios", () => {
+  const especie = (p: { species: string }) => p.species;
+
+  it("con dos plantas del mismo porte, no se repite especie en el suelo", () => {
+    // Dos monsteras y dos olivos, todos de porte 1. Sin la regla de variedad
+    // las dos monsteras se quedaban con los dos sitios del suelo y el olivo
+    // —igual de grande— bajaba a una repisa y se leía como un arbolito.
+    // Seis: es cuando FILL_ORDER ya ha abierto los dos sitios del suelo.
+    const datos = ["monstera", "monstera", "olivo", "olivo", "helecho", "cactus"].map((species) => ({
+      species,
+    }));
+    const suelo = placePlants(datos, "wide", especie).filter((p) => p.slot.surface === "piso");
+    expect(suelo).toHaveLength(2);
+    expect(new Set(suelo.map((p) => p.plant.species)).size).toBe(2);
+  });
+
+  it("la variedad no rompe el orden de porte", () => {
+    const datos = ["suculenta", "monstera", "cactus", "olivo", "helecho", "palmera"].map((species) => ({
+      species,
+    }));
+    const puestas = placePlants(datos, "wide", especie);
+    for (let i = 1; i < puestas.length; i++) {
+      expect(puestas[i].slot.height).toBeLessThanOrEqual(puestas[i - 1].slot.height + 1e-9);
+    }
+  });
+
+  it("sigue siendo determinista", () => {
+    const datos = ["monstera", "olivo", "monstera", "olivo"].map((species) => ({ species }));
+    const a = placePlants(datos, "wide", especie).map((p) => `${p.plant.species}@${p.slot.id}`);
+    const b = placePlants(datos, "wide", especie).map((p) => `${p.plant.species}@${p.slot.id}`);
+    expect(a).toEqual(b);
+  });
+});
+
+describe("la planta actual del banco", () => {
+  it("es más discreta que cualquier planta de suelo", () => {
+    // Es provisional: sigue sin recipiente hasta el frasco de propagación, así
+    // que no debe robarle protagonismo a la colección.
+    const piso = GARDEN_SLOTS.wide.find((s) => s.surface === "piso")!;
+    expect(PROPAGATION_SPOT.wide.height).toBeLessThan(piso.height);
+  });
+
+  it("su línea de apoyo acompaña al alto para no dejarla flotando", () => {
+    // El dibujo del espécimen termina hacia el 82 % de su lienzo, así que al
+    // achicarlo hay que bajar el anclaje en 0.18 × la diferencia.
+    for (const bp of BREAKPOINTS) {
+      const p = PROPAGATION_SPOT[bp];
+      expect(p.baseline).toBeGreaterThan(0);
+      expect(p.baseline - p.height).toBeGreaterThan(0);
+    }
   });
 });

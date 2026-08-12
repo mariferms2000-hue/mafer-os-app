@@ -30,7 +30,14 @@
    su base sin que haya que recortar la ilustración. Cuanto más ancha o más
    larga es la base de una especie, más hundida va. */
 
-import { plantAspect } from "./garden-layout";
+import {
+  foliageTarget,
+  minHeightIn,
+  plantAspect,
+  plantInk,
+  type GardenScene,
+  type GardenSurface,
+} from "./garden-layout";
 
 // ── Las tres formas ──────────────────────────────────────────────
 
@@ -125,22 +132,62 @@ export type PottedLayout = {
 
 const round = (n: number) => Number(n.toFixed(4));
 
+/** Qué fracción del alto del CONJUNTO llega a verse como follaje.
+ *
+ *  ES LA PIEZA QUE FALTABA. Entre la caja del conjunto y lo que el ojo lee se
+ *  interponen tres cosas que cambian por especie:
+ *
+ *    1. la maceta ocupa su parte  — 34 % la baja, 44 % la media, 54 % la alta;
+ *    2. la planta se hunde `sink` por debajo del corte, y eso queda tapado;
+ *    3. la lámina no llena su lienzo (ver PLANT_INK).
+ *
+ *  El resultado va de 0.54 a 0.99 según la especie: casi el doble. Como el
+ *  tiesto alto le toca justo a las especies de porte mayor, la maceta estaba
+ *  ANULANDO la jerarquía —un olivo con porte 0.92 acababa mostrando menos
+ *  follaje que una suculenta con porte 0.42 en su cuenco bajo—. */
+export function foliageFraction(species: string): number {
+  const ink = plantInk(species);
+  const asign = potFor(species);
+  if (!asign) return ink.fy; // sin maceta, todo el lienzo es follaje
+
+  const f = POT_SHAPES[asign.shape];
+  // Fracciones del alto del conjunto
+  const plantH = 1 - f.heightFrac + (f.heightFrac * (f.splitY + asign.sink)) / 100;
+  const plantBottom = 1 - plantH;
+  const corte = f.heightFrac * (1 - f.splitY / 100);
+
+  const tintaArriba = plantBottom + plantH * (ink.padBot + ink.fy);
+  const tintaAbajo = plantBottom + plantH * ink.padBot;
+  return round(tintaArriba - Math.max(tintaAbajo, corte));
+}
+
 /** Coloca planta y maceta dentro de la caja de un sitio.
  *
  *  El conjunto nunca excede el alto del sitio ni su ancho máximo: si la planta
  *  o la maceta se pasan de ancho, se reduce TODO el conjunto en la misma
- *  proporción, de modo que la planta siga bien asentada en su maceta. */
+ *  proporción, de modo que la planta siga bien asentada en su maceta.
+ *
+ *  El porte de la especie (ver plantHeightIn) entra por el alto de partida, y
+ *  eso NO altera la composición: `pot` y `plant` se devuelven en % de la caja
+ *  del conjunto, y esos porcentajes son invariantes de escala —multiplicar
+ *  `alto` por k multiplica también `potH`, `baseP` y la línea de corte, así que
+ *  todos los cocientes salen idénticos—. Una planta más pequeña se asienta en
+ *  su maceta exactamente igual que una grande. */
 export function fitPotted(
   species: string,
-  slot: { height: number; maxWidth: number },
+  slot: { height: number; maxWidth: number; surface: GardenSurface; scene: GardenScene },
   sceneAspect: number
 ): PottedLayout | null {
   const asign = potFor(species);
   if (!asign) return null;
   const forma = POT_SHAPES[asign.shape];
 
-  // Alturas dentro del conjunto, en % del alto de la escena
-  let alto = slot.height;
+  // Del follaje que se quiere ver, de vuelta al alto del conjunto: se divide
+  // por lo que esta especie deja ver con su maceta. Sin esta división, dos
+  // especies con el mismo porte pero distinta maceta se ven de tamaños muy
+  // distintos — que era exactamente el fallo.
+  const pedido = foliageTarget(species, slot) / foliageFraction(species);
+  let alto = Math.min(slot.height, Math.max(pedido, minHeightIn(slot, foliageFraction(species), species, pedido)));
   let potH = alto * forma.heightFrac;
   const potTop = () => alto - potH;
   const baseP = () => potTop() + (potH * (forma.splitY + asign.sink)) / 100;
