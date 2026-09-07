@@ -14,8 +14,9 @@ const h = vi.hoisted(() => {
   type WriteOp = { kind: "insert" | "update"; table: unknown; values: Record<string, unknown> };
   const ops: WriteOp[] = [];
   const created: Record<string, unknown>[] = [];
-  const state: { selectResult: unknown[] } = { selectResult: [] };
-  return { ops, created, state };
+  const synced: string[] = [];
+  const state: { selectResult: unknown[]; syncFails: boolean } = { selectResult: [], syncFails: false };
+  return { ops, created, synced, state };
 });
 
 vi.mock("@/lib/db", async () => {
@@ -58,6 +59,14 @@ vi.mock("@/lib/db", async () => {
 
 vi.mock("@/lib/auth", () => ({ requireAuth: () => Promise.resolve() }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+vi.mock("@/lib/google/calendar", () => ({
+  syncEventToGoogle: (id: string) => {
+    h.synced.push(id);
+    // Google puede fallar (sin conexión, token vencido, cuota). La conversión
+    // no debe romperse por eso: la prueba «aunque Google falle» activa este caso.
+    return h.state.syncFails ? Promise.reject(new Error("google caído")) : Promise.resolve(null);
+  },
+}));
 vi.mock("@/lib/db/helpers", () => ({
   createCardInColumnKind: (input: Record<string, unknown>) => {
     h.created.push(input);
@@ -91,7 +100,9 @@ function valuesFor(table: unknown): Record<string, unknown>[] {
 beforeEach(() => {
   h.ops.length = 0;
   h.created.length = 0;
+  h.synced.length = 0;
   h.state.selectResult = [CAPTURA];
+  h.state.syncFails = false;
 });
 
 describe("convertInboxItem — captura procesada como TAREA", () => {
@@ -161,5 +172,82 @@ describe("convertInboxItem — captura procesada como PROYECTO", () => {
     );
 
     expect(h.ops.some((o) => "nextAction" in o.values)).toBe(false);
+  });
+});
+
+describe("convertInboxItem — captura procesada como EVENTO", () => {
+  it("crea el evento con sus campos y lo manda a Google", async () => {
+    const res = await convertInboxItem(
+      form({
+        id: "inbox-1",
+        target: "evento",
+        date: "2026-09-15",
+        startTime: "09:30",
+        endTime: "10:30",
+        eventType: "reunion",
+        projectId: "proj-9",
+      })
+    );
+
+    expect(res).toEqual({ convertedTo: "evento:generado-1" });
+    expect(valuesFor(schema.events)).toEqual([
+      {
+        id: "generado-1",
+        title: "Renovar el pasaporte",
+        date: "2026-09-15",
+        startTime: "09:30",
+        endTime: "10:30",
+        type: "reunion",
+        projectId: "proj-9",
+        notes: "Antes del viaje",
+        createdAt: "2026-08-02T10:00:00.000Z",
+      },
+    ]);
+    // La sincronización recibe el evento recién creado, no otro.
+    expect(h.synced).toEqual(["generado-1"]);
+  });
+
+  it("sin hora de inicio queda como evento de todo el día", async () => {
+    await convertInboxItem(form({ id: "inbox-1", target: "evento", date: "2026-09-15" }));
+
+    const [evento] = valuesFor(schema.events);
+    expect(evento.startTime).toBeNull();
+    expect(evento.endTime).toBeNull();
+    // El tipo por defecto es "evento", igual que en el calendario.
+    expect(evento.type).toBe("evento");
+  });
+
+  it("sin fecha en el formulario cae a la de la captura, y si no hay, a hoy", async () => {
+    h.state.selectResult = [{ ...CAPTURA, date: "2026-09-01" }];
+    await convertInboxItem(form({ id: "inbox-1", target: "evento" }));
+    expect(valuesFor(schema.events)[0].date).toBe("2026-09-01");
+
+    h.ops.length = 0;
+    h.state.selectResult = [CAPTURA]; // date: null
+    await convertInboxItem(form({ id: "inbox-1", target: "evento" }));
+    expect(valuesFor(schema.events)[0].date).toBe("2026-08-02");
+  });
+
+  it("marca la captura como procesada apuntando al evento", async () => {
+    await convertInboxItem(form({ id: "inbox-1", target: "evento", date: "2026-09-15" }));
+
+    expect(valuesFor(schema.inboxItems)).toEqual([
+      {
+        processed: true,
+        convertedTo: "evento:generado-1",
+        content: "Renovar el pasaporte",
+        note: "Antes del viaje",
+      },
+    ]);
+  });
+
+  it("si Google falla, el evento igual queda guardado y la captura procesada", async () => {
+    h.state.syncFails = true;
+
+    const res = await convertInboxItem(form({ id: "inbox-1", target: "evento", date: "2026-09-15" }));
+
+    expect(res).toEqual({ convertedTo: "evento:generado-1" });
+    expect(valuesFor(schema.events)).toHaveLength(1);
+    expect(valuesFor(schema.inboxItems)).toHaveLength(1);
   });
 });

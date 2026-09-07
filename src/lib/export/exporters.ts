@@ -58,7 +58,7 @@ const fmtFecha = (ymd: string | null | undefined) => {
   return y && m && d ? `${d} ${MESES_MD[m - 1]} ${y}` : String(ymd);
 };
 const hoyLocal = () => new Date().toLocaleDateString("en-CA", { timeZone: TIMEZONE });
-const TIPO_CAPTURA: Record<string, string> = { tarea: "Tarea", proyecto: "Proyecto", idea: "Idea", aprendizaje: "Learn Fast", journal: "Journal", decision: "Decisión", recurso: "Recurso" };
+const TIPO_CAPTURA: Record<string, string> = { tarea: "Tarea", proyecto: "Proyecto", idea: "Idea", aprendizaje: "Learn Fast", journal: "Journal", decision: "Decisión", recurso: "Recurso", evento: "Evento" };
 const IDEA_STATUS: Record<string, string> = { incubando: "Incubando", "algun-dia": "Algún día", graduada: "Graduada", archivada: "Archivada", rechazada: "Rechazada" };
 
 /** Exporta el sistema como colección de archivos Markdown { ruta relativa → contenido }. */
@@ -194,6 +194,7 @@ export async function exportAllMarkdown(): Promise<Record<string, string>> {
       idea: new Map(d.ideas.map((x) => [x.id, x.title])),
       aprendizaje: learnName,
       recurso: new Map(d.resources.map((x) => [x.id, x.title])),
+      evento: new Map(d.events.map((x) => [x.id, x.title])),
     };
     const destino = (c: string | null) => {
       if (!c) return "";
