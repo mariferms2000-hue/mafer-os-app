@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const PUBLIC = ["/login", "/api/auth", "/manifest.webmanifest", "/sw.js", "/icons"];
+// `/privacidad` es público a propósito: Google exige que la política de privacidad
+// se pueda leer sin iniciar sesión para publicar la app de OAuth.
+const PUBLIC = ["/login", "/api/auth", "/privacidad", "/manifest.webmanifest", "/sw.js", "/icons"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
