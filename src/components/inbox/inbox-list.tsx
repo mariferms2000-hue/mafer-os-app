@@ -13,6 +13,7 @@ import {
   NotebookPen,
   Scale,
   Link2,
+  CalendarDays,
   MoreHorizontal,
 } from "lucide-react";
 import {
@@ -36,6 +37,7 @@ const TYPES = [
   { value: "journal", label: "Journal", icon: NotebookPen },
   { value: "decision", label: "Decisión", icon: Scale },
   { value: "recurso", label: "Recurso", icon: Link2 },
+  { value: "evento", label: "Evento", icon: CalendarDays },
 ];
 
 const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
@@ -420,6 +422,53 @@ function ProcessPanel({
                   ))}
                 </select>
               </div>
+            </div>
+          )}
+
+          {type === "evento" && (
+            <div className="grid grid-cols-2 gap-3 border-t border-beige pt-3">
+              <div className="col-span-2">
+                <label className="label" htmlFor="pp-edate">Fecha</label>
+                <input
+                  id="pp-edate"
+                  name="date"
+                  type="date"
+                  className="input"
+                  required
+                  defaultValue={item.date ?? ""}
+                  data-testid="pp-event-date"
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="pp-estart">Hora de inicio</label>
+                <input id="pp-estart" name="startTime" type="time" className="input" />
+              </div>
+              <div>
+                <label className="label" htmlFor="pp-eend">Hora de fin</label>
+                <input id="pp-eend" name="endTime" type="time" className="input" />
+              </div>
+              <div>
+                <label className="label" htmlFor="pp-etype">Tipo</label>
+                <select id="pp-etype" name="eventType" className="select" defaultValue="evento">
+                  <option value="reunion">Reunión</option>
+                  <option value="evento">Evento</option>
+                  <option value="deadline">Deadline</option>
+                  <option value="recordatorio">Recordatorio</option>
+                </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="pp-eproject">Proyecto</label>
+                <select id="pp-eproject" name="projectId" className="select" defaultValue={item.projectId ?? ""}>
+                  <option value="">Sin proyecto</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+              </div>
+              <p className="col-span-2 text-xs text-ink-green/70">
+                Sin hora de inicio queda como evento de todo el día. Si Google Calendar está conectado, también
+                aparecerá en el calendario «Mafer OS».
+              </p>
             </div>
           )}
 

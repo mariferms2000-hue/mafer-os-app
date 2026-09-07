@@ -6,6 +6,7 @@ import { db, now, today, uid, schema } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { createCardInColumnKind, createDefaultBoard } from "@/lib/db/helpers";
 import { normalizeDuration } from "@/lib/estimates";
+import { syncEventToGoogle } from "@/lib/google/calendar";
 
 export async function captureAction(formData: FormData): Promise<{ id: string } | undefined> {
   await requireAuth();
@@ -161,6 +162,23 @@ export async function convertInboxItem(formData: FormData): Promise<{ convertedT
       createdAt: t,
     });
     convertedTo = `recurso:${rid}`;
+  } else if (target === "evento") {
+    const evid = uid();
+    await db.insert(schema.events).values({
+      id: evid,
+      title,
+      date: str("date") || item.date || today(),
+      startTime: str("startTime") || null,
+      endTime: str("endTime") || null,
+      type: str("eventType") || "evento",
+      projectId: str("projectId") || item.projectId,
+      notes: note,
+      createdAt: t,
+    });
+    // Mismo trato que createEventAction: si Google Calendar está conectado se
+    // sincroniza, y si no lo está la conversión sigue funcionando igual.
+    await syncEventToGoogle(evid).catch(() => {});
+    convertedTo = `evento:${evid}`;
   } else {
     return;
   }
@@ -176,5 +194,6 @@ export async function convertInboxItem(formData: FormData): Promise<{ convertedT
   revalidatePath("/proyectos");
   revalidatePath("/explorar");
   revalidatePath("/biblioteca/recursos");
+  revalidatePath("/calendario");
   return { convertedTo };
 }
