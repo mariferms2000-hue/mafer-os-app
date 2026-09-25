@@ -23,6 +23,7 @@ import { WeeklyReviewDay } from "@/components/settings/weekly-review-day";
 import { FocusSoundSettings } from "@/components/settings/focus-sound-settings";
 import { AlertQaPanel } from "@/components/settings/alert-qa";
 import { getDemoCounts, qaToolsEnabled, alertQaCount } from "@/lib/actions/maintenance";
+import { TIMEZONE } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ajustes" };
@@ -198,7 +199,7 @@ export default async function AjustesPage() {
           <>
             Versión <code className="bg-beige px-1 rounded">{build.commit}</code>
             {build.dirty && " (con cambios sin commit)"} · compilada el{" "}
-            {new Date(build.builtAt).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })} ·{" "}
+            {new Date(build.builtAt).toLocaleString("es-MX", { timeZone: TIMEZONE, dateStyle: "medium", timeStyle: "short" })} ·{" "}
             entorno: {entorno}
           </>
         ) : (

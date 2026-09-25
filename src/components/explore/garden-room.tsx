@@ -15,6 +15,7 @@ import {
 } from "@/lib/garden-layout";
 import { POT_SHAPES, fitPotted, potAssetPath, potFor } from "@/lib/garden-pot";
 import { plantFilter } from "@/lib/garden-light";
+import { TIMEZONE } from "@/lib/tz";
 
 /* La escena de «Mi jardín»: el cuarto botánico.
 
@@ -73,7 +74,7 @@ function exposicion(species: string): React.CSSProperties {
 
 function fecha(iso: string | null): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("es-MX", { timeZone: TIMEZONE, day: "numeric", month: "long", year: "numeric" });
 }
 
 type Spot = Pick<GardenSlot, "x" | "baseline" | "height" | "maxWidth" | "scene">;

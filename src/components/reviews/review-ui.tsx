@@ -17,6 +17,7 @@ import { updateResourceStatusAction, deleteResourceAction } from "@/lib/actions/
 import { TaskLine } from "@/components/hoy/task-line";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
+import { addDays, today } from "@/lib/tz";
 
 /* ── Iniciar / continuar / reiniciar ─────────────────────────────── */
 
@@ -205,11 +206,8 @@ export function ReviewTaskRow({
   const [pending, start] = useTransition();
   const toast = useToast();
 
-  const manana = () => {
-    const t = new Date(Date.now() + 86_400_000).toLocaleDateString("en-CA");
-    return t;
-  };
-  const proxSemana = () => new Date(Date.now() + 7 * 86_400_000).toLocaleDateString("en-CA");
+  const manana = () => addDays(today(), 1);
+  const proxSemana = () => addDays(today(), 7);
 
   function accion(fn: () => Promise<unknown>, mensaje: string) {
     start(async () => {
