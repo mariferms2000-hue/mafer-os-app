@@ -57,6 +57,7 @@ export const viewport: Viewport = {
 
 import { THEME_INIT_SCRIPT } from "@/components/shell/theme-script";
 import { ThemeWatcher } from "@/components/shell/theme";
+import { KeyboardInset } from "@/components/shell/keyboard-inset";
 import { FONT_SIZE_INIT_SCRIPT } from "@/components/shell/font-size-script";
 
 export default function RootLayout({
@@ -70,6 +71,7 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeWatcher />
+        <KeyboardInset />
         {children}
       </body>
     </html>
