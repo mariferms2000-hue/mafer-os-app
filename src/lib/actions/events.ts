@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { asc, eq } from "drizzle-orm";
-import { db, now, uid, schema } from "@/lib/db";
+import { db, schema } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { syncEventToGoogle, deleteGoogleEvent } from "@/lib/google/calendar";
+import { insertEvent } from "@/lib/db/helpers";
 
 export type EventDetailData = {
   event: typeof schema.events.$inferSelect & { projectTitle: string | null };
@@ -34,9 +35,7 @@ export async function createEventAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const date = String(formData.get("date") ?? "");
   if (!title || !date) return;
-  const id = uid();
-  await db.insert(schema.events).values({
-    id,
+  const id = await insertEvent({
     title,
     date,
     startTime: (formData.get("startTime") as string) || null,
@@ -44,7 +43,6 @@ export async function createEventAction(formData: FormData) {
     type: String(formData.get("type") ?? "evento"),
     projectId: (formData.get("projectId") as string) || null,
     notes: String(formData.get("notes") ?? ""),
-    createdAt: now(),
   });
   // Si Google Calendar está conectado, sincroniza (no rompe nada si no lo está).
   await syncEventToGoogle(id).catch(() => {});

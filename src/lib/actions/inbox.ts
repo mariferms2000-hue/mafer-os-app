@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db, now, today, uid, schema } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { createCardInColumnKind, createDefaultBoard } from "@/lib/db/helpers";
+import { createCardInColumnKind, createDefaultBoard, insertInboxItem } from "@/lib/db/helpers";
 import { normalizeDuration } from "@/lib/estimates";
 import { syncEventToGoogle } from "@/lib/google/calendar";
 
@@ -12,15 +12,12 @@ export async function captureAction(formData: FormData): Promise<{ id: string } 
   await requireAuth();
   const content = String(formData.get("content") ?? "").trim();
   if (!content) return undefined;
-  const id = uid();
-  await db.insert(schema.inboxItems).values({
-    id,
+  const id = await insertInboxItem({
     content,
     note: String(formData.get("note") ?? "").trim(),
     typeHint: (formData.get("typeHint") as string) || null,
     projectId: (formData.get("projectId") as string) || null,
     date: (formData.get("date") as string) || null,
-    createdAt: now(),
   });
   revalidatePath("/inbox");
   revalidatePath("/");
