@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Sprout, Leaf } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import { TIMEZONE } from "@/lib/tz";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExplorarTabs } from "@/components/explore/tabs";
 import { GardenFocusButton } from "@/components/explore/garden-focus-button";
@@ -46,7 +47,7 @@ function asSpecies(s: string): PlantSpeciesV2 {
 
 function fecha(iso: string | null): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso).toLocaleDateString("es-MX", { timeZone: TIMEZONE, day: "numeric", month: "long", year: "numeric" });
 }
 
 export default async function JardinPage({ searchParams }: { searchParams: Promise<{ mostrar?: string }> }) {

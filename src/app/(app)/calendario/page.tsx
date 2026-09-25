@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
-import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, Unplug } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, RefreshCw, Unplug } from "lucide-react";
 import { db, today, schema } from "@/lib/db";
+import { addDays, currentHour, dayOfWeek } from "@/lib/tz";
 import { PageHeader } from "@/components/ui/page-header";
 import { NewEventButton } from "@/components/calendar/new-event";
 import { NewTripButton } from "@/components/calendar/new-trip";
 import { TripWeekBand, TripDayBadges, type TripSpan } from "@/components/calendar/trip-band";
 import { MonthChip, WeekChip, OccLine, type Occurrence } from "@/components/calendar/occurrence";
 import { googleStatus } from "@/lib/google/calendar";
-import { disconnectGoogleAction } from "@/lib/actions/google";
+import { disconnectGoogleAction, resyncGoogleAction } from "@/lib/actions/google";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Calendario" };
@@ -16,19 +17,17 @@ export const metadata = { title: "Calendario" };
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DIAS_CORTOS = ["Lu","Ma","Mi","Ju","Vi","Sá","Do"];
 
+/* La rejilla se arma en UTC a mediodía: así el mes y el día de la semana son
+   los mismos corra donde corra el servidor. Ver src/lib/tz.ts. */
 function iso(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 function parseIso(s: string) {
-  return new Date(`${s}T12:00:00`);
-}
-function addDays(s: string, n: number) {
-  const d = parseIso(s);
-  d.setDate(d.getDate() + n);
-  return iso(d);
+  const [y, m, d] = s.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12));
 }
 function fechaLegible(s: string, opts: Intl.DateTimeFormatOptions) {
-  return parseIso(s).toLocaleDateString("es-MX", opts);
+  return parseIso(s).toLocaleDateString("es-MX", { ...opts, timeZone: "UTC" });
 }
 
 export default async function CalendarioPage({
@@ -41,8 +40,8 @@ export default async function CalendarioPage({
   const hoy = today();
   const fecha = params.fecha ?? (params.mes ? `${params.mes}-01` : hoy);
   const anchor = parseIso(fecha);
-  const year = anchor.getFullYear();
-  const month = anchor.getMonth();
+  const year = anchor.getUTCFullYear();
+  const month = anchor.getUTCMonth();
 
   const events = await db.select().from(schema.events).orderBy(asc(schema.events.date));
   const datedCards = await db
@@ -99,28 +98,28 @@ export default async function CalendarioPage({
   // navegación anterior/siguiente según vista
   const step = vista === "dia" ? 1 : vista === "semana" ? 7 : 0;
   const prevHref =
-    vista === "mes" ? keep({ fecha: iso(new Date(year, month - 1, 1)) }) : keep({ fecha: addDays(fecha, -step) });
+    vista === "mes" ? keep({ fecha: iso(new Date(Date.UTC(year, month - 1, 1))) }) : keep({ fecha: addDays(fecha, -step) });
   const nextHref =
-    vista === "mes" ? keep({ fecha: iso(new Date(year, month + 1, 1)) }) : keep({ fecha: addDays(fecha, step) });
+    vista === "mes" ? keep({ fecha: iso(new Date(Date.UTC(year, month + 1, 1))) }) : keep({ fecha: addDays(fecha, step) });
 
   // celdas del mes (lunes primero)
-  const first = new Date(year, month, 1);
-  const startOffset = (first.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const first = new Date(Date.UTC(year, month, 1));
+  const startOffset = (first.getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const cells: (string | null)[] = [
     ...Array<null>(startOffset).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => iso(new Date(year, month, i + 1))),
+    ...Array.from({ length: daysInMonth }, (_, i) => iso(new Date(Date.UTC(year, month, i + 1)))),
   ];
   while (cells.length % 7 !== 0) cells.push(null);
   const weeks: (string | null)[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
   // semana que contiene `fecha` (lunes a domingo)
-  const weekStart = addDays(fecha, -((parseIso(fecha).getDay() + 6) % 7));
+  const weekStart = addDays(fecha, -((dayOfWeek(fecha) + 6) % 7));
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const HOURS = Array.from({ length: 16 }, (_, i) => i + 7); // 7:00–22:00
-  const nowHour = new Date().getHours();
+  const nowHour = currentHour(); // hora de México, no la del servidor
 
   const titulo =
     vista === "dia"
@@ -330,6 +329,11 @@ export default async function CalendarioPage({
               <CheckCircle2 size={15} aria-hidden /> Conectado. Eventos y tarjetas con recordatorio se copian al
               calendario «Mafer OS».
             </p>
+            <form action={resyncGoogleAction}>
+              <button type="submit" className="btn btn-secondary text-xs">
+                <RefreshCw size={13} aria-hidden /> Reenviar a Google
+              </button>
+            </form>
             <form action={disconnectGoogleAction}>
               <button type="submit" className="btn btn-ghost text-xs">
                 <Unplug size={13} aria-hidden /> Desconectar

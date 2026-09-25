@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { exportAllMarkdown } from "@/lib/export/exporters";
+import { today } from "@/lib/tz";
 
 /** Devuelve un único .md concatenado con separadores por archivo (fácil de leer y de partir). */
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
   return new NextResponse(combined, {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
-      "Content-Disposition": `attachment; filename="mafer-os-${new Date().toISOString().slice(0, 10)}.md"`,
+      "Content-Disposition": `attachment; filename="mafer-os-${today()}.md"`,
     },
   });
 }

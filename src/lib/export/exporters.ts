@@ -1,5 +1,6 @@
 import "server-only";
 import { db, schema, today } from "@/lib/db";
+import { TIMEZONE, toLocalDate } from "@/lib/tz";
 import { durationLabel, energyLabel } from "@/lib/estimates";
 
 export const SCHEMA_VERSION = 1;
@@ -47,7 +48,7 @@ export async function exportAllJson() {
 const mdEscape = (s: string | null | undefined) => (s ?? "").trim();
 
 /* Representación local (los timestamps guardados no se tocan) */
-export const TIMEZONE = process.env.MAFER_TZ ?? "America/Mexico_City";
+export { TIMEZONE };
 export const GENERATED_MARK = "<!-- generado por Mafer OS · se regenera en cada sync · escribe tus notas en otro archivo -->";
 const fmtLocal = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("es-MX", { timeZone: TIMEZONE, dateStyle: "medium", timeStyle: "short" }) : "";
@@ -57,7 +58,7 @@ const fmtFecha = (ymd: string | null | undefined) => {
   const [y, m, d] = String(ymd).slice(0, 10).split("-").map(Number);
   return y && m && d ? `${d} ${MESES_MD[m - 1]} ${y}` : String(ymd);
 };
-const hoyLocal = () => new Date().toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+const hoyLocal = today;
 const TIPO_CAPTURA: Record<string, string> = { tarea: "Tarea", proyecto: "Proyecto", idea: "Idea", aprendizaje: "Learn Fast", journal: "Journal", decision: "Decisión", recurso: "Recurso", evento: "Evento" };
 const IDEA_STATUS: Record<string, string> = { incubando: "Incubando", "algun-dia": "Algún día", graduada: "Graduada", archivada: "Archivada", rechazada: "Rechazada" };
 
@@ -244,7 +245,7 @@ export async function exportAllMarkdown(): Promise<Record<string, string>> {
       return `- **${fmtFecha(e.date)}** · ${horas} · ${e.title} (${e.type ?? "evento"})${proy}${mdEscape(e.notes) ? ` — ${mdEscape(e.notes)}` : ""}`;
     };
     const proximos = d.events.filter((e) => e.date >= hoy).sort((a, b) => (a.date < b.date ? -1 : 1));
-    const corte = new Date(Date.now() - 30 * 86_400_000).toLocaleDateString("en-CA", { timeZone: TIMEZONE });
+    const corte = toLocalDate(new Date(Date.now() - 30 * 86_400_000));
     const pasados = d.events.filter((e) => e.date < hoy && e.date >= corte).sort((a, b) => (b.date < a.date ? -1 : 1)).slice(0, 20);
     let md = `# Calendario\n\n## Próximos\n\n${proximos.length ? proximos.map(linea).join("\n") + "\n" : "Sin eventos próximos.\n"}`;
     if (pasados.length) md += `\n## Pasados recientes (30 días)\n\n${pasados.map(linea).join("\n")}\n`;

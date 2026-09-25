@@ -1,8 +1,10 @@
 import "server-only";
 import { google } from "googleapis";
-import { eq } from "drizzle-orm";
-import { db, schema } from "@/lib/db";
+import { and, eq, gte, isNull, like } from "drizzle-orm";
+import { db, schema, today } from "@/lib/db";
 import { getSetting, setSetting } from "@/lib/auth";
+import { TIMEZONE as TZ } from "@/lib/tz";
+import { toRequestBody } from "@/lib/google/event-body";
 
 /**
  * Integración con Google Calendar.
@@ -16,7 +18,6 @@ import { getSetting, setSetting } from "@/lib/auth";
  */
 
 const SCOPE = "https://www.googleapis.com/auth/calendar.app.created";
-const TZ = "America/Mexico_City";
 
 export function isGoogleConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -97,36 +98,6 @@ export async function ensureMaferCalendar(): Promise<string | null> {
   const id = created.data.id!;
   await setSetting("google_calendar_id", id);
   return id;
-}
-
-type GEvent = {
-  title: string;
-  date: string; // YYYY-MM-DD
-  startTime?: string | null; // HH:MM
-  endTime?: string | null;
-  notes?: string | null;
-  sourceRef: string; // "event:id" | "card:id" — para trazabilidad y anti-duplicados
-};
-
-function toRequestBody(e: GEvent) {
-  const base = {
-    summary: e.title,
-    description: e.notes || undefined,
-    extendedProperties: { private: { maferOsRef: e.sourceRef } },
-    reminders: { useDefault: true },
-  };
-  if (e.startTime) {
-    const start = `${e.date}T${e.startTime}:00`;
-    const endTime = e.endTime ?? addHour(e.startTime);
-    const end = `${e.date}T${endTime}:00`;
-    return { ...base, start: { dateTime: start, timeZone: TZ }, end: { dateTime: end, timeZone: TZ } };
-  }
-  return { ...base, start: { date: e.date }, end: { date: e.date } };
-}
-
-function addHour(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  return `${String(Math.min(h + 1, 23)).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 /** Crea o actualiza en Google el evento con id local `eventId`. Devuelve el id de Google. */
@@ -213,6 +184,40 @@ export async function deleteGoogleEvent(gcalEventId: string) {
   if (!calendarId) return;
   const cal = google.calendar({ version: "v3", auth });
   await cal.events.delete({ calendarId, eventId: gcalEventId });
+}
+
+/**
+ * Reenvía a Google todo lo próximo (de hoy en adelante).
+ *
+ * Los callers de sync hacen `.catch(() => {})`, así que un rechazo de Google
+ * se pierde sin avisar y el evento se queda fuera del calendario del celular
+ * para siempre. Esto lo repara sin tener que reabrir y guardar cada evento a
+ * mano. Es idempotente: lo ya sincronizado se actualiza, no se duplica.
+ */
+export async function resyncGoogle(): Promise<{ eventos: number; tarjetas: number }> {
+  if (!(await getAuthedClient())) return { eventos: 0, tarjetas: 0 };
+  const hoy = today();
+
+  const eventos = await db
+    .select({ id: schema.events.id })
+    .from(schema.events)
+    .where(gte(schema.events.date, hoy));
+  for (const e of eventos) await syncEventToGoogle(e.id).catch(() => {});
+
+  const tarjetas = await db
+    .select({ id: schema.cards.id })
+    .from(schema.cards)
+    .where(
+      and(
+        eq(schema.cards.archived, false),
+        isNull(schema.cards.completedAt),
+        like(schema.cards.reminder, "gcal%"),
+        gte(schema.cards.dueDate, hoy)
+      )
+    );
+  for (const c of tarjetas) await syncCardToGoogle(c.id).catch(() => {});
+
+  return { eventos: eventos.length, tarjetas: tarjetas.length };
 }
 
 export async function googleStatus() {

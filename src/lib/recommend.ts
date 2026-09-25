@@ -143,10 +143,11 @@ const DIAS_PROYECTO_INACTIVO = 14;
 const DIAS_INBOX = 3;
 
 export function diasEntre(desdeIso: string, hastaYmd: string): number {
-  const desde = desdeIso.slice(0, 10);
-  const a = new Date(`${desde}T00:00:00`);
-  const b = new Date(`${hastaYmd}T00:00:00`);
-  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86_400_000));
+  const utc = (ymd: string) => {
+    const [y, m, d] = ymd.slice(0, 10).split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.max(0, Math.round((utc(hastaYmd) - utc(desdeIso)) / 86_400_000));
 }
 
 /** Construye las alertas antiolvido, ordenadas por urgencia y limitadas a `limit`. */

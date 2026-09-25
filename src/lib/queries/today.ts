@@ -1,6 +1,7 @@
 import "server-only";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { db, today, schema } from "@/lib/db";
+import { addDays } from "@/lib/tz";
 import { getSetting } from "@/lib/auth";
 import { QUICK_DURATIONS } from "@/lib/estimates";
 import { recommendNow, buildForgetAlerts, type ForgetAlert } from "@/lib/recommend";
@@ -56,9 +57,7 @@ export async function getTodayData() {
 
   const dueToday = open.filter((c) => c.dueDate === d);
   const overdue = open.filter((c) => c.dueDate && c.dueDate < d);
-  const in7 = new Date();
-  in7.setDate(in7.getDate() + 7);
-  const d7 = in7.toISOString().slice(0, 10);
+  const d7 = addDays(d, 7);
   const approaching = open.filter((c) => c.dueDate && c.dueDate > d && c.dueDate <= d7);
 
   // «Menos de 30 minutos»: exclusivamente under_10 y ten_to_30

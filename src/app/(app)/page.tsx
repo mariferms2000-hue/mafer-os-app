@@ -12,6 +12,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { getTodayData } from "@/lib/queries/today";
+import { currentHour, dayOfWeek } from "@/lib/tz";
 import { getFocusOverview } from "@/lib/queries/focus";
 import { FocusModule } from "@/components/hoy/focus-module";
 import { Priorities, EnergySelector } from "@/components/hoy/priorities";
@@ -30,14 +31,13 @@ const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto"
 const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 
 function fechaLarga(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  const dia = DIAS[date.getDay()];
+  const [, m, d] = iso.split("-").map(Number);
+  const dia = DIAS[dayOfWeek(iso)];
   return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${d} de ${MESES[m - 1]}`;
 }
 
 function saludo() {
-  const h = new Date().getHours();
+  const h = currentHour();
   if (h < 12) return "Buenos días";
   if (h < 19) return "Buenas tardes";
   return "Buenas noches";

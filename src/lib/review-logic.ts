@@ -1,3 +1,5 @@
+import { addDays, dayOfWeek } from "@/lib/tz";
+
 /* Lógica pura de revisiones — Fase 5A. Cuándo sugerir cada revisión y qué
    único aviso mostrar en Hoy. Transparente y con pruebas unitarias. */
 
@@ -9,11 +11,8 @@ export const WEEKLY_STEP_TITLES = ["Proyectos", "Tareas", "Incubadora", "Learn F
 
 /** Lunes (YYYY-MM-DD) de la semana a la que pertenece la fecha dada. */
 export function mondayOf(ymd: string): string {
-  const d = new Date(`${ymd}T00:00:00`);
-  const day = d.getDay(); // 0=domingo
-  const diff = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - diff);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const day = dayOfWeek(ymd); // 0=domingo
+  return addDays(ymd, -(day === 0 ? 6 : day - 1));
 }
 
 /** La diaria se sugiere una vez al día: pendiente si hoy no se ha completado.
@@ -32,7 +31,7 @@ export function weeklyPending(
   const hechEstaSemana = lastCompletedDate !== null && mondayOf(lastCompletedDate) === mondayOf(today);
   if (hechEstaSemana) return false;
   if (configuredDay === null) return true; // cualquier día
-  const dow = new Date(`${today}T00:00:00`).getDay();
+  const dow = dayOfWeek(today);
   // días transcurridos de la semana (lunes=0 … domingo=6), en ambos calendarios
   const pos = (d: number) => (d === 0 ? 6 : d - 1);
   return pos(dow) >= pos(configuredDay);

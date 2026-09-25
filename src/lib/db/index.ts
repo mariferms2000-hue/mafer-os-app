@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
+import { today } from "../tz";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
@@ -35,8 +36,7 @@ export const db = globalThis.__maferDb ?? (globalThis.__maferDb = createDb());
 export { schema };
 
 export const now = () => new Date().toISOString();
-export const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+// `today` se re-exporta desde @/lib/tz: siempre hora de México, nunca la del
+// proceso (en Vercel es UTC). Ver src/lib/tz.ts.
+export { today };
 export const uid = () => crypto.randomUUID();
