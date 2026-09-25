@@ -290,8 +290,12 @@ test("móvil: los formularios no disparan el zoom de Safari (campos ≥ 16px)", 
   // también con «tamaño de letra: pequeño» en Ajustes
   await page.evaluate(() => localStorage.setItem("mafer-font-sizes", JSON.stringify({ campos: "pequeno" })));
   await page.goto("/tareas?v=todas");
-  const fila = page.getByTestId("task-open").first();
-  await fila.click();
+  // toque en el centro del cuerpo de la fila, como con el dedo
+  const fila = page.getByTestId("task-open").filter({ hasText: "Tarea detalle editada" }).first();
+  await fila.scrollIntoViewIfNeeded();
+  const box = await fila.boundingBox();
+  if (!box) throw new Error("No se pudo medir la fila");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page.getByTestId("card-detail")).toBeVisible();
   expect(await camposChicos()).toEqual([]);
   await page.evaluate(() => localStorage.removeItem("mafer-font-sizes"));
