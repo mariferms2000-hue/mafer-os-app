@@ -52,6 +52,25 @@ export function today(timeZone: string = TIMEZONE): string {
   return toLocalDate(new Date(), timeZone);
 }
 
+/** Día de la semana de una fecha de calendario: 0=domingo … 6=sábado. */
+export function dayOfWeek(ymd: string): number {
+  const [y, m, d] = ymd.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+/**
+ * Hora actual (0–23) en la zona de la app. `new Date().getHours()` daría la
+ * hora del servidor: en Vercel, seis horas adelantada.
+ */
+export function currentHour(timeZone: string = TIMEZONE): number {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  return Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+}
+
 /**
  * Suma (o resta) días a una fecha de calendario. Opera sobre el string, no
  * sobre un instante, así que no depende de ninguna zona horaria ni se rompe en

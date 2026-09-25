@@ -2,6 +2,7 @@ import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { CircleCheckBig } from "lucide-react";
 import { db, schema, today } from "@/lib/db";
+import { addDays } from "@/lib/tz";
 import { getSetting } from "@/lib/auth";
 import { recommendNow } from "@/lib/recommend";
 import { QUICK_DURATIONS, durationLabel, energyLabel, normalizeDuration, normalizeEnergy } from "@/lib/estimates";
@@ -172,9 +173,7 @@ export default async function TareasPage({
   if (state.fecha === "hoy") cards = cards.filter((c) => c.dueDate === d);
   else if (state.fecha === "vencidas") cards = cards.filter((c) => c.dueDate && c.dueDate < d);
   else if (state.fecha === "semana") {
-    const in7 = new Date();
-    in7.setDate(in7.getDate() + 7);
-    const d7 = in7.toISOString().slice(0, 10);
+    const d7 = addDays(d, 7);
     cards = cards.filter((c) => c.dueDate && c.dueDate >= d && c.dueDate <= d7);
   } else if (state.fecha === "con") cards = cards.filter((c) => c.dueDate);
   else if (state.fecha === "sin") cards = cards.filter((c) => !c.dueDate);

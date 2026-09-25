@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { TIMEZONE, today, toLocalDate, addDays } from "../src/lib/tz";
+import { TIMEZONE, today, toLocalDate, addDays, dayOfWeek, currentHour } from "../src/lib/tz";
 
 /**
  * Estas pruebas corren con TZ=UTC (ver `test:unit` en package.json) para
@@ -88,5 +88,37 @@ describe("addDays() — aritmética sobre la fecha, no sobre el instante", () =>
 
   it("tolera que le pasen un timestamp completo", () => {
     expect(addDays("2026-09-24T23:30:00Z", 1)).toBe("2026-09-25");
+  });
+});
+
+describe("currentHour() — la hora de México, no la del servidor", () => {
+  it("regresión: el saludo de Hoy y la línea de «ahora» del calendario", () => {
+    enUtc("2026-09-25T02:00:00Z"); // 20:00 del 24 en México
+    expect(new Date().getHours()).toBe(2); // lo que leía antes: madrugada → «Buenos días»
+    expect(currentHour()).toBe(20); // lo correcto: noche → «Buenas noches»
+  });
+
+  it("cubre el día completo, incluida la medianoche", () => {
+    enUtc("2026-09-25T06:00:00Z");
+    expect(currentHour()).toBe(0);
+    enUtc("2026-09-25T17:00:00Z");
+    expect(currentHour()).toBe(11);
+    enUtc("2026-09-25T05:59:00Z");
+    expect(currentHour()).toBe(23);
+  });
+});
+
+describe("dayOfWeek() — día de la semana de una fecha, sin instantes", () => {
+  it("0 es domingo y 6 es sábado", () => {
+    expect(dayOfWeek("2026-09-20")).toBe(0); // domingo
+    expect(dayOfWeek("2026-09-21")).toBe(1); // lunes
+    expect(dayOfWeek("2026-09-24")).toBe(4); // jueves
+    expect(dayOfWeek("2026-09-26")).toBe(6); // sábado
+  });
+
+  it("no depende de la hora del día ni del reloj del servidor", () => {
+    enUtc("2026-09-25T03:00:00Z");
+    expect(dayOfWeek("2026-09-24")).toBe(4);
+    expect(dayOfWeek("2026-09-24T23:30:00Z")).toBe(4);
   });
 });

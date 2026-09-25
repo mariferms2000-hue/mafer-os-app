@@ -5,16 +5,12 @@ import { eq, like } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
 import { db, schema, uid, now, today } from "@/lib/db";
+import { addDays } from "@/lib/tz";
 import { requireAuth, setSetting, getSetting } from "@/lib/auth";
 import { exportAllJson, exportAllMarkdown, GENERATED_MARK, SCHEMA_VERSION } from "@/lib/export/exporters";
 
 const BACKUPS_DIR = process.env.BACKUPS_PATH ?? path.join(process.cwd(), "..", "backups-and-exports");
 const VAULT_DIR = process.env.OBSIDIAN_VAULT_PATH ?? path.join(process.cwd(), "..", "mafer-os-vault");
-
-function localDate() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 const MD_TO_BACKUP_DIR: Record<string, string> = {
   "01 - Proyectos": "projects",
@@ -36,7 +32,7 @@ export async function createBackupAction(): Promise<{ ok: boolean; dir?: string;
     };
   }
   try {
-    const date = localDate();
+    const date = today();
     const dir = path.join(BACKUPS_DIR, date);
     fs.mkdirSync(dir, { recursive: true });
 
@@ -193,7 +189,7 @@ export async function seedAlertQaAction() {
   if (!(await qaToolsEnabled())) throw new Error("Las herramientas QA no están disponibles en producción.");
   const t = now();
   const hoy = today();
-  const ayer5 = hoy && new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10);
+  const ayer5 = addDays(hoy, -5);
 
   // 1) Tarea vencida (hace 5 días)
   await db.insert(schema.cards).values({
