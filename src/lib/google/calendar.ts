@@ -3,6 +3,7 @@ import { google } from "googleapis";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getSetting, setSetting } from "@/lib/auth";
+import { TIMEZONE as TZ } from "@/lib/tz";
 
 /**
  * Integración con Google Calendar.
@@ -16,7 +17,6 @@ import { getSetting, setSetting } from "@/lib/auth";
  */
 
 const SCOPE = "https://www.googleapis.com/auth/calendar.app.created";
-const TZ = "America/Mexico_City";
 
 export function isGoogleConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);

@@ -13,7 +13,7 @@
     "sync:obsidian": "node scripts/sync-obsidian.mjs",
     "backup": "node scripts/backup.mjs",
     "setup": "node scripts/setup.mjs",
-    "test:unit": "vitest run",
+    "test:unit": "TZ=UTC vitest run",
     "test:e2e": "node scripts/reset-test-db.mjs && playwright test",
     "inventory": "node scripts/inventory-agents.mjs"
   },
