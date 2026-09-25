@@ -213,6 +213,12 @@ h1, h2, h3, .font-display {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
+/* Con el teclado abierto en iPhone, 100dvh no se encoge y la hoja inferior
+   quedaba tapada por el teclado. KeyboardInset publica su alto en
+   --keyboard-inset; el velo termina justo encima del teclado. */
+@media (max-width: 767px) {
+  .overlay-screen { bottom: var(--keyboard-inset, 0px); }
+}
 
 /* Chip / filtro / vista ACTIVA — legible en ambos temas */
 .chip-on {
@@ -365,6 +371,17 @@ input[type="date"], input[type="time"] {
   border-color: var(--color-border-focus);
 }
 .input::placeholder, .textarea::placeholder { color: var(--color-stone-soft); }
+
+/* Safari en iPhone/iPad hace zoom automático al enfocar cualquier campo con
+   letra < 16px (y los modales con autoFocus lo disparan al abrirse), lo que
+   deja el formulario agrandado y cortado. En pantallas táctiles o angostas
+   ningún campo baja de 16px; si el ajuste de «tamaño de letra» lo sube, se
+   respeta. !important para ganarle a text-sm/text-xs puestos en cada campo. */
+@media (max-width: 767px), (pointer: coarse) {
+  :is(input, select, textarea, [contenteditable="true"]) {
+    font-size: max(16px, var(--field-font-size, 0.9rem)) !important;
+  }
+}
 
 /* Editor visual (WYSIWYG) de la descripción de tareas: el textarea de siempre
    sigue guardando Markdown, pero esto es lo que Mafer ve y toca al escribir. */

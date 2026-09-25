@@ -258,3 +258,45 @@ test("móvil: nueva captura desde el Inbox en segundos", async ({ page }, testIn
   await expect(page.getByTestId("inbox-item").first()).toContainText(texto);
   await shot(page, "14-movil-inbox-captura");
 });
+
+test("móvil: los formularios no disparan el zoom de Safari (campos ≥ 16px)", async ({ page }) => {
+  await login(page);
+  // Safari en iPhone hace zoom al enfocar un campo con letra < 16px.
+  const camposChicos = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('[role="dialog"] :is(input, select, textarea, [contenteditable="true"])')]
+        .filter((el) => (el as HTMLElement).offsetParent !== null)
+        .filter((el) => !["checkbox", "radio", "hidden"].includes((el as HTMLInputElement).type))
+        .map((el) => ({ name: (el as HTMLInputElement).name || el.id, size: parseFloat(getComputedStyle(el).fontSize) }))
+        .filter((c) => c.size < 16)
+    );
+
+  await page.getByTestId("capture-fab").click();
+  await page.getByTestId("fab-captura").click();
+  await expect(page.getByTestId("capture-input")).toBeVisible();
+  expect(await camposChicos()).toEqual([]);
+  await page.keyboard.press("Escape");
+
+  await page.goto("/calendario");
+  await page.getByTestId("new-trip").click();
+  await expect(page.getByTestId("trip-title")).toBeVisible();
+  expect(await camposChicos()).toEqual([]);
+
+  await page.goto("/calendario");
+  await page.getByTestId("new-event").click();
+  await expect(page.getByTestId("event-title")).toBeVisible();
+  expect(await camposChicos()).toEqual([]);
+
+  // también con «tamaño de letra: pequeño» en Ajustes
+  await page.evaluate(() => localStorage.setItem("mafer-font-sizes", JSON.stringify({ campos: "pequeno" })));
+  await page.goto("/tareas?v=todas");
+  // toque en el centro del cuerpo de la fila, como con el dedo
+  const fila = page.getByTestId("task-open").filter({ hasText: "Tarea detalle editada" }).first();
+  await fila.scrollIntoViewIfNeeded();
+  const box = await fila.boundingBox();
+  if (!box) throw new Error("No se pudo medir la fila");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(page.getByTestId("card-detail")).toBeVisible();
+  expect(await camposChicos()).toEqual([]);
+  await page.evaluate(() => localStorage.removeItem("mafer-font-sizes"));
+});

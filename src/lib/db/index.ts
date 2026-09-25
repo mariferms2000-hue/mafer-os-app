@@ -16,13 +16,16 @@ function createDb() {
   // DATABASE_URL apunta al pooler de Supabase en modo transacción (puerto 6543):
   // - prepare: false es obligatorio ahí (Supavisor no soporta prepared statements).
   // - max: 1 — una conexión por instancia serverless para no agotar el pool.
+  //   DB_POOL_MAX solo lo sube el servidor local de pruebas E2E: desde la Mac
+  //   cada consulta a Supabase tarda ~80ms y con una sola conexión los prefetch
+  //   del menú (27 páginas) hacían fila más de un minuto y todo daba timeout.
   // - Timeouts acotados: sin ellos una conexión colgada retiene la única conexión
   //   y la función entera espera hasta el límite de 300s de Vercel (504).
   // Las migraciones NO corren aquí: DDL sobre el pooler de transacción se bloquea
   // y encolaba todas las queries detrás. Corre `npm run db:migrate` (usa la
   // conexión de sesión) cuando haya una migración nueva.
   const sql = postgres(DATABASE_URL!, {
-    max: 1,
+    max: Number(process.env.DB_POOL_MAX) || 1,
     prepare: false,
     connect_timeout: 10,
     idle_timeout: 20,

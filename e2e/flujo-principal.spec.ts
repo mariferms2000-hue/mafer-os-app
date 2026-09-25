@@ -216,6 +216,8 @@ test("calendario: crear evento y verlo en la vista", async ({ page }) => {
   const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
   await page.getByTestId("event-date").fill(iso);
   await page.getByTestId("event-save").click();
+  // el formulario se cierra cuando el evento ya se guardó; navegar antes lo cancela
+  await expect(page.getByTestId("event-title")).toHaveCount(0);
   await page.goto("/calendario?vista=agenda");
   await expect(page.getByText("Reunión de prueba")).toBeVisible();
   await shot(page, "09-calendario-agenda");
