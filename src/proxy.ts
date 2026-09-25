@@ -3,7 +3,9 @@ import { jwtVerify } from "jose";
 
 // `/privacidad` es público a propósito: Google exige que la política de privacidad
 // se pueda leer sin iniciar sesión para publicar la app de OAuth.
-const PUBLIC = ["/login", "/api/auth", "/privacidad", "/manifest.webmanifest", "/sw.js", "/icons"];
+// `/api/siri` no usa la cookie de sesión: cada ruta exige su propia clave
+// (SIRI_TOKEN) en el encabezado Authorization — ver src/lib/siri-logic.ts.
+const PUBLIC = ["/login", "/api/auth", "/privacidad", "/manifest.webmanifest", "/sw.js", "/icons", "/api/siri"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

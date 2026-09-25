@@ -29,6 +29,7 @@ export default defineConfig({
       AUTH_SECRET: "secreto-solo-para-tests-0123456789abcdef",
       LOCAL_HTTP: "1",
       NODE_ENV: "production",
+      SIRI_TOKEN: "clave-siri-solo-para-tests-0123456789abcdef", // rutas /api/siri/*
       DB_POOL_MAX: "10", // ver src/lib/db/index.ts
       MAFER_QA_TOOLS: "1", // habilita el panel QA de alertas en el entorno de pruebas (nunca en el lanzador real)
     },

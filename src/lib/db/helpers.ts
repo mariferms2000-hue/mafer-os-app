@@ -109,3 +109,50 @@ export async function touchRecent(entityType: string, entityId: string, title: s
       set: { title, viewedAt: now() },
     });
 }
+
+/** Crea un elemento de Inbox. Compartido por la captura «+» y los atajos de Siri. */
+export async function insertInboxItem(input: {
+  content: string;
+  note?: string;
+  typeHint?: string | null;
+  projectId?: string | null;
+  date?: string | null;
+}): Promise<string> {
+  const id = uid();
+  await db.insert(schema.inboxItems).values({
+    id,
+    content: input.content,
+    note: input.note ?? "",
+    typeHint: input.typeHint ?? null,
+    projectId: input.projectId ?? null,
+    date: input.date ?? null,
+    createdAt: now(),
+  });
+  return id;
+}
+
+/** Crea un evento de calendario. Compartido por el formulario y los atajos de
+ *  Siri; quien lo llama decide si sincroniza con Google. */
+export async function insertEvent(input: {
+  title: string;
+  date: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  type?: string;
+  projectId?: string | null;
+  notes?: string;
+}): Promise<string> {
+  const id = uid();
+  await db.insert(schema.events).values({
+    id,
+    title: input.title,
+    date: input.date,
+    startTime: input.startTime ?? null,
+    endTime: input.endTime ?? null,
+    type: input.type ?? "evento",
+    projectId: input.projectId ?? null,
+    notes: input.notes ?? "",
+    createdAt: now(),
+  });
+  return id;
+}
