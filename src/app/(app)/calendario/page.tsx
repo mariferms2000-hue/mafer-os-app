@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
-import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, Unplug } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CheckCircle2, RefreshCw, Unplug } from "lucide-react";
 import { db, today, schema } from "@/lib/db";
 import { addDays, currentHour, dayOfWeek } from "@/lib/tz";
 import { PageHeader } from "@/components/ui/page-header";
@@ -9,7 +9,7 @@ import { NewTripButton } from "@/components/calendar/new-trip";
 import { TripWeekBand, TripDayBadges, type TripSpan } from "@/components/calendar/trip-band";
 import { MonthChip, WeekChip, OccLine, type Occurrence } from "@/components/calendar/occurrence";
 import { googleStatus } from "@/lib/google/calendar";
-import { disconnectGoogleAction } from "@/lib/actions/google";
+import { disconnectGoogleAction, resyncGoogleAction } from "@/lib/actions/google";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Calendario" };
@@ -329,6 +329,11 @@ export default async function CalendarioPage({
               <CheckCircle2 size={15} aria-hidden /> Conectado. Eventos y tarjetas con recordatorio se copian al
               calendario «Mafer OS».
             </p>
+            <form action={resyncGoogleAction}>
+              <button type="submit" className="btn btn-secondary text-xs">
+                <RefreshCw size={13} aria-hidden /> Reenviar a Google
+              </button>
+            </form>
             <form action={disconnectGoogleAction}>
               <button type="submit" className="btn btn-ghost text-xs">
                 <Unplug size={13} aria-hidden /> Desconectar
