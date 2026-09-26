@@ -10,6 +10,7 @@ import {
   type EventDetailData,
 } from "@/lib/actions/events";
 import { useToast } from "@/components/ui/toast";
+import { EVENT_TYPES } from "@/lib/event-types";
 
 /** Detalle editable de evento, abrible desde cualquier vista del calendario.
  *  Mismo patrón que el detalle de tarea: carga sus datos frescos al abrirse. */
@@ -129,10 +130,9 @@ function EventDetailEditor({ data, onClose }: { data: EventDetailData; onClose: 
             <div>
               <label className="label" htmlFor="ed-type">Tipo</label>
               <select id="ed-type" name="type" className="select" defaultValue={event.type ?? "evento"}>
-                <option value="reunion">Reunión</option>
-                <option value="evento">Evento</option>
-                <option value="deadline">Deadline</option>
-                <option value="recordatorio">Recordatorio</option>
+                {EVENT_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
               </select>
             </div>
             <div>

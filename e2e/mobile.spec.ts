@@ -300,3 +300,39 @@ test("móvil: los formularios no disparan el zoom de Safari (campos ≥ 16px)", 
   expect(await camposChicos()).toEqual([]);
   await page.evaluate(() => localStorage.removeItem("mafer-font-sizes"));
 });
+
+test("móvil: con el teclado abierto el formulario cabe y el campo activo se ve", async ({ page }) => {
+  await login(page);
+  await page.goto("/calendario");
+  await page.getByTestId("new-event").click();
+  const titulo = page.getByTestId("event-title");
+  await expect(titulo).toBeFocused();
+
+  // El teclado no se puede abrir en el emulador: se simula lo que publica
+  // KeyboardInset cuando iOS deja solo 380px visibles arriba del teclado.
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty("--vv-top", "0px");
+    document.documentElement.style.setProperty("--vv-height", "380px");
+  });
+  const hoja = page.getByRole("dialog", { name: "Nuevo evento" });
+  const caja = await hoja.boundingBox();
+  if (!caja) throw new Error("No se pudo medir la hoja");
+  expect(caja.y).toBeGreaterThanOrEqual(0);
+  expect(caja.y + caja.height).toBeLessThanOrEqual(381);
+
+  // el campo que se escribe queda dentro de lo visible
+  await titulo.scrollIntoViewIfNeeded();
+  const t = await titulo.boundingBox();
+  expect(t && t.y >= 0 && t.y + t.height <= 381).toBeTruthy();
+
+  // y un campo de abajo (Notas) también se alcanza desplazando la hoja
+  const notas = page.locator("#ne-notes");
+  await notas.focus();
+  await notas.scrollIntoViewIfNeeded();
+  const n = await notas.boundingBox();
+  expect(n && n.y >= 0 && n.y < 381).toBeTruthy();
+
+  // «Cita» es un tipo más; el evento nuevo sigue naciendo como «Evento»
+  await expect(page.locator("#ne-type")).toHaveValue("evento");
+  await expect(page.locator("#ne-type option")).toHaveText(["Cita", "Reunión", "Evento", "Recordatorio", "Deadline"]);
+});

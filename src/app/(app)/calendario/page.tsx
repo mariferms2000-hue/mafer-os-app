@@ -166,6 +166,7 @@ export default async function CalendarioPage({
         <span className="mx-1 text-sand-deep" aria-hidden>·</span>
         {[
           { k: "", label: "Todo" },
+          { k: "cita", label: "Citas" },
           { k: "reunion", label: "Reuniones" },
           { k: "deadline", label: "Deadlines" },
           { k: "recordatorio", label: "Recordatorios" },

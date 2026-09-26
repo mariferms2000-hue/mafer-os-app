@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { createEventAction } from "@/lib/actions/events";
+import { EVENT_TYPES } from "@/lib/event-types";
+import { today } from "@/lib/tz";
 
 export function NewEventButton({
   projects,
@@ -50,28 +52,40 @@ export function NewEventButton({
                 <label className="label" htmlFor="ne-title">Título</label>
                 <input id="ne-title" name="title" className="input" required autoFocus data-testid="event-title" />
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
+              {/* En el teléfono la fecha va en su propia fila: tres campos nativos
+                  de fecha/hora en una fila no caben y se ven vacíos. */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="col-span-2 md:col-span-1">
                   <label className="label" htmlFor="ne-date">Fecha</label>
-                  <input id="ne-date" name="date" type="date" className="input" required data-testid="event-date" />
+                  <input
+                    id="ne-date"
+                    name="date"
+                    type="date"
+                    className="input"
+                    required
+                    defaultValue={today()}
+                    data-testid="event-date"
+                  />
                 </div>
                 <div>
                   <label className="label" htmlFor="ne-start">Empieza</label>
-                  <input id="ne-start" name="startTime" type="time" className="input" />
+                  <input id="ne-start" name="startTime" type="time" className="input" aria-describedby="ne-time-hint" />
                 </div>
                 <div>
                   <label className="label" htmlFor="ne-end">Termina</label>
-                  <input id="ne-end" name="endTime" type="time" className="input" />
+                  <input id="ne-end" name="endTime" type="time" className="input" aria-describedby="ne-time-hint" />
                 </div>
+                <p id="ne-time-hint" className="col-span-2 md:col-span-3 -mt-1 text-xs text-stone-soft">
+                  Horas opcionales: sin hora, el evento es de todo el día.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label" htmlFor="ne-type">Tipo</label>
-                  <select id="ne-type" name="type" className="select">
-                    <option value="reunion">Reunión</option>
-                    <option value="evento">Evento</option>
-                    <option value="deadline">Deadline</option>
-                    <option value="recordatorio">Recordatorio</option>
+                  <select id="ne-type" name="type" className="select" defaultValue="evento">
+                    {EVENT_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
