@@ -5,6 +5,7 @@ import { Plus, X } from "lucide-react";
 import { createEventAction } from "@/lib/actions/events";
 import { EVENT_TYPES } from "@/lib/event-types";
 import { today } from "@/lib/tz";
+import { RepeatFields } from "@/components/calendar/repeat-fields";
 
 export function NewEventButton({
   projects,
@@ -79,6 +80,7 @@ export function NewEventButton({
                   Horas opcionales: sin hora, el evento es de todo el día.
                 </p>
               </div>
+              <RepeatFields idPrefix="ne" />
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label" htmlFor="ne-type">Tipo</label>

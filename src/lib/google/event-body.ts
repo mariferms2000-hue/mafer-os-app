@@ -1,4 +1,5 @@
 import { TIMEZONE, addDays } from "@/lib/tz";
+import { diasDeRepeticion } from "@/lib/event-repeat";
 
 /**
  * Cómo se traduce un evento de Mafer OS al cuerpo que espera la API de Google
@@ -11,6 +12,7 @@ export type GEvent = {
   startTime?: string | null; // HH:MM
   endTime?: string | null;
   notes?: string | null;
+  repeatUntil?: string | null; // YYYY-MM-DD: se repite cada día hasta esa fecha
   sourceRef: string; // "event:id" | "card:id" — para trazabilidad y anti-duplicados
 };
 
@@ -33,6 +35,10 @@ export function toRequestBody(e: GEvent) {
     description: e.notes || undefined,
     extendedProperties: { private: { maferOsRef: e.sourceRef } },
     reminders: { useDefault: true },
+    // Varios días = UN evento recurrente diario (el aviso suena cada día).
+    // COUNT en vez de UNTIL: UNTIL exige hora UTC en eventos con hora y se
+    // prestaba a perder el último día por la zona horaria.
+    ...(diasDeRepeticion(e) > 1 ? { recurrence: [`RRULE:FREQ=DAILY;COUNT=${diasDeRepeticion(e)}`] } : {}),
   };
 
   if (e.startTime) {

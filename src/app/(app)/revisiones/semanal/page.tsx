@@ -16,6 +16,7 @@ import {
   ReviewShell, ReviewTaskRow, ReviewProjectRow, ReviewIdeaRow, ReviewLearnRow, ReviewResourceRow, StartReviewButton,
 } from "@/components/reviews/review-ui";
 import type { CardRow } from "@/lib/queries/today";
+import { finRepeticion } from "@/lib/event-repeat";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Revisión semanal" };
@@ -220,7 +221,8 @@ export default async function RevisionSemanalPage({
       .from(schema.events)
       .where(eq(schema.events.isStarter, false))
       .orderBy(asc(schema.events.date));
-    const eventosSemana = eventos.filter((e) => e.date >= d && e.date <= en7);
+    // Incluye los de varios días que ya empezaron pero siguen esta semana.
+    const eventosSemana = eventos.filter((e) => e.date <= en7 && (finRepeticion(e) ?? e.date) >= d);
     const vencidas = open.filter((c) => c.dueDate && c.dueDate < d);
     const overview = await getProjectsOverview();
     const prioritarios = overview.filter(
@@ -240,7 +242,7 @@ export default async function RevisionSemanalPage({
           ) : (
             <ul className="divide-y divide-beige text-sm">
               {eventosSemana.slice(0, 3).map((e) => (
-                <li key={e.id} className="py-1.5">📅 {e.date} — {e.title}</li>
+                <li key={e.id} className="py-1.5">📅 {e.date}{finRepeticion(e) ? ` → ${finRepeticion(e)} (cada día)` : ""} — {e.title}</li>
               ))}
               {proximas.slice(0, 5).map((c) => (
                 <li key={c.id}><TaskLine card={c} /></li>

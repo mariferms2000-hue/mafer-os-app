@@ -240,6 +240,9 @@ export const events = pgTable("events", {
   type: text("type").default("evento"), // cita|evento|reunion|deadline|recordatorio
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   notes: text("notes").default(""),
+  /** Evento de varios días: se repite CADA DÍA desde `date` hasta esta fecha
+   *  (incluida). Un solo registro; en Google es un evento recurrente diario. */
+  repeatUntil: text("repeat_until"),
   gcalEventId: text("gcal_event_id"),
   isStarter: boolean("is_starter").default(false),
   createdAt: text("created_at").notNull(),

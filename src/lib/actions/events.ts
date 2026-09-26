@@ -6,6 +6,7 @@ import { db, schema } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { syncEventToGoogle, deleteGoogleEvent } from "@/lib/google/calendar";
 import { insertEvent } from "@/lib/db/helpers";
+import { repeatUntilDeFormulario } from "@/lib/event-repeat";
 
 export type EventDetailData = {
   event: typeof schema.events.$inferSelect & { projectTitle: string | null };
@@ -38,6 +39,7 @@ export async function createEventAction(formData: FormData) {
   const id = await insertEvent({
     title,
     date,
+    repeatUntil: repeatUntilDeFormulario(formData, date),
     startTime: (formData.get("startTime") as string) || null,
     endTime: (formData.get("endTime") as string) || null,
     type: String(formData.get("type") ?? "evento"),
@@ -55,11 +57,13 @@ export async function updateEventAction(formData: FormData) {
   const id = String(formData.get("id"));
   const [e] = await db.select().from(schema.events).where(eq(schema.events.id, id)).limit(1);
   if (!e) return;
+  const date = String(formData.get("date") ?? e.date);
   await db
     .update(schema.events)
     .set({
       title: String(formData.get("title") ?? e.title),
-      date: String(formData.get("date") ?? e.date),
+      date,
+      repeatUntil: repeatUntilDeFormulario(formData, date),
       startTime: (formData.get("startTime") as string) || null,
       endTime: (formData.get("endTime") as string) || null,
       type: String(formData.get("type") ?? e.type),

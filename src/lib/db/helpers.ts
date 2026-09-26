@@ -141,6 +141,7 @@ export async function insertEvent(input: {
   type?: string;
   projectId?: string | null;
   notes?: string;
+  repeatUntil?: string | null;
 }): Promise<string> {
   const id = uid();
   await db.insert(schema.events).values({
@@ -152,6 +153,7 @@ export async function insertEvent(input: {
     type: input.type ?? "evento",
     projectId: input.projectId ?? null,
     notes: input.notes ?? "",
+    repeatUntil: input.repeatUntil ?? null,
     createdAt: now(),
   });
   return id;

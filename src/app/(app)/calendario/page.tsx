@@ -10,6 +10,7 @@ import { TripWeekBand, TripDayBadges, type TripSpan } from "@/components/calenda
 import { MonthChip, WeekChip, OccLine, type Occurrence } from "@/components/calendar/occurrence";
 import { googleStatus } from "@/lib/google/calendar";
 import { disconnectGoogleAction, resyncGoogleAction } from "@/lib/actions/google";
+import { fechasDelEvento, finRepeticion } from "@/lib/event-repeat";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Calendario" };
@@ -60,16 +61,20 @@ export default async function CalendarioPage({
     .orderBy(asc(schema.trips.startDate));
 
   let occ: Occurrence[] = [
-    ...events.map((e) => ({
-      id: `e-${e.id}`,
-      date: e.date,
-      time: e.startTime,
-      endTime: e.endTime,
-      title: e.title,
-      kind: "evento" as const,
-      type: e.type ?? "evento",
-      projectId: e.projectId,
-    })),
+    // Un evento de varios días es un solo registro: aparece en cada uno de sus días.
+    ...events.flatMap((e) =>
+      fechasDelEvento(e).map((date) => ({
+        id: `e-${e.id}`,
+        date,
+        time: e.startTime,
+        endTime: e.endTime,
+        title: e.title,
+        kind: "evento" as const,
+        type: e.type ?? "evento",
+        projectId: e.projectId,
+        repeats: Boolean(finRepeticion(e)),
+      }))
+    ),
     ...datedCards.map((c) => ({
       id: `c-${c.id}`,
       date: c.dueDate!,
