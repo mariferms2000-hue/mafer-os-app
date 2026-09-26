@@ -1,7 +1,9 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
 /* Lógica pura de las rutas /api/siri/* (Atajos de iPhone → Mafer OS).
- * Sin base de datos ni Next: se prueba sola en tests/siri-logic.test.ts. */
+ * Sin base de datos ni Next: se prueba sola en tests/siri-logic.test.ts.
+ * Los mensajes van en INGLÉS a propósito: Siri de Mafer está en inglés y los
+ * lee en voz alta (con texto en español los pronunciaba con acento). */
 
 export const MAX_TEXTO = 2000;
 
@@ -26,8 +28,8 @@ function texto(v: unknown): string {
 
 export function parseInbox(body: unknown): Resultado<{ content: string }> {
   const content = texto((body as Record<string, unknown> | null)?.texto);
-  if (!content) return { ok: false, error: "Falta el texto." };
-  if (content.length > MAX_TEXTO) return { ok: false, error: "El texto es demasiado largo." };
+  if (!content) return { ok: false, error: "I didn't get what to write down." };
+  if (content.length > MAX_TEXTO) return { ok: false, error: "That's too long to save." };
   return { ok: true, datos: { content } };
 }
 
@@ -61,8 +63,8 @@ export type EventoSiri = { title: string; date: string; startTime: string | null
 export function parseEvento(body: unknown): Resultado<EventoSiri> {
   const b = (body ?? {}) as Record<string, unknown>;
   const title = texto(b.titulo);
-  if (!title) return { ok: false, error: "Falta el título del evento." };
-  if (title.length > 300) return { ok: false, error: "El título es demasiado largo." };
+  if (!title) return { ok: false, error: "I didn't get the event name." };
+  if (title.length > 300) return { ok: false, error: "That event name is too long." };
 
   let date = texto(b.fecha);
   let startTime: string | null = null;
@@ -71,11 +73,11 @@ export function parseEvento(body: unknown): Resultado<EventoSiri> {
     date = iso[1];
     startTime = iso[2];
   }
-  if (!fechaReal(date)) return { ok: false, error: "No entendí la fecha (usa AAAA-MM-DD)." };
+  if (!fechaReal(date)) return { ok: false, error: "I didn't understand the date." };
 
   const hora = texto(b.hora);
   if (hora) {
-    if (!HORA.test(hora)) return { ok: false, error: "No entendí la hora (usa HH:MM)." };
+    if (!HORA.test(hora)) return { ok: false, error: "I didn't understand the time." };
     startTime = hora;
   }
 
@@ -83,9 +85,24 @@ export function parseEvento(body: unknown): Resultado<EventoSiri> {
   if (startTime) {
     const dur = b.duracion === undefined || b.duracion === "" ? 60 : Number(b.duracion);
     if (!Number.isFinite(dur) || dur <= 0 || dur > 24 * 60) {
-      return { ok: false, error: "La duración debe ser en minutos." };
+      return { ok: false, error: "The duration must be in minutes." };
     }
     endTime = sumarMinutos(startTime, Math.round(dur));
   }
   return { ok: true, datos: { title, date, startTime, endTime } };
+}
+
+/** «Wednesday, October 7 at 5:30 PM» — cómo Siri dice cuándo quedó el evento. */
+export function fraseCuando(date: string, startTime: string | null): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const dia = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, d)));
+  if (!startTime) return `${dia}, all day`;
+  const [h, min] = startTime.split(":").map(Number);
+  const hora = `${h % 12 || 12}${min ? `:${String(min).padStart(2, "0")}` : ""} ${h < 12 ? "AM" : "PM"}`;
+  return `${dia} at ${hora}`;
 }

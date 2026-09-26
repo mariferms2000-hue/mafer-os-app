@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { tokenValido, parseInbox, parseEvento, MAX_TEXTO } from "../src/lib/siri-logic";
+import { tokenValido, parseInbox, parseEvento, fraseCuando, MAX_TEXTO } from "../src/lib/siri-logic";
 
 const CLAVE = "a".repeat(64);
 
@@ -58,5 +58,17 @@ describe("parseEvento", () => {
     expect(parseEvento({ titulo: "X", fecha: "2026-02-30" }).ok).toBe(false);
     expect(parseEvento({ titulo: "X", fecha: "2026-10-03", hora: "5pm" }).ok).toBe(false);
     expect(parseEvento({ titulo: "X", fecha: "2026-10-03", hora: "10:00", duracion: -5 }).ok).toBe(false);
+  });
+});
+
+describe("fraseCuando — lo que Siri dice en voz alta", () => {
+  it("fecha y hora en inglés natural", () => {
+    expect(fraseCuando("2026-10-07", "17:30")).toBe("Wednesday, October 7 at 5:30 PM");
+    expect(fraseCuando("2026-10-07", "09:00")).toBe("Wednesday, October 7 at 9 AM");
+    expect(fraseCuando("2026-10-07", "12:15")).toBe("Wednesday, October 7 at 12:15 PM");
+    expect(fraseCuando("2026-10-07", "00:05")).toBe("Wednesday, October 7 at 12:05 AM");
+  });
+  it("sin hora = todo el día", () => {
+    expect(fraseCuando("2026-10-03", null)).toBe("Saturday, October 3, all day");
   });
 });
