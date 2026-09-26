@@ -29,7 +29,7 @@ test("siri: sin clave (o con clave equivocada) no deja crear nada", async ({ req
 test("siri: lo dictado llega al Inbox", async ({ request, page }) => {
   const r = await request.post("/api/siri/inbox", { data: { texto: "Idea dictada a Siri" }, headers: AUTH });
   expect(r.status()).toBe(200);
-  expect((await r.json()).mensaje).toContain("Inbox");
+  expect((await r.json()).mensaje).toBe("Done, it's in your Mafer OS inbox.");
 
   const malo = await request.post("/api/siri/inbox", { data: { texto: "  " }, headers: AUTH });
   expect(malo.status()).toBe(400);
@@ -47,7 +47,7 @@ test("siri: el evento dictado aparece en el calendario", async ({ request, page 
   expect(r.status()).toBe(200);
   const body = await r.json();
   expect(body.mensaje).toContain("Dentista por Siri");
-  expect(body.mensaje).toContain("17:30");
+  expect(body.mensaje).toContain("Wednesday, October 7 at 5:30 PM");
 
   await login(page);
   await page.goto("/calendario?vista=dia&fecha=2026-10-07");

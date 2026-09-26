@@ -5,10 +5,10 @@ import { parseInbox, tokenValido } from "@/lib/siri-logic";
 
 /** Atajo de iPhone «Anota en Mafer OS» → Inbox.
  *  POST { "texto": "..." } con Authorization: Bearer <SIRI_TOKEN>.
- *  `mensaje` es lo que Siri lee en voz alta. Solo crea: no lee ni borra nada. */
+ *  `mensaje` es lo que Siri lee en voz alta (en inglés). Solo crea: no lee ni borra nada. */
 export async function POST(req: Request) {
   if (!tokenValido(req.headers.get("authorization"), process.env.SIRI_TOKEN)) {
-    return NextResponse.json({ ok: false, mensaje: "No autorizado." }, { status: 401 });
+    return NextResponse.json({ ok: false, mensaje: "Not authorized." }, { status: 401 });
   }
   const body = await req.json().catch(() => null);
   const r = parseInbox(body);
@@ -17,5 +17,5 @@ export async function POST(req: Request) {
   const id = await insertInboxItem({ content: r.datos.content });
   revalidatePath("/inbox");
   revalidatePath("/");
-  return NextResponse.json({ ok: true, id, mensaje: "Listo, quedó en tu Inbox." });
+  return NextResponse.json({ ok: true, id, mensaje: "Done, it's in your Mafer OS inbox." });
 }

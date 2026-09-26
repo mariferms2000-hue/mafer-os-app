@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { insertEvent } from "@/lib/db/helpers";
 import { syncEventToGoogle } from "@/lib/google/calendar";
-import { parseEvento, tokenValido } from "@/lib/siri-logic";
+import { fraseCuando, parseEvento, tokenValido } from "@/lib/siri-logic";
 
 /** Atajo de iPhone «Evento en Mafer OS» → Calendario (+ Google Calendar).
  *  POST { "titulo", "fecha", "hora"?, "duracion"? } con
  *  Authorization: Bearer <SIRI_TOKEN>. Formato en src/lib/siri-logic.ts. */
 export async function POST(req: Request) {
   if (!tokenValido(req.headers.get("authorization"), process.env.SIRI_TOKEN)) {
-    return NextResponse.json({ ok: false, mensaje: "No autorizado." }, { status: 401 });
+    return NextResponse.json({ ok: false, mensaje: "Not authorized." }, { status: 401 });
   }
   const body = await req.json().catch(() => null);
   const r = parseEvento(body);
@@ -20,11 +20,10 @@ export async function POST(req: Request) {
   const gcal = await syncEventToGoogle(id).catch(() => null);
   revalidatePath("/calendario");
   revalidatePath("/");
-  const cuando = r.datos.startTime ? `el ${r.datos.date} a las ${r.datos.startTime}` : `el ${r.datos.date}`;
   return NextResponse.json({
     ok: true,
     id,
     google: Boolean(gcal),
-    mensaje: `Listo, agendé «${r.datos.title}» ${cuando}${gcal ? " y ya está en Google Calendar" : ""}.`,
+    mensaje: `Done, I scheduled "${r.datos.title}" for ${fraseCuando(r.datos.date, r.datos.startTime)}${gcal ? " and added it to Google Calendar" : ""}.`,
   });
 }
