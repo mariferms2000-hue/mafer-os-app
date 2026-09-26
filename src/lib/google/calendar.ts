@@ -1,6 +1,6 @@
 import "server-only";
 import { google } from "googleapis";
-import { and, eq, gte, isNull, like } from "drizzle-orm";
+import { and, eq, gte, isNull, like, or } from "drizzle-orm";
 import { db, schema, today } from "@/lib/db";
 import { getSetting, setSetting } from "@/lib/auth";
 import { TIMEZONE as TZ } from "@/lib/tz";
@@ -116,6 +116,7 @@ export async function syncEventToGoogle(eventId: string): Promise<string | null>
     startTime: e.startTime,
     endTime: e.endTime,
     notes: e.notes,
+    repeatUntil: e.repeatUntil,
     sourceRef: `event:${e.id}`,
   });
 
@@ -201,7 +202,7 @@ export async function resyncGoogle(): Promise<{ eventos: number; tarjetas: numbe
   const eventos = await db
     .select({ id: schema.events.id })
     .from(schema.events)
-    .where(gte(schema.events.date, hoy));
+    .where(or(gte(schema.events.date, hoy), gte(schema.events.repeatUntil, hoy)));
   for (const e of eventos) await syncEventToGoogle(e.id).catch(() => {});
 
   const tarjetas = await db

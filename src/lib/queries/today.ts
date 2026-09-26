@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lte, or } from "drizzle-orm";
 import { db, today, schema } from "@/lib/db";
 import { addDays } from "@/lib/tz";
 import { getSetting } from "@/lib/auth";
@@ -52,7 +52,13 @@ export async function getTodayData() {
   const eventsToday = await db
     .select()
     .from(schema.events)
-    .where(eq(schema.events.date, d))
+    // El del día y los de varios días que lo cubren (date ≤ d ≤ repeat_until).
+    .where(
+      or(
+        eq(schema.events.date, d),
+        and(lte(schema.events.date, d), gte(schema.events.repeatUntil, d))
+      )
+    )
     .orderBy(asc(schema.events.startTime));
 
   const dueToday = open.filter((c) => c.dueDate === d);

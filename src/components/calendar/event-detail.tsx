@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions/events";
 import { useToast } from "@/components/ui/toast";
 import { EVENT_TYPES } from "@/lib/event-types";
+import { RepeatFields } from "@/components/calendar/repeat-fields";
 
 /** Detalle editable de evento, abrible desde cualquier vista del calendario.
  *  Mismo patrón que el detalle de tarea: carga sus datos frescos al abrirse. */
@@ -112,9 +113,9 @@ function EventDetailEditor({ data, onClose }: { data: EventDetailData; onClose: 
             <label className="label" htmlFor="ed-title">Título</label>
             <input id="ed-title" name="title" className="input" required defaultValue={event.title} data-testid="event-title-input" />
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="label" htmlFor="ed-date">Fecha</label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="col-span-2 md:col-span-1">
+              <label className="label" htmlFor="ed-date">{event.repeatUntil ? "Desde" : "Fecha"}</label>
               <input id="ed-date" name="date" type="date" className="input" required defaultValue={event.date} data-testid="event-date-input" />
             </div>
             <div>
@@ -126,6 +127,7 @@ function EventDetailEditor({ data, onClose }: { data: EventDetailData; onClose: 
               <input id="ed-end" name="endTime" type="time" className="input" defaultValue={event.endTime ?? ""} />
             </div>
           </div>
+          <RepeatFields idPrefix="ed" defaultUntil={event.repeatUntil} />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label" htmlFor="ed-type">Tipo</label>

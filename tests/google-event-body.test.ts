@@ -75,3 +75,23 @@ describe("datos comunes", () => {
     expect(toRequestBody({ ...base, date: "2026-09-24", notes: "" }).description).toBeUndefined();
   });
 });
+
+describe("eventos de varios días (repetir cada día)", () => {
+  it("con hora: un solo evento recurrente diario, un aviso por día", () => {
+    const body = toRequestBody({ ...base, date: "2026-09-29", startTime: "08:00", repeatUntil: "2026-10-04" });
+    expect(body.recurrence).toEqual(["RRULE:FREQ=DAILY;COUNT=6"]);
+    expect(body.start).toEqual({ dateTime: "2026-09-29T08:00:00", timeZone: "America/Mexico_City" });
+  });
+
+  it("todo el día: la primera ocurrencia sigue siendo de un día", () => {
+    const body = toRequestBody({ ...base, date: "2026-09-29", repeatUntil: "2026-10-04" });
+    expect(body.recurrence).toEqual(["RRULE:FREQ=DAILY;COUNT=6"]);
+    expect(body.start).toEqual({ date: "2026-09-29" });
+    expect(body.end).toEqual({ date: "2026-09-30" });
+  });
+
+  it("sin repetición no manda recurrence (al quitarla, Google la borra)", () => {
+    expect("recurrence" in toRequestBody({ ...base, date: "2026-09-29" })).toBe(false);
+    expect("recurrence" in toRequestBody({ ...base, date: "2026-09-29", repeatUntil: "2026-09-29" })).toBe(false);
+  });
+});

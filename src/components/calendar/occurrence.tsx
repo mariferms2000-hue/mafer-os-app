@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, CalendarClock, Users, Flag, Bell, CircleCheckBig, type LucideIcon } from "lucide-react";
+import { CalendarDays, CalendarClock, Users, Flag, Bell, CircleCheckBig, Repeat, type LucideIcon } from "lucide-react";
 import { openTaskUrl } from "@/components/tasks/task-detail";
 import { openEventUrl } from "@/components/calendar/event-detail";
 
@@ -14,6 +14,8 @@ export type Occurrence = {
   type: string; // cita|reunion|deadline|recordatorio|evento|tarea
   projectId: string | null;
   href?: string;
+  /** Evento de varios días (se repite cada día). */
+  repeats?: boolean;
 };
 
 export const TYPE_META: Record<string, { icon: LucideIcon; label: string; chip: string }> = {
@@ -53,6 +55,7 @@ export function OccLine({ o }: { o: Occurrence }) {
         <Icon size={11} aria-hidden /> {o.time ?? "Día"}
       </span>
       <span className="truncate hover:underline underline-offset-4">{o.title}</span>
+      {o.repeats && <Repeat size={12} className="shrink-0 text-stone-soft" aria-label="Se repite cada día" />}
     </button>
   );
 }
@@ -75,6 +78,7 @@ export function MonthChip({ o }: { o: Occurrence }) {
         <Icon size={10} className="shrink-0" aria-hidden />
         {o.time && <span className="font-semibold shrink-0">{o.time}</span>}
         <span className="truncate">{o.title}</span>
+        {o.repeats && <Repeat size={9} className="shrink-0 opacity-70" aria-label="Se repite cada día" />}
       </button>
     </li>
   );
