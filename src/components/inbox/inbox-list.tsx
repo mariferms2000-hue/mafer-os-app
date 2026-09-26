@@ -25,6 +25,7 @@ import {
 import { ClassifyStep } from "@/components/tasks/classify-step";
 import { useToast } from "@/components/ui/toast";
 import type { schema } from "@/lib/db";
+import { EVENT_TYPES } from "@/lib/event-types";
 
 type Item = typeof schema.inboxItems.$inferSelect;
 type Project = { id: string; title: string };
@@ -450,10 +451,9 @@ function ProcessPanel({
               <div>
                 <label className="label" htmlFor="pp-etype">Tipo</label>
                 <select id="pp-etype" name="eventType" className="select" defaultValue="evento">
-                  <option value="reunion">Reunión</option>
-                  <option value="evento">Evento</option>
-                  <option value="deadline">Deadline</option>
-                  <option value="recordatorio">Recordatorio</option>
+                  {EVENT_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
                 </select>
               </div>
               <div>

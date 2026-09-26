@@ -86,6 +86,7 @@ const PAIRS: [string, string, number, number][] = [
   // Selección de texto e iconografía interactiva
   ["--color-selection-fg", "--color-selection-bg", 4.5, 4.5],
   ["--color-sage-deep", "--color-paper", 3, 3],
+  ["--color-cita", "--color-cita-soft", 4.5, 4.5], // chip «Cita»
 ];
 
 describe("contraste de tokens (claro)", () => {

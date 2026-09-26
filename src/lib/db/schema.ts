@@ -237,7 +237,7 @@ export const events = pgTable("events", {
   date: text("date").notNull(),
   startTime: text("start_time"),
   endTime: text("end_time"),
-  type: text("type").default("evento"), // evento|reunion|deadline|recordatorio
+  type: text("type").default("evento"), // cita|evento|reunion|deadline|recordatorio
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   notes: text("notes").default(""),
   gcalEventId: text("gcal_event_id"),

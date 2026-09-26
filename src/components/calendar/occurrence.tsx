@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Users, Flag, Bell, CircleCheckBig, type LucideIcon } from "lucide-react";
+import { CalendarDays, CalendarClock, Users, Flag, Bell, CircleCheckBig, type LucideIcon } from "lucide-react";
 import { openTaskUrl } from "@/components/tasks/task-detail";
 import { openEventUrl } from "@/components/calendar/event-detail";
 
@@ -11,12 +11,13 @@ export type Occurrence = {
   endTime?: string | null;
   title: string;
   kind: "evento" | "tarea";
-  type: string; // reunion|deadline|recordatorio|evento|tarea
+  type: string; // cita|reunion|deadline|recordatorio|evento|tarea
   projectId: string | null;
   href?: string;
 };
 
 export const TYPE_META: Record<string, { icon: LucideIcon; label: string; chip: string }> = {
+  cita: { icon: CalendarClock, label: "Cita", chip: "chip-cita" },
   reunion: { icon: Users, label: "Reunión", chip: "chip-sage" },
   deadline: { icon: Flag, label: "Deadline", chip: "chip-blocked" },
   recordatorio: { icon: Bell, label: "Recordatorio", chip: "chip-waiting" },
