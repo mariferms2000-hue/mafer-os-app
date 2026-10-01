@@ -399,6 +399,35 @@ input[type="date"], input[type="time"] {
   }
 }
 
+/* Hora protagonista (Sueño): campo de hora nativo, grande y editorial — sin
+   caja, solo una línea base. Va DESPUÉS de la regla de 16px y con !important
+   en el tamaño para que en iPhone no se encoja a texto de formulario. */
+.time-hero {
+  display: block;
+  width: 100%;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(3.25rem, 14vw, 4.5rem) !important;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-forest-deep);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--color-sand);
+  border-radius: 0;
+  padding: 0.1em 0 0.15em;
+  cursor: pointer;
+}
+.time-hero:hover { border-bottom-color: var(--color-border-strong); }
+.time-hero:focus-visible {
+  outline: none;
+  border-bottom-color: var(--color-border-focus);
+  box-shadow: 0 1px 0 var(--color-border-focus);
+}
+.time-hero::-webkit-calendar-picker-indicator { width: 0.32em; height: 0.32em; opacity: 0.4; cursor: pointer; }
+.time-hero::-webkit-date-and-time-value { text-align: left; }
+
 /* Editor visual (WYSIWYG) de la descripción de tareas: el textarea de siempre
    sigue guardando Markdown, pero esto es lo que Mafer ve y toca al escribir. */
 .rich-text-editor { min-height: 90px; height: auto; line-height: 1.5; cursor: text; }
