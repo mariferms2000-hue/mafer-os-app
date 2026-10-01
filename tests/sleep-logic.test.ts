@@ -1,0 +1,141 @@
+import { describe, it, expect } from "vitest";
+import {
+  bedtimesFor,
+  wakeTimesFor,
+  parseTime,
+  formatTime,
+  formatDuration,
+  wrapMinutes,
+  minutesFromDeviceClock,
+  CYCLE_OPTIONS,
+  SLEEP_CYCLE_MIN,
+  SLEEP_LATENCY_MIN,
+} from "../src/lib/sleep-logic";
+
+const t = (hhmm: string) => parseTime(hhmm)!;
+const times = (opts: { time: string }[]) => opts.map((o) => o.time);
+
+describe("supuestos", () => {
+  it("ciclos de 90 min, 15 min para dormirse, y solo 6, 5 y 4 ciclos (sin 4.5 h)", () => {
+    expect(SLEEP_CYCLE_MIN).toBe(90);
+    expect(SLEEP_LATENCY_MIN).toBe(15);
+    expect([...CYCLE_OPTIONS]).toEqual([6, 5, 4]);
+  });
+});
+
+describe("bedtimesFor — «Quiero despertar a…»", () => {
+  it("despertar 07:30 → acostarse 22:15 · 23:45 · 01:15", () => {
+    expect(times(bedtimesFor(t("07:30")))).toEqual(["22:15", "23:45", "01:15"]);
+  });
+
+  it("ofrece exactamente 9 h, 7 h 30 min y 6 h — nunca 4 h 30 min", () => {
+    const opts = bedtimesFor(t("07:30"));
+    expect(opts.map((o) => o.durationLabel)).toEqual(["9 h", "7 h 30 min", "6 h"]);
+    expect(opts.map((o) => o.sleepMinutes)).toEqual([540, 450, 360]);
+    expect(opts.some((o) => o.sleepMinutes === 270)).toBe(false);
+  });
+
+  it("9 h y 7 h 30 min son principales; 6 h es secundaria", () => {
+    expect(bedtimesFor(t("07:30")).map((o) => o.emphasis)).toEqual(["primary", "primary", "secondary"]);
+  });
+
+  it("cruza la medianoche hacia atrás sin valores negativos", () => {
+    // 00:10 − 15 − 540 = −545 → 14:55 del día anterior
+    const opts = bedtimesFor(t("00:10"));
+    expect(times(opts)).toEqual(["14:55", "16:25", "17:55"]);
+    opts.forEach((o) => expect(o.minutes).toBeGreaterThanOrEqual(0));
+  });
+
+  it("funciona con un despertar a mediodía y con 00:00", () => {
+    expect(times(bedtimesFor(t("12:00")))).toEqual(["02:45", "04:15", "05:45"]);
+    expect(times(bedtimesFor(t("00:00")))).toEqual(["14:45", "16:15", "17:45"]);
+  });
+
+  it("acepta parámetros propios (para ajustes futuros)", () => {
+    expect(times(bedtimesFor(t("07:00"), { latencyMinutes: 20, cycleMinutes: 100 }))).toEqual(["20:40", "22:20", "00:00"]);
+  });
+});
+
+describe("wakeTimesFor — «Quiero dormir a…» y «Me voy a dormir ahora»", () => {
+  it("acostarse 23:00 → despertar 05:15 · 06:45 · 08:15 (cronológico)", () => {
+    expect(times(wakeTimesFor(t("23:00")))).toEqual(["05:15", "06:45", "08:15"]);
+  });
+
+  it("de menos a más sueño: 6 h, 7 h 30 min, 9 h, con su jerarquía", () => {
+    const opts = wakeTimesFor(t("23:00"));
+    expect(opts.map((o) => o.durationLabel)).toEqual(["6 h", "7 h 30 min", "9 h"]);
+    expect(opts.map((o) => o.emphasis)).toEqual(["secondary", "primary", "primary"]);
+  });
+
+  it("cruza la medianoche hacia adelante", () => {
+    // 22:00 + 15 + 360 = 1695 → 04:15 del día siguiente
+    expect(times(wakeTimesFor(t("22:00")))).toEqual(["04:15", "05:45", "07:15"]);
+    expect(times(wakeTimesFor(t("23:59")))).toEqual(["06:14", "07:44", "09:14"]);
+  });
+
+  it("usa la hora exacta al minuto, sin redondear (caso «ahora»)", () => {
+    expect(times(wakeTimesFor(t("23:47")))).toEqual(["06:02", "07:32", "09:02"]);
+  });
+
+  it("es el inverso de bedtimesFor", () => {
+    for (const wake of ["07:30", "06:00", "00:10", "13:05"]) {
+      const beds = bedtimesFor(t(wake));
+      for (const b of beds) {
+        const back = wakeTimesFor(b.minutes).find((o) => o.cycles === b.cycles)!;
+        expect(back.time).toBe(wake);
+      }
+    }
+  });
+});
+
+describe("parseTime", () => {
+  it("lee horas válidas de 24 h", () => {
+    expect(parseTime("07:30")).toBe(450);
+    expect(parseTime("7:30")).toBe(450);
+    expect(parseTime("00:00")).toBe(0);
+    expect(parseTime("23:59")).toBe(1439);
+    expect(parseTime(" 22:15 ")).toBe(1335);
+  });
+
+  it("rechaza lo que no es una hora (URL manipulada, vacío, AM/PM)", () => {
+    for (const bad of ["24:00", "12:60", "7", "07:3", "abc", "", "7:30 PM", "-1:00", null, undefined]) {
+      expect(parseTime(bad)).toBeNull();
+    }
+  });
+});
+
+describe("formatTime y formatDuration", () => {
+  it("formatea en 24 h con ceros a la izquierda y envuelve el día", () => {
+    expect(formatTime(0)).toBe("00:00");
+    expect(formatTime(75)).toBe("01:15");
+    expect(formatTime(1335)).toBe("22:15");
+    expect(formatTime(-105)).toBe("22:15");
+    expect(formatTime(1440 + 75)).toBe("01:15");
+  });
+
+  it("escribe las duraciones como las verá Mafer", () => {
+    expect(formatDuration(540)).toBe("9 h");
+    expect(formatDuration(450)).toBe("7 h 30 min");
+    expect(formatDuration(360)).toBe("6 h");
+    expect(formatDuration(45)).toBe("45 min");
+  });
+
+  it("wrapMinutes lleva cualquier valor al rango 0–1439", () => {
+    expect(wrapMinutes(-1)).toBe(1439);
+    expect(wrapMinutes(1440)).toBe(0);
+    expect(wrapMinutes(-2880 + 30)).toBe(30);
+  });
+});
+
+describe("minutesFromDeviceClock — excepción: hora local del dispositivo", () => {
+  it("lee la hora y minuto locales del Date recibido", () => {
+    expect(minutesFromDeviceClock(new Date(2026, 8, 30, 23, 47))).toBe(1427);
+    expect(minutesFromDeviceClock(new Date(2026, 8, 30, 0, 5))).toBe(5);
+  });
+
+  // `npm run test:unit` fija TZ=UTC: el dispositivo «está» en UTC, así que un
+  // instante que en México son las 23:00 debe dar las 05:00, no las 23:00.
+  it.skipIf(process.env.TZ !== "UTC")("no usa la hora de México", () => {
+    expect(minutesFromDeviceClock(new Date("2026-10-01T05:00:00Z"))).toBe(300);
+  });
+});
