@@ -252,3 +252,88 @@ test.describe("recordar «ahora» (dispositivo en Madrid)", () => {
     await expectTime(page, "dormir", "23", "47");
   });
 });
+
+/* ── Fase 6: acceso desde la navegación y Buscar ── */
+
+test.describe("acceso desde el menú lateral (escritorio)", () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 768, "el menú lateral solo existe en escritorio");
+
+  test("Sueño está en el grupo secundario, va a /sueno y queda activo", async ({ page }) => {
+    const link = page.getByTestId("sidebar-sueno-link");
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", "/sueno");
+    await expect(link).not.toHaveAttribute("aria-current", "page");
+    // Orden del grupo secundario: Buscar · Sueño · Ajustes
+    const aside = page.locator("aside");
+    const order = await aside.locator('a[href="/buscar"], a[href="/sueno"], a[href="/ajustes"]').evaluateAll((els) =>
+      els.map((e) => e.getAttribute("href")),
+    );
+    expect(order).toEqual(["/buscar", "/sueno", "/ajustes"]);
+
+    await link.click();
+    await expect(page).toHaveURL(/\/sueno\?modo=despertar&h=07:30$/);
+    await expect(link).toHaveAttribute("aria-current", "page");
+  });
+
+  test("entrar desde el menú recupera la última selección guardada", async ({ page }) => {
+    await setStored(page, '{"modo":"dormir","hora":"23:47"}');
+    await page.getByTestId("sidebar-sueno-link").click();
+    await expectTime(page, "dormir", "23", "47");
+  });
+});
+
+test.describe("acceso desde la barra superior (móvil)", () => {
+  test.use({ viewport: { width: 375, height: 667 }, hasTouch: true });
+
+  test("la luna tiene nombre «Sueño», navega a /sueno y queda activa", async ({ page }) => {
+    const moon = page.getByRole("link", { name: "Sueño", exact: true });
+    await expect(moon).toBeVisible();
+    await expect(page.getByTestId("mobile-settings-link")).toBeVisible();
+    await expect(moon).toHaveAttribute("href", "/sueno");
+    await setStored(page, '{"modo":"despertar","hora":"06:10"}');
+    await moon.tap();
+    await expectTime(page, "despertar", "06", "10");
+    await expect(moon).toHaveAttribute("aria-current", "page");
+  });
+
+  test("la barra inferior sigue con exactamente sus 6 secciones", async ({ page }) => {
+    const bottom = page.locator("nav.fixed.bottom-0");
+    await expect(bottom.getByRole("link")).toHaveText(["Hoy", "Inbox", "Proyectos", "Calendario", "Explorar", "Biblioteca"]);
+    await expect(bottom.locator('a[href="/sueno"]')).toHaveCount(0);
+  });
+
+  test("los iconos del header no recortan el logo", async ({ page }) => {
+    const logo = page.locator("header").getByText("Mafer OS");
+    const moon = page.getByTestId("mobile-sueno-link");
+    const logoBox = (await logo.boundingBox())!;
+    const moonBox = (await moon.boundingBox())!;
+    expect(logoBox.x + logoBox.width).toBeLessThan(moonBox.x);
+    expect(await logo.evaluate((e) => e.scrollWidth <= e.clientWidth)).toBe(true);
+  });
+});
+
+test.describe("Buscar encuentra Sueño", () => {
+  // FIXME (incidencia aparte, ya existía en main): cualquier búsqueda con texto se
+  // cuelga ~2–3 min — Buscar lanza 10 consultas con Promise.all y postgres-js las
+  // encadena en una conexión que el pooler de Supabase (modo transacción) no
+  // atiende. La coincidencia está cubierta en tests/search-destinations.test.ts;
+  // la pantalla se verificó a mano con las consultas en fila. Quitar este fixme
+  // cuando se arregle Buscar.
+  test.fixme();
+
+  for (const q of ["sueño", "sueno", "dormir", "despertar", "hora de dormir", "ciclo de sueño"]) {
+    test(`con «${q}»`, async ({ page }) => {
+      await page.goto(`/buscar?q=${encodeURIComponent(q)}`);
+      const hit = page.getByTestId("search-results").getByRole("link", { name: /Sueño/ });
+      await expect(hit).toHaveAttribute("href", "/sueno");
+      await expect(hit).toContainText("herramienta");
+    });
+  }
+
+  test("el resultado lleva a Sueño con la última selección", async ({ page }) => {
+    await setStored(page, '{"modo":"dormir","hora":"22:30"}');
+    await page.goto("/buscar?q=dormir");
+    await page.getByTestId("search-results").getByRole("link", { name: /Sueño/ }).click();
+    await expectTime(page, "dormir", "22", "30");
+  });
+});

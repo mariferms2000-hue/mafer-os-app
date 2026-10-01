@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Compass,
   LibraryBig,
+  Moon,
   Search,
   Settings,
   LogOut,
@@ -123,6 +124,18 @@ function SidebarInner() {
           <Search size={17} aria-hidden /> Buscar
           <kbd className="ml-auto text-[10px] text-stone-soft border border-sand rounded px-1.5 py-0.5">⌘K</kbd>
         </Link>
+        {/* Herramienta secundaria, no sección: sin parámetros, Sueño recupera la
+            última selección del dispositivo. */}
+        <Link
+          href="/sueno"
+          aria-current={isActive(pathname, "/sueno") ? "page" : undefined}
+          className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
+            isActive(pathname, "/sueno") ? "nav-active bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+          }`}
+          data-testid="sidebar-sueno-link"
+        >
+          <Moon size={17} aria-hidden /> Sueño
+        </Link>
         <Link
           href="/ajustes"
           className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
@@ -180,6 +193,7 @@ function BottomNavInner() {
 export function MobileTopBar() {
   const pathname = usePathname();
   const active = isActive(pathname, "/ajustes");
+  const sleepActive = isActive(pathname, "/sueno");
   return (
     <header className="md:hidden fixed top-0 inset-x-0 z-50 sidebar-surface backdrop-blur border-b border-sand pt-safe">
       <div className="flex items-center justify-between px-4 py-2.5">
@@ -187,17 +201,30 @@ export function MobileTopBar() {
           <LeafLogo className="h-7 w-7" />
           <span className="font-display text-base text-forest-deep">Mafer OS</span>
         </Link>
-        <Link
-          href="/ajustes"
-          aria-label="Ajustes"
-          aria-current={active ? "page" : undefined}
-          data-testid="mobile-settings-link"
-          className={`flex items-center justify-center h-9 w-9 rounded-full ${
-            active ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
-          }`}
-        >
-          <Settings size={19} aria-hidden />
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/sueno"
+            aria-label="Sueño"
+            aria-current={sleepActive ? "page" : undefined}
+            data-testid="mobile-sueno-link"
+            className={`flex items-center justify-center h-9 w-9 rounded-full ${
+              sleepActive ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+            }`}
+          >
+            <Moon size={19} aria-hidden />
+          </Link>
+          <Link
+            href="/ajustes"
+            aria-label="Ajustes"
+            aria-current={active ? "page" : undefined}
+            data-testid="mobile-settings-link"
+            className={`flex items-center justify-center h-9 w-9 rounded-full ${
+              active ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+            }`}
+          >
+            <Settings size={19} aria-hidden />
+          </Link>
+        </div>
       </div>
     </header>
   );
