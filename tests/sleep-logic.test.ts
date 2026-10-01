@@ -7,6 +7,11 @@ import {
   formatDuration,
   wrapMinutes,
   minutesFromDeviceClock,
+  readSleepState,
+  sleepStateQuery,
+  parseSleepMode,
+  optionsFor,
+  DEFAULT_TIMES,
   CYCLE_OPTIONS,
   SLEEP_CYCLE_MIN,
   SLEEP_LATENCY_MIN,
@@ -137,5 +142,58 @@ describe("minutesFromDeviceClock — excepción: hora local del dispositivo", ()
   // instante que en México son las 23:00 debe dar las 05:00, no las 23:00.
   it.skipIf(process.env.TZ !== "UTC")("no usa la hora de México", () => {
     expect(minutesFromDeviceClock(new Date("2026-10-01T05:00:00Z"))).toBe(300);
+  });
+});
+
+const qs = (query: string) => new URLSearchParams(query);
+
+describe("estado en la URL — readSleepState / sleepStateQuery", () => {
+  it("abre exactamente el estado de una URL válida", () => {
+    expect(readSleepState(qs("modo=despertar&h=07:30"))).toEqual({ mode: "despertar", time: "07:30", canonical: true });
+    expect(readSleepState(qs("modo=dormir&h=23:00"))).toEqual({ mode: "dormir", time: "23:00", canonical: true });
+  });
+
+  it("sin parámetros: «Despertar a…» a las 07:30, marcada para reescribir", () => {
+    expect(readSleepState(qs(""))).toEqual({ mode: "despertar", time: "07:30", canonical: false });
+  });
+
+  it("modo desconocido → despertar; conserva una hora válida", () => {
+    expect(readSleepState(qs("modo=siesta&h=06:15"))).toEqual({ mode: "despertar", time: "06:15", canonical: false });
+    expect(parseSleepMode(null)).toBe("despertar");
+    expect(parseSleepMode("DORMIR")).toBe("despertar");
+  });
+
+  it("hora inválida o ausente → la de por defecto de ese modo, sin romper", () => {
+    for (const h of ["25:00", "abc", "7:30 PM", "", "12:60"]) {
+      expect(readSleepState(qs(`modo=dormir&h=${encodeURIComponent(h)}`))).toEqual({ mode: "dormir", time: DEFAULT_TIMES.dormir, canonical: false });
+      expect(readSleepState(qs(`modo=despertar&h=${encodeURIComponent(h)}`)).time).toBe(DEFAULT_TIMES.despertar);
+    }
+    expect(readSleepState(qs("modo=dormir")).time).toBe("23:00");
+  });
+
+  it("normaliza horas sin cero a la izquierda y las marca para reescribir", () => {
+    expect(readSleepState(qs("modo=despertar&h=7:30"))).toEqual({ mode: "despertar", time: "07:30", canonical: false });
+  });
+
+  it("parámetros repetidos: se queda con el primero", () => {
+    expect(readSleepState(qs("modo=dormir&modo=despertar&h=22:00&h=05:00"))).toMatchObject({ mode: "dormir", time: "22:00" });
+  });
+
+  it("escribe la URL en orden fijo y es reversible", () => {
+    expect(sleepStateQuery({ mode: "dormir", time: "23:00" })).toBe("modo=dormir&h=23:00");
+    const back = readSleepState(qs(sleepStateQuery({ mode: "despertar", time: "06:45" })));
+    expect(back).toEqual({ mode: "despertar", time: "06:45", canonical: true });
+  });
+});
+
+describe("optionsFor — un solo punto de entrada por modo", () => {
+  it("despertar usa bedtimesFor y dormir usa wakeTimesFor", () => {
+    expect(optionsFor("despertar", t("07:30"))).toEqual(bedtimesFor(t("07:30")));
+    expect(optionsFor("dormir", t("23:00"))).toEqual(wakeTimesFor(t("23:00")));
+  });
+
+  it("cambiar de modo con la misma hora da el cálculo inverso", () => {
+    expect(times(optionsFor("despertar", t("23:00")))).toEqual(["13:45", "15:15", "16:45"]);
+    expect(times(optionsFor("dormir", t("23:00")))).toEqual(["05:15", "06:45", "08:15"]);
   });
 });

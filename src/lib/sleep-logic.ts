@@ -106,6 +106,42 @@ export function wakeTimesFor(bedMinutes: number, params: SleepParams = {}): Slee
   return [...CYCLE_OPTIONS].reverse().map((n) => option(bedMinutes + latency + n * cycle, n, cycle));
 }
 
+/* ── Estado de la página (/sueno?modo=…&h=…) ──────────────────────────────
+   La URL es la fuente de verdad. Estos helpers la leen y la escriben; nunca
+   lanzan: cualquier valor desconocido cae en un valor por defecto. */
+
+export type SleepMode = "despertar" | "dormir";
+
+export const DEFAULT_TIMES: Record<SleepMode, string> = { despertar: "07:30", dormir: "23:00" };
+
+export type SleepState = { mode: SleepMode; time: string };
+
+export function parseSleepMode(v: string | null | undefined): SleepMode {
+  return v === "dormir" ? "dormir" : "despertar";
+}
+
+/** Lee `modo` y `h`. Hora inválida o ausente → la de por defecto del modo.
+ *  La hora sale normalizada ("7:30" → "07:30"). `canonical` es false cuando la
+ *  URL recibida no coincide con el estado resultante (para reescribirla). */
+export function readSleepState(params: { get(key: string): string | null }): SleepState & { canonical: boolean } {
+  const rawMode = params.get("modo");
+  const rawTime = params.get("h");
+  const mode = parseSleepMode(rawMode);
+  const minutes = parseTime(rawTime);
+  const time = minutes === null ? DEFAULT_TIMES[mode] : formatTime(minutes);
+  return { mode, time, canonical: rawMode === mode && rawTime === time };
+}
+
+/** "modo=dormir&h=23:00" — siempre en este orden. */
+export function sleepStateQuery({ mode, time }: SleepState): string {
+  return `modo=${mode}&h=${time}`;
+}
+
+/** Opciones según el modo: horas para acostarse o para despertar. */
+export function optionsFor(mode: SleepMode, minutes: number, params: SleepParams = {}): SleepOption[] {
+  return mode === "despertar" ? bedtimesFor(minutes, params) : wakeTimesFor(minutes, params);
+}
+
 /** Minuto del día según el reloj DEL DISPOSITIVO (excepción documentada arriba).
  *  Solo para el cliente. */
 export function minutesFromDeviceClock(now: Date = new Date()): number {
