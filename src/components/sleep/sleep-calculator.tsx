@@ -1,15 +1,21 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { TimeField } from "@/components/ui/time-field";
 import {
+  DEFAULT_SLEEP_STATE,
   formatTime,
+  hasSleepParams,
   minutesFromDeviceClock,
+  parseStoredSleepState,
   optionsFor,
   parseTime,
   readSleepState,
+  serializeSleepState,
   sleepStateQuery,
   SLEEP_CYCLE_MIN,
+  SLEEP_STORAGE_KEY,
   SLEEP_LATENCY_MIN,
   type SleepMode,
   type SleepState,
@@ -21,6 +27,15 @@ import {
    (El primer argumento DEBE ser null: si lleva el estado interno de Next —__NA—,
    Next lo toma como propio y no sincroniza useSearchParams.) Las URLs inválidas
    ya llegan corregidas: la página las redirige en el servidor.
+
+   Última selección en este dispositivo — prioridad URL > localStorage > defaults:
+   - Con `modo`/`h` en la URL, manda la URL (el servidor ya la validó).
+   - Sin ellos, el servidor pinta la calculadora INVISIBLE (mismo espacio, sin
+     destello de 07:30 ni diferencia de hidratación) y aquí se navega con
+     router.replace a lo guardado o a los valores por defecto. Es router.replace
+     y no replaceState: al montar, el router de Next revierte un replaceState.
+   - Cada estado válido que llega a la URL se guarda. Los borradores del
+     selector nunca llegan a la URL, así que nunca se guardan.
 
    La hora se elige con TimeField (24 h siempre). Lo que se está escribiendo
    vive dentro de TimeField y solo llega aquí una hora completa y válida, así
@@ -36,16 +51,45 @@ function writeUrl(state: SleepState) {
   window.history.replaceState(null, "", `${window.location.pathname}?${sleepStateQuery(state)}`);
 }
 
+function loadStoredState(): SleepState | null {
+  try {
+    return parseStoredSleepState(window.localStorage.getItem(SLEEP_STORAGE_KEY));
+  } catch {
+    return null; // localStorage bloqueado o inexistente
+  }
+}
+
+function saveState(state: SleepState) {
+  try {
+    window.localStorage.setItem(SLEEP_STORAGE_KEY, serializeSleepState(state));
+  } catch {}
+}
+
 export function SleepCalculator() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const hasParams = hasSleepParams(searchParams);
   const state = readSleepState(searchParams);
+
+  useEffect(() => {
+    if (hasParams) return;
+    const restored = loadStoredState() ?? DEFAULT_SLEEP_STATE;
+    router.replace(`${pathname}?${sleepStateQuery(restored)}`, { scroll: false });
+  }, [hasParams, pathname, router]);
+
+  const { canonical, mode: currentMode, time: currentTime } = state;
+  useEffect(() => {
+    if (hasParams && canonical) saveState({ mode: currentMode, time: currentTime });
+  }, [hasParams, canonical, currentMode, currentTime]);
+
   const mode = MODES.find((m) => m.key === state.mode)!;
   const setState = writeUrl;
   // readSleepState siempre devuelve una hora válida.
   const options = optionsFor(state.mode, parseTime(state.time)!);
 
   return (
-    <div className="mt-6 md:mt-8">
+    <div className={`mt-6 md:mt-8 ${hasParams ? "" : "invisible"}`} data-testid="sleep-calculator">
       <div role="group" aria-label="Modo de cálculo" className="flex gap-1.5" data-testid="sleep-mode">
         {MODES.map((m) => {
           const active = m.key === state.mode;

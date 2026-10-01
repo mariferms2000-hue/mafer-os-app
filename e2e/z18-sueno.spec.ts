@@ -162,3 +162,93 @@ test("cambiar de modo conserva la hora elegida", async ({ page }) => {
   await page.getByRole("button", { name: "Despertar a…" }).click();
   await expectTime(page, "despertar", "06", "25");
 });
+
+/* ── Fase 5: última selección en este dispositivo (URL > localStorage > defaults) ── */
+
+const stored = (page: Page) => page.evaluate(() => localStorage.getItem("mafer-sueno"));
+const setStored = (page: Page, raw: string) => page.evaluate((v) => localStorage.setItem("mafer-sueno", v), raw);
+
+test.describe("recordar la última selección", () => {
+  test("guarda modo y hora válidos y los recupera al entrar sin parámetros", async ({ page }) => {
+    await page.goto("/sueno?modo=dormir&h=23:47");
+    await expect.poll(() => stored(page)).toBe('{"modo":"dormir","hora":"23:47"}');
+    await page.goto("/sueno");
+    await expectTime(page, "dormir", "23", "47");
+    await expect(results(page)).toHaveText(["06:02", "07:32", "09:02"]);
+
+    // Cambiar hora y modo también se guarda.
+    await page.getByRole("button", { name: "Sumar 5 minutos" }).click();
+    await page.getByRole("button", { name: "Despertar a…" }).click();
+    await expect.poll(() => stored(page)).toBe('{"modo":"despertar","hora":"23:52"}');
+  });
+
+  test("una URL explícita gana sobre lo guardado", async ({ page }) => {
+    await setStored(page, '{"modo":"dormir","hora":"23:47"}');
+    await page.goto("/sueno?modo=despertar&h=06:45");
+    await expectTime(page, "despertar", "06", "45");
+    await page.reload();
+    await expectTime(page, "despertar", "06", "45");
+  });
+
+  test("sin nada guardado → valores por defecto", async ({ page }) => {
+    expect(await stored(page)).toBeNull();
+    await page.goto("/sueno");
+    await expectTime(page, "despertar", "07", "30");
+  });
+
+  for (const [caso, raw] of [
+    ["JSON corrupto", "{oops"],
+    ["hora inválida", '{"modo":"dormir","hora":"25:00"}'],
+    ["modo inválido", '{"modo":"siesta","hora":"23:10"}'],
+  ] as const) {
+    test(`${caso} → valores por defecto, sin romper`, async ({ page }) => {
+      await setStored(page, raw);
+      await page.goto("/sueno");
+      await expectTime(page, "despertar", "07", "30");
+      await expect(results(page)).toHaveText(["22:15", "23:45", "01:15"]);
+    });
+  }
+
+  test("un borrador inválido no sobrescribe el último valor bueno", async ({ page }) => {
+    await page.goto("/sueno?modo=dormir&h=23:59");
+    await expect.poll(() => stored(page)).toBe('{"modo":"dormir","hora":"23:59"}');
+    await minute(page).click();
+    await page.keyboard.type("60");
+    await expect(minute(page)).toHaveValue("60");
+    expect(await stored(page)).toBe('{"modo":"dormir","hora":"23:59"}');
+    await minute(page).blur();
+    expect(await stored(page)).toBe('{"modo":"dormir","hora":"23:59"}');
+  });
+
+  test("sin hydration mismatch y sin destello: el servidor pinta la calculadora invisible", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+    page.on("pageerror", (e) => errors.push(e.message));
+    await setStored(page, '{"modo":"dormir","hora":"23:47"}');
+
+    // HTML del servidor para /sueno sin parámetros: calculadora oculta (nada de 07:30 visible).
+    const html = await (await page.request.get("/sueno")).text();
+    expect(html).toMatch(/class="[^"]*\binvisible\b[^"]*"[^>]*data-testid="sleep-calculator"/);
+
+    await page.goto("/sueno");
+    await expectTime(page, "dormir", "23", "47");
+    await expect(page.getByTestId("sleep-calculator")).toBeVisible();
+    await page.goto("/sueno?modo=despertar&h=06:45");
+    await expectTime(page, "despertar", "06", "45");
+    expect(errors.filter((e) => /hydrat|#418|#423|#425/i.test(e))).toEqual([]);
+  });
+});
+
+test.describe("recordar «ahora» (dispositivo en Madrid)", () => {
+  test.use({ timezoneId: "Europe/Madrid" });
+
+  test("«Me voy a dormir ahora» se guarda con sus minutos exactos", async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-10-01T21:47:00Z"));
+    await page.goto("/sueno?modo=dormir&h=22:00");
+    await page.getByRole("button", { name: "Me voy a dormir ahora" }).click();
+    await expectTime(page, "dormir", "23", "47");
+    await expect.poll(() => stored(page)).toBe('{"modo":"dormir","hora":"23:47"}');
+    await page.goto("/sueno");
+    await expectTime(page, "dormir", "23", "47");
+  });
+});

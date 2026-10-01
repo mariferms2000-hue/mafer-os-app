@@ -12,6 +12,11 @@ import {
   parseSleepMode,
   optionsFor,
   DEFAULT_TIMES,
+  DEFAULT_SLEEP_STATE,
+  hasSleepParams,
+  serializeSleepState,
+  parseStoredSleepState,
+  SLEEP_STORAGE_KEY,
   CYCLE_OPTIONS,
   SLEEP_CYCLE_MIN,
   SLEEP_LATENCY_MIN,
@@ -195,5 +200,62 @@ describe("optionsFor — un solo punto de entrada por modo", () => {
   it("cambiar de modo con la misma hora da el cálculo inverso", () => {
     expect(times(optionsFor("despertar", t("23:00")))).toEqual(["13:45", "15:15", "16:45"]);
     expect(times(optionsFor("dormir", t("23:00")))).toEqual(["05:15", "06:45", "08:15"]);
+  });
+});
+
+describe("hasSleepParams — ¿manda la URL?", () => {
+  it("con modo u hora (aunque sean inválidos) manda la URL", () => {
+    expect(hasSleepParams(qs("modo=dormir&h=23:47"))).toBe(true);
+    expect(hasSleepParams(qs("h=7:30"))).toBe(true);
+    expect(hasSleepParams(qs("modo=siesta"))).toBe(true);
+  });
+
+  it("sin ellos se usa lo guardado o los valores por defecto", () => {
+    expect(hasSleepParams(qs(""))).toBe(false);
+    expect(hasSleepParams(qs("otra=1"))).toBe(false);
+    expect(DEFAULT_SLEEP_STATE).toEqual({ mode: "despertar", time: "07:30" });
+  });
+});
+
+describe("última selección en el dispositivo — serialize / parseStored", () => {
+  it("guarda solo modo y hora, con la clave mafer-sueno", () => {
+    expect(SLEEP_STORAGE_KEY).toBe("mafer-sueno");
+    expect(JSON.parse(serializeSleepState({ mode: "dormir", time: "23:47" }))).toEqual({ modo: "dormir", hora: "23:47" });
+  });
+
+  it("recupera lo guardado tal cual", () => {
+    expect(parseStoredSleepState(serializeSleepState({ mode: "dormir", time: "23:47" }))).toEqual({ mode: "dormir", time: "23:47" });
+    expect(parseStoredSleepState('{"modo":"despertar","hora":"06:45"}')).toEqual({ mode: "despertar", time: "06:45" });
+  });
+
+  it("normaliza una hora vieja sin cero a la izquierda", () => {
+    expect(parseStoredSleepState('{"modo":"despertar","hora":"6:05"}')).toEqual({ mode: "despertar", time: "06:05" });
+  });
+
+  it("vacío o ausente → null (valores por defecto)", () => {
+    expect(parseStoredSleepState(null)).toBeNull();
+    expect(parseStoredSleepState(undefined)).toBeNull();
+    expect(parseStoredSleepState("")).toBeNull();
+  });
+
+  it("JSON corrupto o con otra forma → null, sin lanzar", () => {
+    for (const raw of ["{oops", "null", "42", '"dormir"', "[]", "true"]) {
+      expect(parseStoredSleepState(raw)).toBeNull();
+    }
+  });
+
+  it("modo inválido → null (no se rellena: se ignora todo)", () => {
+    expect(parseStoredSleepState('{"modo":"siesta","hora":"23:10"}')).toBeNull();
+    expect(parseStoredSleepState('{"hora":"23:10"}')).toBeNull();
+  });
+
+  it("hora inválida → null", () => {
+    for (const hora of ['"25:00"', '"12:60"', '"7:30 PM"', '""', "730", "null"]) {
+      expect(parseStoredSleepState(`{"modo":"dormir","hora":${hora}}`)).toBeNull();
+    }
+  });
+
+  it("ignora campos extra de versiones viejas", () => {
+    expect(parseStoredSleepState('{"modo":"dormir","hora":"22:00","ciclos":5,"ts":1}')).toEqual({ mode: "dormir", time: "22:00" });
   });
 });

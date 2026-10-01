@@ -137,6 +137,42 @@ export function sleepStateQuery({ mode, time }: SleepState): string {
   return `modo=${mode}&h=${time}`;
 }
 
+/** ¿La URL trae estado propio? Sin `modo` ni `h` se usa lo guardado en el
+ *  dispositivo (o los valores por defecto). */
+export function hasSleepParams(params: { get(key: string): string | null }): boolean {
+  return params.get("modo") !== null || params.get("h") !== null;
+}
+
+export const DEFAULT_SLEEP_STATE: SleepState = { mode: "despertar", time: DEFAULT_TIMES.despertar };
+
+/* ── Última selección en este dispositivo (localStorage) ──────────────────
+   Prioridad: URL > lo guardado aquí > valores por defecto. Solo se guardan el
+   modo y la hora; todo lo demás se recalcula. */
+
+export const SLEEP_STORAGE_KEY = "mafer-sueno";
+
+export function serializeSleepState({ mode, time }: SleepState): string {
+  return JSON.stringify({ modo: mode, hora: time });
+}
+
+/** Lee lo guardado con las mismas reglas que la URL, pero sin rellenar: si el
+ *  modo o la hora no son válidos, o el JSON está roto, devuelve null y se usan
+ *  los valores por defecto. Nunca lanza. */
+export function parseStoredSleepState(raw: string | null | undefined): SleepState | null {
+  if (!raw) return null;
+  try {
+    const data: unknown = JSON.parse(raw);
+    if (!data || typeof data !== "object") return null;
+    const { modo, hora } = data as { modo?: unknown; hora?: unknown };
+    if (modo !== "despertar" && modo !== "dormir") return null;
+    const minutes = typeof hora === "string" ? parseTime(hora) : null;
+    if (minutes === null) return null;
+    return { mode: modo, time: formatTime(minutes) };
+  } catch {
+    return null;
+  }
+}
+
 /** Opciones según el modo: horas para acostarse o para despertar. */
 export function optionsFor(mode: SleepMode, minutes: number, params: SleepParams = {}): SleepOption[] {
   return mode === "despertar" ? bedtimesFor(minutes, params) : wakeTimesFor(minutes, params);
