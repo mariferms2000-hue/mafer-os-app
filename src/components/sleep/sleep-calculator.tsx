@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { TimeField } from "@/components/ui/time-field";
 import {
   formatTime,
   minutesFromDeviceClock,
@@ -22,8 +22,9 @@ import {
    Next lo toma como propio y no sincroniza useSearchParams.) Las URLs inválidas
    ya llegan corregidas: la página las redirige en el servidor.
 
-   Única excepción: mientras el campo está vacío o a medio escribir, ese texto
-   vive en `draft` (la URL conserva la última hora válida). La jerarquía de las
+   La hora se elige con TimeField (24 h siempre). Lo que se está escribiendo
+   vive dentro de TimeField y solo llega aquí una hora completa y válida, así
+   que la URL siempre conserva la última hora válida. La jerarquía de las
    opciones la decide `emphasis` (9 h y 7 h 30 min al frente, 6 h detrás). */
 
 const MODES: { key: SleepMode; label: string; question: string; results: string }[] = [
@@ -38,23 +39,10 @@ function writeUrl(state: SleepState) {
 export function SleepCalculator() {
   const searchParams = useSearchParams();
   const state = readSleepState(searchParams);
-  const [draft, setDraft] = useState<string | null>(null);
   const mode = MODES.find((m) => m.key === state.mode)!;
-
-  const setState = (next: SleepState) => {
-    setDraft(null);
-    writeUrl(next);
-  };
-
-  const onTimeChange = (raw: string) => {
-    const minutes = parseTime(raw);
-    if (minutes === null) setDraft(raw);
-    else setState({ mode: state.mode, time: formatTime(minutes) });
-  };
-
-  const inputValue = draft ?? state.time;
-  const minutes = draft === null ? parseTime(state.time) : null;
-  const options = minutes === null ? [] : optionsFor(state.mode, minutes);
+  const setState = writeUrl;
+  // readSleepState siempre devuelve una hora válida.
+  const options = optionsFor(state.mode, parseTime(state.time)!);
 
   return (
     <div className="mt-6 md:mt-8">
@@ -78,60 +66,56 @@ export function SleepCalculator() {
         })}
       </div>
 
-      <label htmlFor="sleep-time" className="block mt-8 md:mt-10 font-display text-xl md:text-2xl text-forest-deep">
+      <p id="sleep-question" className="mt-7 md:mt-9 font-display text-xl md:text-2xl text-forest-deep">
         {mode.question}
-      </label>
-      <input
-        id="sleep-time"
-        type="time"
-        value={inputValue}
-        onChange={(e) => onTimeChange(e.target.value)}
-        className="time-hero mt-3"
-        data-testid="sleep-time-input"
-      />
+      </p>
+      <div className="-ml-1">
+        <TimeField
+          value={state.time}
+          onChange={(time) => setState({ mode: state.mode, time })}
+          labelledBy="sleep-question"
+          testid="sleep-time"
+        />
+      </div>
       {state.mode === "dormir" && (
         <button
           type="button"
           onClick={() => setState({ mode: "dormir", time: formatTime(minutesFromDeviceClock()) })}
-          className="btn btn-ghost !px-2 -ml-2 mt-2 text-sm"
+          className="btn btn-ghost !px-2 -ml-2 mt-1 text-sm"
           data-testid="sleep-now"
         >
           Me voy a dormir ahora
         </button>
       )}
 
-      <section aria-labelledby="sleep-results" className="mt-10" aria-live="polite">
+      <section aria-labelledby="sleep-results" className="mt-7 md:mt-9" aria-live="polite">
         <h2 id="sleep-results" className="section-eyebrow">
           {mode.results}
         </h2>
-        {options.length === 0 ? (
-          <p className="mt-3 text-sm text-stone">Elige una hora para ver las sugerencias.</p>
-        ) : (
-          <ul className="mt-2 divide-y divide-beige border-y border-beige" data-testid="sleep-results">
-            {options.map((o) => {
-              const primary = o.emphasis === "primary";
-              return (
-                <li
-                  key={o.cycles}
-                  className={`flex items-baseline justify-between gap-4 ${primary ? "py-4" : "py-3"}`}
-                  data-emphasis={o.emphasis}
-                  data-testid="sleep-option"
+        <ul className="mt-2 divide-y divide-beige border-y border-beige" data-testid="sleep-results">
+          {options.map((o) => {
+            const primary = o.emphasis === "primary";
+            return (
+              <li
+                key={o.cycles}
+                className={`flex items-baseline justify-between gap-4 ${primary ? "py-4" : "py-3"}`}
+                data-emphasis={o.emphasis}
+                data-testid="sleep-option"
+              >
+                <span
+                  className={`font-display tabular-nums leading-none ${
+                    primary ? "text-[34px] md:text-[40px] text-forest-deep" : "text-2xl text-stone-soft"
+                  }`}
                 >
-                  <span
-                    className={`font-display tabular-nums leading-none ${
-                      primary ? "text-[34px] md:text-[40px] text-forest-deep" : "text-2xl text-stone-soft"
-                    }`}
-                  >
-                    {o.time}
-                  </span>
-                  <span className={primary ? "text-sm text-stone" : "text-xs text-stone-soft"}>
-                    {o.durationLabel} de sueño
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                  {o.time}
+                </span>
+                <span className={primary ? "text-sm text-stone" : "text-xs text-stone-soft"}>
+                  {o.durationLabel} de sueño
+                </span>
+              </li>
+            );
+          })}
+        </ul>
         <p className="mt-6 text-xs text-stone-soft leading-relaxed">
           Orientativo, no una indicación médica: supone ciclos de ~{SLEEP_CYCLE_MIN} min y ~{SLEEP_LATENCY_MIN} min
           para quedarte dormida. Cada cuerpo y cada noche varían.

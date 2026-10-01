@@ -399,34 +399,62 @@ input[type="date"], input[type="time"] {
   }
 }
 
-/* Hora protagonista (Sueño): campo de hora nativo, grande y editorial — sin
-   caja, solo una línea base. Va DESPUÉS de la regla de 16px y con !important
-   en el tamaño para que en iPhone no se encoja a texto de formulario. */
-.time-hero {
-  display: block;
-  width: 100%;
+/* Selector de hora propio (TimeField, 24 h): dos segmentos HH : MM grandes y
+   editoriales — sin caja, solo una línea base bajo cada número. Va DESPUÉS de
+   la regla de 16px: el tamaño lleva !important para que en iPhone no se encoja
+   a texto de formulario (y al ser ≥16px tampoco dispara el zoom de Safari).
+   2.2ch con cifras tabulares: el ancho no salta al cambiar de número. */
+.time-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.08em;
   font-family: var(--font-display);
+  font-size: clamp(3.25rem, 14vw, 4.5rem);
+  line-height: 1;
+}
+.time-segment {
+  width: 2.2ch;
+  font: inherit;
+  font-size: inherit !important;
   font-weight: 500;
-  font-size: clamp(3.25rem, 14vw, 4.5rem) !important;
-  line-height: 1.1;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  text-align: center;
   color: var(--color-forest-deep);
+  caret-color: var(--color-border-focus);
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--color-sand);
   border-radius: 0;
-  padding: 0.1em 0 0.15em;
-  cursor: pointer;
+  padding: 0.06em 0 0.1em;
 }
-.time-hero:hover { border-bottom-color: var(--color-border-strong); }
-.time-hero:focus-visible {
+.time-segment:hover { border-bottom-color: var(--color-border-strong); }
+/* Foco: la línea se engrosa (2px) y toma el color de foco del sistema —
+   no depende solo del color. */
+.time-segment:focus {
   outline: none;
   border-bottom-color: var(--color-border-focus);
   box-shadow: 0 1px 0 var(--color-border-focus);
 }
-.time-hero::-webkit-calendar-picker-indicator { width: 0.32em; height: 0.32em; opacity: 0.4; cursor: pointer; }
-.time-hero::-webkit-date-and-time-value { text-align: left; }
+.time-colon {
+  color: var(--color-stone-soft);
+  font-weight: 400;
+  padding-bottom: 0.08em;
+}
+/* Flechas discretas: 44px de alto (objetivo táctil cómodo), tenues hasta hover. */
+.time-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 2.75rem;
+  border-radius: var(--radius-soft);
+  color: var(--color-stone-soft);
+  transition: background-color 150ms ease, color 150ms ease;
+  cursor: pointer;
+}
+.time-step:hover { background: var(--color-beige); color: var(--color-stone); }
+.time-step:active { color: var(--color-forest-deep); }
 
 /* Editor visual (WYSIWYG) de la descripción de tareas: el textarea de siempre
    sigue guardando Markdown, pero esto es lo que Mafer ve y toca al escribir. */
