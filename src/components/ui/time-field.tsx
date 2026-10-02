@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import {
-  BUTTON_STEP,
   SEGMENT_MAX,
   pad2,
   splitTime,
@@ -14,17 +12,16 @@ import {
   type Segment,
 } from "@/lib/time-field";
 
-/* Hora en 24 h siempre: dos segmentos escribibles HH : MM con flechas
-   discretas arriba y abajo. Sustituye al <input type="time"> nativo, que
-   muestra AM/PM según el idioma del dispositivo.
+/* Hora en 24 h siempre: dos segmentos escribibles HH : MM, sin flechas
+   visibles. Sustituye al <input type="time"> nativo, que muestra AM/PM según
+   el idioma del dispositivo.
 
    - Escribir: teclado numérico en móvil; las reglas viven en `lib/time-field`.
      La primera tecla tras enfocar reemplaza el número y las siguientes se
      suman, sin importar dónde quedó el cursor. Con la hora completa, el foco
      pasa solo a los minutos.
    - Teclado: ↑/↓ suman o restan 1 en el segmento activo; Tab cambia de segmento.
-   - Mouse/touch: flechas en pantalla (hora ±1, minutos ±5), fuera del orden de
-     Tab para que Tab vaya directo de hora a minutos.
+   - Touch: tocar un número abre el teclado numérico.
 
    Controlado: `value` ("HH:MM", siempre válido) viene de fuera y `onChange` solo
    recibe horas completas y válidas. Lo que se está escribiendo vive en `draft`
@@ -32,10 +29,7 @@ import {
 
 type Draft = { seg: Segment; text: string } | null;
 
-const LABELS: Record<Segment, { name: string; up: string; down: string }> = {
-  h: { name: "Hora", up: "Subir una hora", down: "Bajar una hora" },
-  m: { name: "Minutos", up: `Sumar ${BUTTON_STEP.m} minutos`, down: `Restar ${BUTTON_STEP.m} minutos` },
-};
+const LABELS: Record<Segment, string> = { h: "Hora", m: "Minutos" };
 
 export function TimeField({
   value,
@@ -115,48 +109,26 @@ export function TimeField({
   const segment = (seg: Segment) => {
     const shown = draft?.seg === seg ? draft.text : pad2(parts[seg]);
     return (
-      <div className="flex flex-col items-center">
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={LABELS[seg].up}
-          onClick={() => step(seg, BUTTON_STEP[seg])}
-          className="time-step"
-          data-testid={`${testid}-${seg}-up`}
-        >
-          <ChevronUp size={20} aria-hidden />
-        </button>
-        <input
-          ref={seg === "h" ? hourRef : minuteRef}
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
-          enterKeyHint="done"
-          role="spinbutton"
-          aria-label={LABELS[seg].name}
-          aria-valuenow={parts[seg]}
-          aria-valuemin={0}
-          aria-valuemax={SEGMENT_MAX[seg]}
-          aria-valuetext={pad2(parts[seg])}
-          value={shown}
-          onChange={(e) => onType(seg, e)}
-          onKeyDown={onKeyDown(seg)}
-          onFocus={(e) => e.target.select()}
-          onBlur={() => onBlur(seg)}
-          className="time-segment"
-          data-testid={`${testid}-${seg}`}
-        />
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-label={LABELS[seg].down}
-          onClick={() => step(seg, -BUTTON_STEP[seg])}
-          className="time-step"
-          data-testid={`${testid}-${seg}-down`}
-        >
-          <ChevronDown size={20} aria-hidden />
-        </button>
-      </div>
+      <input
+        ref={seg === "h" ? hourRef : minuteRef}
+        type="text"
+        inputMode="numeric"
+        autoComplete="off"
+        enterKeyHint="done"
+        role="spinbutton"
+        aria-label={LABELS[seg]}
+        aria-valuenow={parts[seg]}
+        aria-valuemin={0}
+        aria-valuemax={SEGMENT_MAX[seg]}
+        aria-valuetext={pad2(parts[seg])}
+        value={shown}
+        onChange={(e) => onType(seg, e)}
+        onKeyDown={onKeyDown(seg)}
+        onFocus={(e) => e.target.select()}
+        onBlur={() => onBlur(seg)}
+        className="time-segment"
+        data-testid={`${testid}-${seg}`}
+      />
     );
   };
 

@@ -26,65 +26,72 @@ const t = (hhmm: string) => parseTime(hhmm)!;
 const times = (opts: { time: string }[]) => opts.map((o) => o.time);
 
 describe("supuestos", () => {
-  it("ciclos de 90 min, 15 min para dormirse, y solo 6, 5 y 4 ciclos (sin 4.5 h)", () => {
+  it("ciclos de 90 min, 15 min para dormirse, y 7, 6, 5, 4 y 3 ciclos", () => {
     expect(SLEEP_CYCLE_MIN).toBe(90);
     expect(SLEEP_LATENCY_MIN).toBe(15);
-    expect([...CYCLE_OPTIONS]).toEqual([6, 5, 4]);
+    expect([...CYCLE_OPTIONS]).toEqual([7, 6, 5, 4, 3]);
   });
 });
 
 describe("bedtimesFor — «Quiero despertar a…»", () => {
-  it("despertar 07:30 → acostarse 22:15 · 23:45 · 01:15", () => {
-    expect(times(bedtimesFor(t("07:30")))).toEqual(["22:15", "23:45", "01:15"]);
+  it("despertar 07:30 → acostarse 20:45 · 22:15 · 23:45 · 01:15 · 02:45", () => {
+    expect(times(bedtimesFor(t("07:30")))).toEqual(["20:45", "22:15", "23:45", "01:15", "02:45"]);
   });
 
-  it("ofrece exactamente 9 h, 7 h 30 min y 6 h — nunca 4 h 30 min", () => {
+  it("ofrece 7, 6, 5, 4 y 3 ciclos: de 10 h 30 min a 4 h 30 min", () => {
     const opts = bedtimesFor(t("07:30"));
-    expect(opts.map((o) => o.durationLabel)).toEqual(["9 h", "7 h 30 min", "6 h"]);
-    expect(opts.map((o) => o.sleepMinutes)).toEqual([540, 450, 360]);
-    expect(opts.some((o) => o.sleepMinutes === 270)).toBe(false);
+    expect(opts.map((o) => o.cycles)).toEqual([7, 6, 5, 4, 3]);
+    expect(opts.map((o) => o.durationLabel)).toEqual(["10 h 30 min", "9 h", "7 h 30 min", "6 h", "4 h 30 min"]);
+    expect(opts.map((o) => o.sleepMinutes)).toEqual([630, 540, 450, 360, 270]);
   });
 
-  it("9 h y 7 h 30 min son principales; 6 h es secundaria", () => {
-    expect(bedtimesFor(t("07:30")).map((o) => o.emphasis)).toEqual(["primary", "primary", "secondary"]);
+  it("solo 5 y 6 ciclos son principales; 7, 4 y 3 son secundarias", () => {
+    expect(bedtimesFor(t("07:30")).map((o) => o.emphasis)).toEqual([
+      "secondary",
+      "primary",
+      "primary",
+      "secondary",
+      "secondary",
+    ]);
   });
 
   it("cruza la medianoche hacia atrás sin valores negativos", () => {
     // 00:10 − 15 − 540 = −545 → 14:55 del día anterior
     const opts = bedtimesFor(t("00:10"));
-    expect(times(opts)).toEqual(["14:55", "16:25", "17:55"]);
+    expect(times(opts)).toEqual(["13:25", "14:55", "16:25", "17:55", "19:25"]);
     opts.forEach((o) => expect(o.minutes).toBeGreaterThanOrEqual(0));
   });
 
   it("funciona con un despertar a mediodía y con 00:00", () => {
-    expect(times(bedtimesFor(t("12:00")))).toEqual(["02:45", "04:15", "05:45"]);
-    expect(times(bedtimesFor(t("00:00")))).toEqual(["14:45", "16:15", "17:45"]);
+    expect(times(bedtimesFor(t("12:00")))).toEqual(["01:15", "02:45", "04:15", "05:45", "07:15"]);
+    expect(times(bedtimesFor(t("00:00")))).toEqual(["13:15", "14:45", "16:15", "17:45", "19:15"]);
   });
 
   it("acepta parámetros propios (para ajustes futuros)", () => {
-    expect(times(bedtimesFor(t("07:00"), { latencyMinutes: 20, cycleMinutes: 100 }))).toEqual(["20:40", "22:20", "00:00"]);
+    expect(times(bedtimesFor(t("07:00"), { latencyMinutes: 20, cycleMinutes: 100 }))).toEqual(["19:00", "20:40", "22:20", "00:00", "01:40"]);
   });
 });
 
 describe("wakeTimesFor — «Quiero dormir a…» y «Me voy a dormir ahora»", () => {
-  it("acostarse 23:00 → despertar 05:15 · 06:45 · 08:15 (cronológico)", () => {
-    expect(times(wakeTimesFor(t("23:00")))).toEqual(["05:15", "06:45", "08:15"]);
+  it("acostarse 23:00 → despertar 03:45 · 05:15 · 06:45 · 08:15 · 09:45 (cronológico)", () => {
+    expect(times(wakeTimesFor(t("23:00")))).toEqual(["03:45", "05:15", "06:45", "08:15", "09:45"]);
   });
 
-  it("de menos a más sueño: 6 h, 7 h 30 min, 9 h, con su jerarquía", () => {
+  it("de menos a más sueño (3 → 7 ciclos), con 5 y 6 al centro como principales", () => {
     const opts = wakeTimesFor(t("23:00"));
-    expect(opts.map((o) => o.durationLabel)).toEqual(["6 h", "7 h 30 min", "9 h"]);
-    expect(opts.map((o) => o.emphasis)).toEqual(["secondary", "primary", "primary"]);
+    expect(opts.map((o) => o.cycles)).toEqual([3, 4, 5, 6, 7]);
+    expect(opts.map((o) => o.durationLabel)).toEqual(["4 h 30 min", "6 h", "7 h 30 min", "9 h", "10 h 30 min"]);
+    expect(opts.map((o) => o.emphasis)).toEqual(["secondary", "secondary", "primary", "primary", "secondary"]);
   });
 
   it("cruza la medianoche hacia adelante", () => {
     // 22:00 + 15 + 360 = 1695 → 04:15 del día siguiente
-    expect(times(wakeTimesFor(t("22:00")))).toEqual(["04:15", "05:45", "07:15"]);
-    expect(times(wakeTimesFor(t("23:59")))).toEqual(["06:14", "07:44", "09:14"]);
+    expect(times(wakeTimesFor(t("22:00")))).toEqual(["02:45", "04:15", "05:45", "07:15", "08:45"]);
+    expect(times(wakeTimesFor(t("23:59")))).toEqual(["04:44", "06:14", "07:44", "09:14", "10:44"]);
   });
 
   it("usa la hora exacta al minuto, sin redondear (caso «ahora»)", () => {
-    expect(times(wakeTimesFor(t("23:47")))).toEqual(["06:02", "07:32", "09:02"]);
+    expect(times(wakeTimesFor(t("23:47")))).toEqual(["04:32", "06:02", "07:32", "09:02", "10:32"]);
   });
 
   it("es el inverso de bedtimesFor", () => {
@@ -198,8 +205,8 @@ describe("optionsFor — un solo punto de entrada por modo", () => {
   });
 
   it("cambiar de modo con la misma hora da el cálculo inverso", () => {
-    expect(times(optionsFor("despertar", t("23:00")))).toEqual(["13:45", "15:15", "16:45"]);
-    expect(times(optionsFor("dormir", t("23:00")))).toEqual(["05:15", "06:45", "08:15"]);
+    expect(times(optionsFor("despertar", t("23:00")))).toEqual(["12:15", "13:45", "15:15", "16:45", "18:15"]);
+    expect(times(optionsFor("dormir", t("23:00")))).toEqual(["03:45", "05:15", "06:45", "08:15", "09:45"]);
   });
 });
 

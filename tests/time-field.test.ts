@@ -7,7 +7,6 @@ import {
   joinTime,
   withSegment,
   pad2,
-  BUTTON_STEP,
 } from "../src/lib/time-field";
 
 /** Simula teclas en un segmento recién enfocado, como lo hace TimeField:
@@ -117,18 +116,16 @@ describe("nextSegmentText — escribir sin depender del cursor", () => {
   });
 });
 
-describe("stepSegment — flechas", () => {
+describe("stepSegment — ↑/↓ del teclado", () => {
   it("hora ±1 con vuelta: 23 → 00 y 00 → 23", () => {
     expect(stepSegment("h", 23, 1)).toBe(0);
     expect(stepSegment("h", 0, -1)).toBe(23);
     expect(stepSegment("h", 7, 1)).toBe(8);
   });
 
-  it("minutos ±5 desde un valor exacto, sin redondear: 47 → 52, 02 → 57", () => {
-    expect(BUTTON_STEP).toEqual({ h: 1, m: 5 });
-    expect(stepSegment("m", 47, 5)).toBe(52);
-    expect(stepSegment("m", 2, -5)).toBe(57);
-    expect(stepSegment("m", 58, 5)).toBe(3);
+  it("desde un minuto exacto, sin redondear: 47 → 48, 02 → 01", () => {
+    expect(stepSegment("m", 47, 1)).toBe(48);
+    expect(stepSegment("m", 2, -1)).toBe(1);
   });
 
   it("teclado ±1 en minutos: 59 → 00", () => {

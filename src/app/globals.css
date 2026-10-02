@@ -399,21 +399,21 @@ input[type="date"], input[type="time"] {
   }
 }
 
-/* Selector de hora propio (TimeField, 24 h): dos segmentos HH : MM grandes y
-   editoriales — sin caja, solo una línea base bajo cada número. Va DESPUÉS de
-   la regla de 16px: el tamaño lleva !important para que en iPhone no se encoja
-   a texto de formulario (y al ser ≥16px tampoco dispara el zoom de Safari).
-   2.2ch con cifras tabulares: el ancho no salta al cambiar de número. */
+/* Selector de hora propio (TimeField, 24 h): «hora editable», no formulario.
+   Dos segmentos HH:MM en Fraunces, juntos, con un subrayado corto y tenue
+   centrado bajo cada número (fondo de 1px, no borde: así es más corto que la
+   caja). Va DESPUÉS de la regla de 16px: el tamaño lleva !important para que
+   en iPhone no se encoja (y al ser ≥16px no dispara el zoom de Safari).
+   2ch con cifras tabulares: el ancho no salta al cambiar de número. */
 .time-field {
   display: inline-flex;
-  align-items: center;
-  gap: 0.08em;
+  align-items: baseline;
   font-family: var(--font-display);
-  font-size: clamp(3.25rem, 14vw, 4.5rem);
+  font-size: clamp(2.125rem, 9vw, 2.5rem);
   line-height: 1;
 }
 .time-segment {
-  width: 2.2ch;
+  width: 2.05ch;
   font: inherit;
   font-size: inherit !important;
   font-weight: 500;
@@ -422,39 +422,29 @@ input[type="date"], input[type="time"] {
   text-align: center;
   color: var(--color-forest-deep);
   caret-color: var(--color-border-focus);
-  background: transparent;
   border: 0;
-  border-bottom: 1px solid var(--color-sand);
   border-radius: 0;
-  padding: 0.06em 0 0.1em;
+  padding: 0 0 0.12em;
+  cursor: text;
+  background: linear-gradient(var(--color-sand), var(--color-sand)) no-repeat center bottom / 70% 1px;
+  transition: background-size 150ms ease;
 }
-.time-segment:hover { border-bottom-color: var(--color-border-strong); }
-/* Foco: la línea se engrosa (2px) y toma el color de foco del sistema —
-   no depende solo del color. */
+.time-segment:hover {
+  background-image: linear-gradient(var(--color-border-strong), var(--color-border-strong));
+}
+/* Foco: sin rectángulo ni bloque de selección — el subrayado se alarga y se
+   engrosa (2px) en el color de foco del sistema (no depende solo del color). */
 .time-segment:focus {
   outline: none;
-  border-bottom-color: var(--color-border-focus);
-  box-shadow: 0 1px 0 var(--color-border-focus);
+  background-image: linear-gradient(var(--color-border-focus), var(--color-border-focus));
+  background-size: 85% 2px;
 }
+.time-segment::selection { background: transparent; color: inherit; }
 .time-colon {
   color: var(--color-stone-soft);
   font-weight: 400;
-  padding-bottom: 0.08em;
+  margin: 0 0.02em;
 }
-/* Flechas discretas: 44px de alto (objetivo táctil cómodo), tenues hasta hover. */
-.time-step {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 2.75rem;
-  border-radius: var(--radius-soft);
-  color: var(--color-stone-soft);
-  transition: background-color 150ms ease, color 150ms ease;
-  cursor: pointer;
-}
-.time-step:hover { background: var(--color-beige); color: var(--color-stone); }
-.time-step:active { color: var(--color-forest-deep); }
 
 /* Editor visual (WYSIWYG) de la descripción de tareas: el textarea de siempre
    sigue guardando Markdown, pero esto es lo que Mafer ve y toca al escribir. */

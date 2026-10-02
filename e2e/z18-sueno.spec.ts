@@ -24,7 +24,7 @@ async function login(page: Page) {
 
 const hour = (page: Page) => page.getByRole("spinbutton", { name: "Hora" });
 const minute = (page: Page) => page.getByRole("spinbutton", { name: "Minutos" });
-const results = (page: Page) => page.getByTestId("sleep-option").locator("span:first-child");
+const results = (page: Page) => page.getByTestId("sleep-option-time");
 
 async function expectTime(page: Page, mode: "despertar" | "dormir", hh: string, mm: string) {
   await expect(page).toHaveURL(new RegExp(`/sueno\\?modo=${mode}&h=${hh}:${mm}$`));
@@ -36,18 +36,18 @@ test.beforeEach(async ({ page }) => {
   await login(page);
 });
 
-test("muestra 00:00, 07:30 y 23:59 en 24 h con sus resultados", async ({ page }) => {
+test("muestra 00:00, 07:30 y 23:59 en 24 h con sus 5 resultados", async ({ page }) => {
   await page.goto("/sueno?modo=despertar&h=00:00");
   await expectTime(page, "despertar", "00", "00");
-  await expect(results(page)).toHaveText(["14:45", "16:15", "17:45"]);
+  await expect(results(page)).toHaveText(["13:15", "14:45", "16:15", "17:45", "19:15"]);
 
   await page.goto("/sueno?modo=despertar&h=07:30");
   await expectTime(page, "despertar", "07", "30");
-  await expect(results(page)).toHaveText(["22:15", "23:45", "01:15"]);
+  await expect(results(page)).toHaveText(["20:45", "22:15", "23:45", "01:15", "02:45"]);
 
   await page.goto("/sueno?modo=dormir&h=23:59");
   await expectTime(page, "dormir", "23", "59");
-  await expect(results(page)).toHaveText(["06:14", "07:44", "09:14"]);
+  await expect(results(page)).toHaveText(["04:44", "06:14", "07:44", "09:14", "10:44"]);
   // Nunca AM/PM, aunque el navegador esté en otro idioma.
   await expect(page.getByTestId("sleep-time")).not.toContainText(/AM|PM|a\.\s?m\.|p\.\s?m\./i);
 });
@@ -58,7 +58,7 @@ test("escribir la hora actualiza la URL y pasa solo a los minutos", async ({ pag
   await page.keyboard.type("23");
   await expectTime(page, "despertar", "23", "30");
   await expect(minute(page)).toBeFocused();
-  await expect(results(page)).toHaveText(["14:15", "15:45", "17:15"]);
+  await expect(results(page)).toHaveText(["12:45", "14:15", "15:45", "17:15", "18:45"]);
 
   await page.keyboard.type("05");
   await expectTime(page, "despertar", "23", "05");
@@ -70,7 +70,7 @@ test("«24» y «60» quedan como borrador sin tocar URL ni resultados; al salir
   await page.keyboard.type("24");
   await expect(hour(page)).toHaveValue("24");
   await expect(page).toHaveURL(/h=23:59$/);
-  await expect(results(page)).toHaveText(["14:44", "16:14", "17:44"]);
+  await expect(results(page)).toHaveText(["13:14", "14:44", "16:14", "17:44", "19:14"]);
   await page.keyboard.press("Tab");
   await expect(hour(page)).toHaveValue("23");
   await expect(page).toHaveURL(/h=23:59$/);
@@ -109,7 +109,7 @@ test("borrar deja un borrador vacío sin tocar la última URL válida", async ({
   await page.keyboard.press("Backspace");
   await expect(minute(page)).toHaveValue("");
   await expect(page).toHaveURL(/modo=dormir&h=22:40$/);
-  await expect(results(page)).toHaveText(["04:55", "06:25", "07:55"]);
+  await expect(results(page)).toHaveText(["03:25", "04:55", "06:25", "07:55", "09:25"]);
 
   // Al salir sin escribir, vuelve la última hora válida.
   await hour(page).focus();
@@ -122,7 +122,7 @@ test("borrar deja un borrador vacío sin tocar la última URL válida", async ({
   await expect(page).toHaveURL(/h=22:15$/);
 });
 
-test("teclado ±1 y flechas en pantalla (hora ±1, minutos ±5) sin redondear", async ({ page }) => {
+test("teclado ±1 sin redondear y sin flechas visibles", async ({ page }) => {
   await page.goto("/sueno?modo=dormir&h=23:47");
   await hour(page).focus();
   await page.keyboard.press("ArrowUp");
@@ -131,11 +131,7 @@ test("teclado ±1 y flechas en pantalla (hora ±1, minutos ±5) sin redondear", 
   await expect(minute(page)).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expectTime(page, "dormir", "00", "46");
-
-  await page.getByRole("button", { name: "Sumar 5 minutos" }).click();
-  await expectTime(page, "dormir", "00", "51");
-  await page.getByRole("button", { name: "Bajar una hora" }).click();
-  await expectTime(page, "dormir", "23", "51");
+  await expect(page.getByTestId("sleep-time").getByRole("button")).toHaveCount(0);
 });
 
 test.describe("dispositivo en Madrid, navegador en inglés", () => {
@@ -147,7 +143,7 @@ test.describe("dispositivo en Madrid, navegador en inglés", () => {
     await page.goto("/sueno?modo=dormir&h=22:00");
     await page.getByRole("button", { name: "Me voy a dormir ahora" }).click();
     await expectTime(page, "dormir", "23", "47");
-    await expect(results(page)).toHaveText(["06:02", "07:32", "09:02"]);
+    await expect(results(page)).toHaveText(["04:32", "06:02", "07:32", "09:02", "10:32"]);
     await expect(page.getByTestId("sleep-time")).not.toContainText(/AM|PM/);
   });
 });
@@ -174,10 +170,11 @@ test.describe("recordar la última selección", () => {
     await expect.poll(() => stored(page)).toBe('{"modo":"dormir","hora":"23:47"}');
     await page.goto("/sueno");
     await expectTime(page, "dormir", "23", "47");
-    await expect(results(page)).toHaveText(["06:02", "07:32", "09:02"]);
+    await expect(results(page)).toHaveText(["04:32", "06:02", "07:32", "09:02", "10:32"]);
 
     // Cambiar hora y modo también se guarda.
-    await page.getByRole("button", { name: "Sumar 5 minutos" }).click();
+    await minute(page).click();
+    await page.keyboard.type("52");
     await page.getByRole("button", { name: "Despertar a…" }).click();
     await expect.poll(() => stored(page)).toBe('{"modo":"despertar","hora":"23:52"}');
   });
@@ -205,7 +202,7 @@ test.describe("recordar la última selección", () => {
       await setStored(page, raw);
       await page.goto("/sueno");
       await expectTime(page, "despertar", "07", "30");
-      await expect(results(page)).toHaveText(["22:15", "23:45", "01:15"]);
+      await expect(results(page)).toHaveText(["20:45", "22:15", "23:45", "01:15", "02:45"]);
     });
   }
 
@@ -336,4 +333,29 @@ test.describe("Buscar encuentra Sueño", () => {
     await page.getByTestId("search-results").getByRole("link", { name: /Sueño/ }).click();
     await expectTime(page, "dormir", "22", "30");
   });
+});
+
+/* ── Rediseño: 5 ciclos, franja para 5 y 6, ciclos explícitos ── */
+
+test("cinco opciones con ciclos explícitos; 5 y 6 ciclos destacados al centro", async ({ page }) => {
+  await page.goto("/sueno?modo=despertar&h=07:30");
+  const rows = page.getByTestId("sleep-option");
+  await expect(rows).toHaveCount(5);
+  for (const [i, n] of [7, 6, 5, 4, 3].entries()) await expect(rows.nth(i)).toContainText(`${n} ciclos`);
+  const primary = page.locator('[data-testid="sleep-option"][data-emphasis="primary"]');
+  await expect(primary.getByTestId("sleep-option-time")).toHaveText(["22:15", "23:45"]);
+  await expect(primary.nth(0)).toContainText("6 ciclos");
+  await expect(primary.nth(1)).toContainText("5 ciclos");
+
+  await page.getByRole("button", { name: "Dormir a…" }).click();
+  await expect(rows.nth(0)).toContainText("3 ciclos");
+  await expect(rows.nth(4)).toContainText("7 ciclos");
+  await expect(primary.nth(0)).toContainText("5 ciclos");
+  await expect(primary.nth(1)).toContainText("6 ciclos");
+  await expect(page.getByText(/ideal|recomendad/i)).toHaveCount(0);
+
+  // «La noche»: apoyo visual oculto a lectores de pantalla (la lista es la fuente).
+  const timeline = page.getByTestId("sleep-timeline");
+  await expect(timeline).toBeVisible();
+  await expect(timeline).toHaveAttribute("aria-hidden", "true");
 });

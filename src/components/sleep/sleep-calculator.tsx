@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { TimeField } from "@/components/ui/time-field";
+import { NightTimeline } from "@/components/sleep/night-timeline";
+import { sleepTimeline } from "@/lib/sleep-timeline";
 import {
   DEFAULT_SLEEP_STATE,
   formatTime,
@@ -16,8 +18,8 @@ import {
   sleepStateQuery,
   SLEEP_CYCLE_MIN,
   SLEEP_STORAGE_KEY,
-  SLEEP_LATENCY_MIN,
   type SleepMode,
+  type SleepOption,
   type SleepState,
 } from "@/lib/sleep-logic";
 
@@ -40,7 +42,8 @@ import {
    La hora se elige con TimeField (24 h siempre). Lo que se está escribiendo
    vive dentro de TimeField y solo llega aquí una hora completa y válida, así
    que la URL siempre conserva la última hora válida. La jerarquía de las
-   opciones la decide `emphasis` (9 h y 7 h 30 min al frente, 6 h detrás). */
+   opciones la decide `emphasis`: 5 y 6 ciclos al frente, agrupadas; 3, 4 y 7
+   ciclos como alternativas secundarias. */
 
 const MODES: { key: SleepMode; label: string; question: string; results: string }[] = [
   { key: "despertar", label: "Despertar a…", question: "¿A qué hora quieres despertar?", results: "Acuéstate a las" },
@@ -86,10 +89,18 @@ export function SleepCalculator() {
   const mode = MODES.find((m) => m.key === state.mode)!;
   const setState = writeUrl;
   // readSleepState siempre devuelve una hora válida.
-  const options = optionsFor(state.mode, parseTime(state.time)!);
+  const minutes = parseTime(state.time)!;
+  const options = optionsFor(state.mode, minutes);
+  // Orden cronológico: las principales (5 y 6 ciclos) siempre quedan juntas al
+  // centro, así que se agrupan.
+  const firstPrimary = options.findIndex((o) => o.emphasis === "primary");
+  const lastPrimary = options.findLastIndex((o) => o.emphasis === "primary");
+  const before = options.slice(0, firstPrimary);
+  const band = options.slice(firstPrimary, lastPrimary + 1);
+  const after = options.slice(lastPrimary + 1);
 
   return (
-    <div className={`mt-6 md:mt-8 ${hasParams ? "" : "invisible"}`} data-testid="sleep-calculator">
+    <div className={`mt-5 md:mt-6 ${hasParams ? "" : "invisible"}`} data-testid="sleep-calculator">
       <div role="group" aria-label="Modo de cálculo" className="flex gap-1.5" data-testid="sleep-mode">
         {MODES.map((m) => {
           const active = m.key === state.mode;
@@ -110,61 +121,99 @@ export function SleepCalculator() {
         })}
       </div>
 
-      <p id="sleep-question" className="mt-7 md:mt-9 font-display text-xl md:text-2xl text-forest-deep">
-        {mode.question}
-      </p>
-      <div className="-ml-1">
-        <TimeField
-          value={state.time}
-          onChange={(time) => setState({ mode: state.mode, time })}
-          labelledBy="sleep-question"
-          testid="sleep-time"
-        />
-      </div>
-      {state.mode === "dormir" && (
-        <button
-          type="button"
-          onClick={() => setState({ mode: "dormir", time: formatTime(minutesFromDeviceClock()) })}
-          className="btn btn-ghost !px-2 -ml-2 mt-1 text-sm"
-          data-testid="sleep-now"
-        >
-          Me voy a dormir ahora
-        </button>
-      )}
-
-      <section aria-labelledby="sleep-results" className="mt-7 md:mt-9" aria-live="polite">
-        <h2 id="sleep-results" className="section-eyebrow">
-          {mode.results}
-        </h2>
-        <ul className="mt-2 divide-y divide-beige border-y border-beige" data-testid="sleep-results">
-          {options.map((o) => {
-            const primary = o.emphasis === "primary";
-            return (
-              <li
-                key={o.cycles}
-                className={`flex items-baseline justify-between gap-4 ${primary ? "py-4" : "py-3"}`}
-                data-emphasis={o.emphasis}
-                data-testid="sleep-option"
+      {/* Escritorio: controles en una columna angosta y resultados al lado, como
+          centro de la herramienta. Móvil: una sola columna compacta. */}
+      <div className="mt-6 lg:mt-8 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-12">
+        <div>
+          <p id="sleep-question" className="font-display text-lg md:text-xl text-forest-deep leading-snug">
+            {mode.question}
+          </p>
+          <div className="mt-2 flex flex-wrap items-end gap-x-5 gap-y-1 lg:flex-col lg:items-start">
+            <TimeField
+              value={state.time}
+              onChange={(time) => setState({ mode: state.mode, time })}
+              labelledBy="sleep-question"
+              testid="sleep-time"
+            />
+            {state.mode === "dormir" && (
+              <button
+                type="button"
+                onClick={() => setState({ mode: "dormir", time: formatTime(minutesFromDeviceClock()) })}
+                className="btn btn-ghost !px-2 -ml-2 text-sm"
+                data-testid="sleep-now"
               >
-                <span
-                  className={`font-display tabular-nums leading-none ${
-                    primary ? "text-[34px] md:text-[40px] text-forest-deep" : "text-2xl text-stone-soft"
-                  }`}
-                >
-                  {o.time}
-                </span>
-                <span className={primary ? "text-sm text-stone" : "text-xs text-stone-soft"}>
-                  {o.durationLabel} de sueño
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-        <p className="mt-6 text-xs text-stone-soft leading-relaxed">
-          Orientativo, no una indicación médica: supone ciclos de ~{SLEEP_CYCLE_MIN} min y ~{SLEEP_LATENCY_MIN} min
-          para quedarte dormida. Cada cuerpo y cada noche varían.
-        </p>
-      </section>
+                Me voy a dormir ahora
+              </button>
+            )}
+          </div>
+        </div>
+
+        <section aria-labelledby="sleep-results" className="mt-7 lg:mt-0 max-w-[34rem]" aria-live="polite">
+          <h2 id="sleep-results" className="section-eyebrow">
+            {mode.results}
+          </h2>
+          {/* «La noche»: apoyo visual de la lista (que sigue siendo la lectura principal). */}
+          <NightTimeline timeline={sleepTimeline(state.mode, minutes, state.time, options)} mode={state.mode} />
+          <div role="list" className="mt-3 border-t border-beige" data-testid="sleep-results">
+            {before.map((o) => (
+              <OptionRow key={o.cycles} option={o} />
+            ))}
+            {band.length > 0 && (
+              <div
+                role="none"
+                className="my-1.5 rounded-[var(--radius-soft)] border border-sage/40 bg-sage-soft/40 divide-y divide-sage/25"
+                data-testid="sleep-primary-group"
+              >
+                {band.map((o) => (
+                  <OptionRow key={o.cycles} option={o} />
+                ))}
+              </div>
+            )}
+            {after.map((o) => (
+              <OptionRow key={o.cycles} option={o} />
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-stone-soft leading-relaxed">
+            Cálculo orientativo basado en ciclos de ~{SLEEP_CYCLE_MIN} min. Las necesidades de sueño varían.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+/* Una opción: hora → ciclos → duración, en ese orden de jerarquía.
+   Desde sm, tres columnas alineadas; en móvil, ciclos y duración comparten
+   la segunda columna en una sola línea («5 ciclos · 7 h 30 min», sin «de
+   sueño» para que quepa incluso en 320 px). Sin pills ni badges: la
+   jerarquía la dan tamaño, peso y color (y el grupo, para las principales). */
+function OptionRow({ option: o }: { option: SleepOption }) {
+  const primary = o.emphasis === "primary";
+  const duration = `${o.durationLabel} de sueño`;
+  return (
+    <div
+      role="listitem"
+      className={`grid grid-cols-[auto_minmax(0,1fr)] whitespace-nowrap sm:grid-cols-[6.5rem_6rem_minmax(0,1fr)] items-baseline gap-x-4 px-3 ${
+        primary ? "py-3.5" : "py-2.5 border-b border-beige"
+      }`}
+      data-emphasis={o.emphasis}
+      data-testid="sleep-option"
+    >
+      <span
+        className={`font-display tabular-nums leading-none ${
+          primary ? "text-[30px] md:text-[34px] text-forest-deep" : "text-[22px] md:text-2xl text-stone-soft"
+        }`}
+        data-testid="sleep-option-time"
+      >
+        {o.time}
+      </span>
+      <span className={primary ? "text-[15px] font-medium text-charcoal" : "text-sm text-stone"}>
+        {o.cycles} ciclos
+        <span className={`sm:hidden font-normal ${primary ? "text-stone" : "text-stone-soft"}`}> · {o.durationLabel}</span>
+      </span>
+      <span className={`hidden sm:block ${primary ? "text-sm text-stone" : "text-[13px] text-stone-soft"}`}>
+        {duration}
+      </span>
     </div>
   );
 }

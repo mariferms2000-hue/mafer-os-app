@@ -19,9 +19,6 @@ export type Segment = "h" | "m";
 
 export const SEGMENT_MAX: Record<Segment, number> = { h: 23, m: 59 };
 
-/** Paso de las flechas en pantalla: hora ±1, minutos ±5. El teclado va de 1 en 1. */
-export const BUTTON_STEP: Record<Segment, number> = { h: 1, m: 5 };
-
 export type SegmentInput = {
   /** Lo que se ve mientras se escribe (puede ser inválido: «24»). */
   text: string;
@@ -64,7 +61,7 @@ export function nextSegmentText(
   return edit.value;
 }
 
-/** Suma `delta` y da la vuelta dentro del segmento (23 → 00, 00 − 5 → 55).
+/** Suma `delta` (↑/↓ del teclado) y da la vuelta dentro del segmento (23 → 00, 00 − 1 → 59).
  *  No arrastra a la hora: es un ajuste de un solo segmento. Nunca redondea:
  *  47 + 5 = 52. */
 export function stepSegment(seg: Segment, value: number, delta: number): number {

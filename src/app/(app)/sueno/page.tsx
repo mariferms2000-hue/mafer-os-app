@@ -32,11 +32,11 @@ export default async function SuenoPage({
   if (hasSleepParams(params) && !state.canonical) redirect(`/sueno?${sleepStateQuery(state)}`);
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-4xl">
       <PageHeader
         icon={Moon}
         title="Sueño"
-        intro="Elige una hora y te sugiero cuándo acostarte o despertar, contando ciclos de sueño."
+        intro="Calcula a qué hora acostarte o despertar contando ciclos de sueño."
       />
       <Suspense fallback={null}>
         <SleepCalculator />

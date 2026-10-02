@@ -23,11 +23,12 @@ export const SLEEP_CYCLE_MIN = 90;
 /** Tiempo aproximado para quedarse dormida. */
 export const SLEEP_LATENCY_MIN = 15;
 
-/** Ciclos que se ofrecen: 9 h, 7 h 30 min y 6 h. 4.5 h (3 ciclos) se omite a propósito. */
-export const CYCLE_OPTIONS = [6, 5, 4] as const;
+/** Ciclos que se ofrecen, de más a menos: 10 h 30 min, 9 h, 7 h 30 min, 6 h y 4 h 30 min. */
+export const CYCLE_OPTIONS = [7, 6, 5, 4, 3] as const;
 
-/** Desde cuántos ciclos una opción es «principal» (≥ 7 h 30 min de sueño). */
-export const PRIMARY_MIN_CYCLES = 5;
+/** Opciones «principales» (7 h 30 min y 9 h). Las demás se muestran como
+ *  alternativas secundarias — ninguna se presenta como recomendación médica. */
+export const PRIMARY_CYCLES: readonly number[] = [5, 6];
 
 export type SleepParams = {
   cycleMinutes?: number;
@@ -44,7 +45,7 @@ export type SleepOption = {
   sleepMinutes: number;
   /** "9 h", "7 h 30 min", "6 h". */
   durationLabel: string;
-  /** Jerarquía visual: 9 h y 7 h 30 min son principales; 6 h, secundaria. */
+  /** Jerarquía visual: 5 y 6 ciclos son principales; 3, 4 y 7, secundarias. */
   emphasis: "primary" | "secondary";
 };
 
@@ -86,12 +87,12 @@ function option(minutes: number, cycles: number, cycleMinutes: number): SleepOpt
     cycles,
     sleepMinutes,
     durationLabel: formatDuration(sleepMinutes),
-    emphasis: cycles >= PRIMARY_MIN_CYCLES ? "primary" : "secondary",
+    emphasis: PRIMARY_CYCLES.includes(cycles) ? "primary" : "secondary",
   };
 }
 
 /** «Quiero despertar a…»: horas para acostarse, de la más temprana a la más tarde
- *  (22:15 · 23:45 · 01:15 para despertar a las 07:30). */
+ *  (20:45 · 22:15 · 23:45 · 01:15 · 02:45 para despertar a las 07:30). */
 export function bedtimesFor(wakeMinutes: number, params: SleepParams = {}): SleepOption[] {
   const cycle = params.cycleMinutes ?? SLEEP_CYCLE_MIN;
   const latency = params.latencyMinutes ?? SLEEP_LATENCY_MIN;
@@ -99,7 +100,7 @@ export function bedtimesFor(wakeMinutes: number, params: SleepParams = {}): Slee
 }
 
 /** «Quiero dormir a…» / «Me voy a dormir ahora»: horas para despertar, en orden
- *  cronológico (05:15 · 06:45 · 08:15 si te acuestas a las 23:00). */
+ *  cronológico (03:45 · 05:15 · 06:45 · 08:15 · 09:45 si te acuestas a las 23:00). */
 export function wakeTimesFor(bedMinutes: number, params: SleepParams = {}): SleepOption[] {
   const cycle = params.cycleMinutes ?? SLEEP_CYCLE_MIN;
   const latency = params.latencyMinutes ?? SLEEP_LATENCY_MIN;
