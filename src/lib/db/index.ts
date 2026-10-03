@@ -27,10 +27,18 @@ function createDb() {
   const sql = postgres(DATABASE_URL!, {
     max: Number(process.env.DB_POOL_MAX) || 1,
     prepare: false,
+    // Nunca encadenar consultas en la misma conexión (pipelining): el pooler de
+    // transacción de Supabase deja de responder si recibe una consulta mientras
+    // otra sigue en curso, y cualquier página que consulte en paralelo (Buscar,
+    // o el layout a la vez que la página) se colgaba minutos. Con 0, cada
+    // conexión atiende una consulta a la vez y las demás esperan su turno.
+    max_pipeline: 0,
     connect_timeout: 10,
     idle_timeout: 20,
     max_lifetime: 60 * 5,
-  });
+    // `max_pipeline` es una opción real de postgres-js (src/connection.js) que
+    // falta en sus tipos; de ahí la aserción.
+  } as postgres.Options<Record<string, never>>);
   return drizzle(sql, { schema });
 }
 

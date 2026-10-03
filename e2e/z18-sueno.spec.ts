@@ -310,14 +310,6 @@ test.describe("acceso desde la barra superior (móvil)", () => {
 });
 
 test.describe("Buscar encuentra Sueño", () => {
-  // FIXME (incidencia aparte, ya existía en main): cualquier búsqueda con texto se
-  // cuelga ~2–3 min — Buscar lanza 10 consultas con Promise.all y postgres-js las
-  // encadena en una conexión que el pooler de Supabase (modo transacción) no
-  // atiende. La coincidencia está cubierta en tests/search-destinations.test.ts;
-  // la pantalla se verificó a mano con las consultas en fila. Quitar este fixme
-  // cuando se arregle Buscar.
-  test.fixme();
-
   for (const q of ["sueño", "sueno", "dormir", "despertar", "hora de dormir", "ciclo de sueño"]) {
     test(`con «${q}»`, async ({ page }) => {
       await page.goto(`/buscar?q=${encodeURIComponent(q)}`);
