@@ -209,9 +209,9 @@ function OptionRow({ option: o }: { option: SleepOption }) {
       </span>
       <span className={primary ? "text-[15px] font-medium text-charcoal" : "text-sm text-stone"}>
         {o.cycles} ciclos
-        <span className={`sm:hidden font-normal ${primary ? "text-stone" : "text-stone-soft"}`}> · {o.durationLabel}</span>
+        <span className="sm:hidden font-normal text-stone"> · {o.durationLabel}</span>
       </span>
-      <span className={`hidden sm:block ${primary ? "text-sm text-stone" : "text-[13px] text-stone-soft"}`}>
+      <span className={`hidden sm:block ${primary ? "text-sm text-stone" : "text-[13px] text-stone"}`}>
         {duration}
       </span>
     </div>

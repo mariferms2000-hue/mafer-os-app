@@ -61,7 +61,7 @@ export function NightTimeline({ timeline: tl, mode }: { timeline: SleepTimeline;
             />
             <span
               className={`absolute top-6 block whitespace-nowrap tabular-nums ${labelAlign(n.pos)} ${
-                primary ? "text-xs font-medium text-charcoal" : "hidden sm:block text-[11px] text-stone-soft"
+                primary ? "text-xs font-medium text-charcoal" : "hidden sm:block text-[11px] text-stone"
               }`}
             >
               {n.time}
@@ -74,7 +74,7 @@ export function NightTimeline({ timeline: tl, mode }: { timeline: SleepTimeline;
         <span className="absolute top-[5px] block h-[15px] w-[2px] -translate-x-1/2 rounded-full bg-forest-deep" />
         <span className={`absolute top-6 block whitespace-nowrap leading-tight ${labelAlign(tl.anchor.pos)}`}>
           <span className="block text-xs font-semibold text-forest-deep tabular-nums">{tl.anchor.time}</span>
-          <span className="block text-[11px] text-stone-soft">{mode === "dormir" ? "dormir" : "despertar"}</span>
+          <span className="block text-[11px] text-stone">{mode === "dormir" ? "dormir" : "despertar"}</span>
         </span>
       </div>
     </div>
