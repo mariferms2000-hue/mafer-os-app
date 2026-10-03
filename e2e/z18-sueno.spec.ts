@@ -3,7 +3,8 @@ import { test, expect, type Page } from "@playwright/test";
 /** Sueño — selector de hora propio (24 h) y estado en la URL.
  *  La lógica de ciclos y de escritura por segmento ya tiene pruebas unitarias
  *  (tests/sleep-logic.test.ts, tests/time-field.test.ts); aquí se prueba la
- *  interacción real: escribir, borrar, flechas, URL, «ahora» y cambio de modo. */
+ *  interacción real: escribir, borrar, ↑/↓ del teclado (el selector no tiene
+ *  flechas visibles), URL, «ahora» y cambio de modo. */
 
 const PASSWORD = "prueba-mafer-123";
 
@@ -327,7 +328,7 @@ test.describe("Buscar encuentra Sueño", () => {
   });
 });
 
-/* ── Rediseño: 5 ciclos, franja para 5 y 6, ciclos explícitos ── */
+/* ── Rediseño: 5 ciclos, 5 y 6 juntos en un grupo con borde fino y relleno tenue, ciclos explícitos ── */
 
 test("cinco opciones con ciclos explícitos; 5 y 6 ciclos destacados al centro", async ({ page }) => {
   await page.goto("/sueno?modo=despertar&h=07:30");

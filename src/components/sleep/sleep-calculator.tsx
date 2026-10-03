@@ -173,7 +173,7 @@ export function SleepCalculator() {
               <OptionRow key={o.cycles} option={o} />
             ))}
           </div>
-          <p className="mt-4 text-xs text-stone-soft leading-relaxed">
+          <p className="mt-4 text-xs text-stone leading-relaxed">
             Cálculo orientativo basado en ciclos de ~{SLEEP_CYCLE_MIN} min. Las necesidades de sueño varían.
           </p>
         </section>
@@ -201,7 +201,7 @@ function OptionRow({ option: o }: { option: SleepOption }) {
     >
       <span
         className={`font-display tabular-nums leading-none ${
-          primary ? "text-[30px] md:text-[34px] text-forest-deep" : "text-[22px] md:text-2xl text-stone-soft"
+          primary ? "text-[30px] md:text-[34px] text-forest-deep" : "text-[22px] md:text-2xl text-stone"
         }`}
         data-testid="sleep-option-time"
       >
