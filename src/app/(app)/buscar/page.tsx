@@ -3,6 +3,7 @@ import { desc } from "drizzle-orm";
 import { Search, History } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
+import { matchDestinations } from "@/lib/search-destinations";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Buscar" };
@@ -48,6 +49,8 @@ export default async function BuscarPage({
       db.select().from(schema.events),
     ]);
     hits = [
+      // Páginas-herramienta (Sueño): primero, son un destino directo.
+      ...matchDestinations(needle).map(({ title, sub, href, category }) => ({ title, sub, href, category })),
       ...projects.filter((p) => has(p.title, p.description, p.objective, p.notes)).map((p) => ({
         title: p.title, sub: p.objective || p.description || "", href: `/proyectos/${p.id}`, category: "proyecto" })),
       ...cards.filter((c) => has(c.title, c.description, c.nextAction)).map((c) => ({

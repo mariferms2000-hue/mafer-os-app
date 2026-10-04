@@ -399,6 +399,53 @@ input[type="date"], input[type="time"] {
   }
 }
 
+/* Selector de hora propio (TimeField, 24 h): «hora editable», no formulario.
+   Dos segmentos HH:MM en Fraunces, juntos, con un subrayado corto y tenue
+   centrado bajo cada número (fondo de 1px, no borde: así es más corto que la
+   caja). Va DESPUÉS de la regla de 16px: el tamaño lleva !important para que
+   en iPhone no se encoja (y al ser ≥16px no dispara el zoom de Safari).
+   2ch con cifras tabulares: el ancho no salta al cambiar de número. */
+.time-field {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-size: clamp(2.125rem, 9vw, 2.5rem);
+  line-height: 1;
+}
+.time-segment {
+  width: 2.05ch;
+  font: inherit;
+  font-size: inherit !important;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--color-forest-deep);
+  caret-color: var(--color-border-focus);
+  border: 0;
+  border-radius: 0;
+  padding: 0 0 0.12em;
+  cursor: text;
+  background: linear-gradient(var(--color-sand), var(--color-sand)) no-repeat center bottom / 70% 1px;
+  transition: background-size 150ms ease;
+}
+.time-segment:hover {
+  background-image: linear-gradient(var(--color-border-strong), var(--color-border-strong));
+}
+/* Foco: sin rectángulo ni bloque de selección — el subrayado se alarga y se
+   engrosa (2px) en el color de foco del sistema (no depende solo del color). */
+.time-segment:focus {
+  outline: none;
+  background-image: linear-gradient(var(--color-border-focus), var(--color-border-focus));
+  background-size: 85% 2px;
+}
+.time-segment::selection { background: transparent; color: inherit; }
+.time-colon {
+  color: var(--color-stone-soft);
+  font-weight: 400;
+  margin: 0 0.02em;
+}
+
 /* Editor visual (WYSIWYG) de la descripción de tareas: el textarea de siempre
    sigue guardando Markdown, pero esto es lo que Mafer ve y toca al escribir. */
 .rich-text-editor { min-height: 90px; height: auto; line-height: 1.5; cursor: text; }
