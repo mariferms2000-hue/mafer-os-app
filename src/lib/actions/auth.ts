@@ -8,10 +8,14 @@ import {
   hasPassword,
   verifyPassword,
 } from "@/lib/auth";
+import { previewDataReady } from "@/lib/data-environment";
 
 export type AuthState = { error?: string };
 
 export async function loginAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
+  if (!(await previewDataReady())) {
+    return { error: "Esta preview no está conectada a la base de pruebas. No se puede iniciar sesión." };
+  }
   const password = String(formData.get("password") ?? "");
   const firstTime = !(await hasPassword());
 

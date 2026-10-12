@@ -1,10 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
+import { PASSWORD } from "./lib/credentials";
 
 /** Fase 3 — Viajes en Calendario: crear, ver franja/badge, editar y eliminar.
  *  Fechas fijas en el futuro para no depender de "hoy" al construir la
  *  franja de la semana. Título único por intento para reintentos limpios. */
 
-const PASSWORD = "prueba-mafer-123";
 
 test.describe.configure({ mode: "serial" });
 

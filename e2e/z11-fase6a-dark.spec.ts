@@ -1,9 +1,9 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { PASSWORD } from "./lib/credentials";
 
 const QA_DIR = path.join(__dirname, "..", "docs", "qa", "phase-6a-dark-system");
-const PASSWORD = "prueba-mafer-123";
 
 // Valores esperados de los tokens oscuros (globals.css) — si cambian los tokens,
 // cambia aquí también (y en tests/contrast.test.ts, que valida los ratios WCAG).

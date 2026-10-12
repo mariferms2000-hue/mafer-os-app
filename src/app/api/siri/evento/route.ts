@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isPreviewDeployment } from "@/lib/data-environment";
 import { revalidatePath } from "next/cache";
 import { insertEvent } from "@/lib/db/helpers";
 import { syncEventToGoogle } from "@/lib/google/calendar";
@@ -8,6 +9,10 @@ import { fraseCuando, parseEvento, tokenValido } from "@/lib/siri-logic";
  *  POST { "titulo", "fecha", "hora"?, "duracion"? } con
  *  Authorization: Bearer <SIRI_TOKEN>. Formato en src/lib/siri-logic.ts. */
 export async function POST(req: Request) {
+  // Siri solo habla con producción: en una preview la ruta no existe para nadie.
+  if (isPreviewDeployment()) {
+    return NextResponse.json({ ok: false, mensaje: "Siri is turned off in previews." }, { status: 404 });
+  }
   if (!tokenValido(req.headers.get("authorization"), process.env.SIRI_TOKEN)) {
     return NextResponse.json({ ok: false, mensaje: "Not authorized." }, { status: 401 });
   }

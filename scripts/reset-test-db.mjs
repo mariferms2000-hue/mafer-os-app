@@ -22,6 +22,7 @@ const TABLES = [
   "decisions",
   "resources",
   "events",
+  "trips",
   "reviews",
   "focus_sessions",
   "focus_plants",

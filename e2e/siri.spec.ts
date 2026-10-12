@@ -1,9 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
+import { PASSWORD, SIRI_TOKEN } from "./lib/credentials";
 
-// Debe coincidir con SIRI_TOKEN en playwright.config.ts
-const CLAVE = "clave-siri-solo-para-tests-0123456789abcdef";
+// La llave la genera playwright.config.ts en cada corrida (SIRI_TOKEN del servidor de pruebas).
+const CLAVE = SIRI_TOKEN;
 const AUTH = { Authorization: `Bearer ${CLAVE}` };
-const PASSWORD = "prueba-mafer-123";
 
 async function login(page: Page) {
   await page.goto("/login");

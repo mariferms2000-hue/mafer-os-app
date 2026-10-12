@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { PASSWORD } from "./lib/credentials";
 
 /** Smoke test acotado del aislamiento de pruebas (PR #13): demuestra un ciclo
  *  completo de creación → modificación → eliminación contra mafer-os-testing,
  *  sin depender del flujo «convertir en tarea» (ver hallazgo separado sobre
  *  esa ruta específica). No usa datos reales: el texto es único por corrida. */
 
-const PASSWORD = "prueba-mafer-123";
 
 test("crear, modificar y eliminar una captura del Inbox contra la base de pruebas", async ({ page }) => {
   const marca = `smoke-aislamiento-${Date.now()}`;

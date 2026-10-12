@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { PASSWORD } from "./lib/credentials";
 
 /** Sueño — selector de hora propio (24 h) y estado en la URL.
  *  La lógica de ciclos y de escritura por segmento ya tiene pruebas unitarias
@@ -6,7 +7,6 @@ import { test, expect, type Page } from "@playwright/test";
  *  interacción real: escribir, borrar, ↑/↓ del teclado (el selector no tiene
  *  flechas visibles), URL, «ahora» y cambio de modo. */
 
-const PASSWORD = "prueba-mafer-123";
 
 test.describe.configure({ mode: "serial" });
 

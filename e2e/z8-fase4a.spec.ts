@@ -1,9 +1,9 @@
 import { test, expect, type Page, type TestInfo } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { PASSWORD } from "./lib/credentials";
 
 const QA_DIR = path.join(__dirname, "..", "docs", "qa", "phase-4a-tasks");
-const PASSWORD = "prueba-mafer-123";
 
 test.describe.configure({ mode: "serial" });
 

@@ -36,6 +36,9 @@ Navegador ──(HTTP + cookie mafer_session)──▶ Next.js (proxy.ts verific
 - Usuario único. Primera visita → crear contraseña (bcrypt, factor 12) guardada en la
   tabla `settings`.
 - Sesión: JWT HS256 firmado con `AUTH_SECRET` (.env.local), cookie httpOnly de 90 días.
+  En Vercel cada entorno (Production, Preview, Development) tiene su propia
+  `AUTH_SECRET`: una sesión de una preview nunca vale en producción. Previews,
+  bases de prueba y sus protecciones: ver `docs/previews.md`.
 - `src/proxy.ts` (convención Next 16, antes middleware) redirige a /login sin sesión
   válida; `requireAuth()` re-verifica en cada acción.
 - Cambio de contraseña en Ajustes verifica la actual primero.

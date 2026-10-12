@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { defineConfig, devices } from "@playwright/test";
 import { requireTestDatabaseUrl } from "./scripts/lib/require-test-db.mjs";
 
@@ -5,6 +6,15 @@ import { requireTestDatabaseUrl } from "./scripts/lib/require-test-db.mjs";
 // browser: si falta TEST_DATABASE_URL, o si coincide con DATABASE_URL, la
 // suite entera se detiene aquí mismo. Nunca corre E2E contra producción.
 const testDatabaseUrl = requireTestDatabaseUrl();
+
+// Credenciales de prueba generadas al azar en CADA corrida: nunca escritas en
+// el repositorio (es público). Los workers las heredan por el entorno y las
+// leen desde e2e/lib/credentials.ts. `??=` conserva las del proceso principal
+// cuando un worker vuelve a cargar este archivo.
+const random = () => randomBytes(32).toString("base64url");
+process.env.E2E_PASSWORD ??= random();
+process.env.E2E_SIRI_TOKEN ??= random();
+process.env.E2E_AUTH_SECRET ??= random();
 
 export default defineConfig({
   testDir: "./e2e",
@@ -26,10 +36,10 @@ export default defineConfig({
     env: {
       PORT: "3900",
       DATABASE_URL: testDatabaseUrl,
-      AUTH_SECRET: "secreto-solo-para-tests-0123456789abcdef",
+      AUTH_SECRET: process.env.E2E_AUTH_SECRET,
       LOCAL_HTTP: "1",
       NODE_ENV: "production",
-      SIRI_TOKEN: "clave-siri-solo-para-tests-0123456789abcdef", // rutas /api/siri/*
+      SIRI_TOKEN: process.env.E2E_SIRI_TOKEN, // rutas /api/siri/*
       DB_POOL_MAX: "10", // ver src/lib/db/index.ts
       MAFER_QA_TOOLS: "1", // habilita el panel QA de alertas en el entorno de pruebas (nunca en el lanzador real)
     },

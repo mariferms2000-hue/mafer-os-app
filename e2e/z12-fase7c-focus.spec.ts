@@ -2,13 +2,13 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { run } from "./lib/test-db";
+import { PASSWORD } from "./lib/credentials";
 
 /** Fase 7C — overlay mínimo de Focus Garden (?focus=1).
  *  El tiempo real se simula retrasando phase_started_at en la base de prueba
  *  (la fuente de verdad son los timestamps, así que el motor lo recupera solo). */
 
 const QA_DIR = path.join(__dirname, "..", "docs", "qa", "phase-7c-focus-overlay");
-const PASSWORD = "prueba-mafer-123";
 
 test.describe.configure({ mode: "serial" });
 

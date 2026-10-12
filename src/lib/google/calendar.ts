@@ -5,6 +5,7 @@ import { db, schema, today } from "@/lib/db";
 import { getSetting, setSetting } from "@/lib/auth";
 import { TIMEZONE as TZ } from "@/lib/tz";
 import { toRequestBody } from "@/lib/google/event-body";
+import { isPreviewDeployment } from "@/lib/data-environment";
 
 /**
  * Integración con Google Calendar.
@@ -15,11 +16,14 @@ import { toRequestBody } from "@/lib/google/event-body";
  * - Los tokens viven en la tabla `settings` (solo servidor). Nunca llegan al navegador.
  * - Si no hay credenciales configuradas, todas las funciones se comportan como no-op
  *   y la app sigue funcionando sin Google.
+ * - En las previews de Vercel Google está apagado siempre, aunque alguien añada
+ *   las variables por error: una preview nunca escribe en el calendario real.
  */
 
 const SCOPE = "https://www.googleapis.com/auth/calendar.app.created";
 
 export function isGoogleConfigured(): boolean {
+  if (isPreviewDeployment()) return false;
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
 
