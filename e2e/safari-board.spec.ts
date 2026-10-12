@@ -65,7 +65,10 @@ test("safari/webkit: estrés de drag & drop sin crash", async ({ page }) => {
     await expect(page.getByTestId("board").getByText(`Safari ${i}`, { exact: true }).first()).toBeVisible();
   }
   // El registro del service worker sobre http puede fallar en WebKit de pruebas; no es un error de la app.
-  const relevantes = pageErrors.filter((e) => !e.includes("sw.js"));
+  // WebKit también reporta como «…due to access control checks» las peticiones que cancela
+  // al navegar (precargas ?_rsc de los enlaces): son cancelaciones, no errores. La prueba
+  // busca caídas y errores reales de la página.
+  const relevantes = pageErrors.filter((e) => !e.includes("sw.js") && !e.includes("due to access control checks"));
   expect(relevantes, `errores de página: ${relevantes.join(" | ")}`).toHaveLength(0);
 });
 

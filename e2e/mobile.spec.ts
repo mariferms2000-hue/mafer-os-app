@@ -171,8 +171,8 @@ test("móvil: Tareas simple — vistas rápidas y Filtrar como bottom sheet", as
   await expect(page).not.toHaveURL(/en=/);
 
   // cambiar de vista con el dedo
-  await page.getByTestId("view-todas").click();
-  await expect(page).toHaveURL(/v=todas/);
+  await page.getByTestId("view-proximas").click();
+  await expect(page).toHaveURL(/v=proximas/);
 });
 
 test("móvil: toast legible en modo oscuro y prioridad con feedback", async ({ page }) => {
@@ -254,17 +254,29 @@ test("móvil: crear con solo título y clasificar con chips al toque", async ({ 
   await page.getByTestId("card-cancel").click();
 });
 
-test("móvil: nueva captura desde el Inbox en segundos", async ({ page }, testInfo) => {
+test("móvil: capturar en el Inbox y convertirla en tarea con dos toques", async ({ page }, testInfo) => {
   const texto = `Captura móvil ${testInfo.retry}`;
   await login(page);
   await page.goto("/inbox");
-  await page.getByTestId("new-capture").click();
+  // en el Inbox, el botón + abre directo «Nueva captura»
+  await page.getByTestId("capture-fab").tap();
   await expect(page.getByTestId("new-capture-panel")).toBeVisible();
   await page.getByTestId("new-capture-content").fill(texto);
-  await page.getByTestId("new-capture-save").click();
+  await page.getByTestId("new-capture-save").tap();
   await expect(page.getByTestId("new-capture-panel")).not.toBeVisible();
-  await expect(page.getByTestId("inbox-item").first()).toContainText(texto);
+  const item = page.getByTestId("inbox-item").filter({ hasText: texto });
+  await expect(item).toHaveCount(1);
   await shot(page, "14-movil-inbox-captura");
+
+  // Tarea → Hoy: sin scroll horizontal y sin pasos extra
+  await item.getByTestId("inbox-to-task").tap();
+  await item.getByTestId("inbox-task-hoy").tap();
+  await expect(page.getByText("Convertida en tarea ✓")).toBeVisible();
+  await expect(item).toHaveCount(0, { timeout: 10_000 });
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
 });
 
 test("móvil: los formularios no disparan el zoom de Safari (campos ≥ 16px)", async ({ page }) => {

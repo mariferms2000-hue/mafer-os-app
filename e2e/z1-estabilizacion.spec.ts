@@ -165,10 +165,10 @@ test("FAB abre menú claro con las 6 acciones", async ({ page }) => {
   await page.getByRole("button", { name: "Cerrar" }).click();
 });
 
-test("mi sistema de IA muestra flujos reales", async ({ page }) => {
+test("la portada de Biblioteca muestra sus espacios (Mi sistema de IA se retiró)", async ({ page }) => {
   await login(page);
   await page.goto("/biblioteca");
-  await expect(page.getByTestId("flow-card").first()).toContainText("Crear contenido para MACA");
-  await expect(page.getByTestId("flow-card").first()).toContainText("/maca-crear-contenido");
-  await shot(page, "30-mi-sistema-ia");
+  await expect(page.getByTestId("flow-card")).toHaveCount(0);
+  await expect(page.getByTestId("biblioteca-spaces").getByRole("link")).toHaveCount(5);
+  await shot(page, "30-biblioteca");
 });
