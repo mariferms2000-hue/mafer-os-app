@@ -29,7 +29,10 @@ export function FontSizeSettings() {
   const [prefs, setPrefs] = useState<FontSizePrefs>(DEFAULT_FONT_SIZE_PREFS);
 
   useEffect(() => {
-    setPrefs(readFontSizePrefs());
+    // diferido (igual que las vistas favoritas de Tareas): localStorage solo
+    // existe en el cliente y así no se encadenan renders dentro del efecto.
+    const timer = setTimeout(() => setPrefs(readFontSizePrefs()), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   function setLevel(category: FontCategory, level: FontLevel) {

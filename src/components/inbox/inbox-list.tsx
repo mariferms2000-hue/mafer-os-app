@@ -15,14 +15,16 @@ import {
   Link2,
   CalendarDays,
   MoreHorizontal,
+  PencilLine,
 } from "lucide-react";
 import {
   convertInboxItem,
   updateInboxItem,
   archiveInboxItem,
   deleteInboxItem,
+  undoInboxToTaskAction,
 } from "@/lib/actions/inbox";
-import { ClassifyStep } from "@/components/tasks/classify-step";
+import { captureAge, quickDueDates } from "@/lib/inbox-dates";
 import { useToast } from "@/components/ui/toast";
 import type { schema } from "@/lib/db";
 import { EVENT_TYPES } from "@/lib/event-types";
@@ -43,58 +45,48 @@ const TYPES = [
 
 const TYPE_LABEL = Object.fromEntries(TYPES.map((t) => [t.value, t.label]));
 
-export function InboxList({ items, projects }: { items: Item[]; projects: Project[] }) {
-  const [openItem, setOpenItem] = useState<Item | null>(null);
-  const [classify, setClassify] = useState<{ cardId: string; title: string } | null>(null);
+/** Inbox (Bloque 2): capturar, organizar y ejecutar son pasos distintos, y
+ *  organizar debe costar dos toques. Cada captura ofrece las salidas más
+ *  comunes a la vista — Tarea (con fecha rápida) y Evento — y el resto de
+ *  destinos en «Más…». Sin paso de clasificación obligatorio. */
+export function InboxList({ items, projects, today }: { items: Item[]; projects: Project[]; today: string }) {
+  const [openItem, setOpenItem] = useState<{ item: Item; type: string | null } | null>(null);
 
   return (
     <>
       <ul className="flex flex-col gap-2.5" data-testid="inbox-list">
         {items.map((item) => (
-          <InboxCard key={item.id} item={item} onProcess={() => setOpenItem(item)} />
+          <InboxCard
+            key={item.id}
+            item={item}
+            today={today}
+            onProcess={(type) => setOpenItem({ item, type })}
+          />
         ))}
       </ul>
       {openItem && (
         <ProcessPanel
-          item={openItem}
+          item={openItem.item}
+          initialType={openItem.type}
           projects={projects}
           onClose={() => setOpenItem(null)}
-          onConverted={setClassify}
         />
-      )}
-      {classify && (
-        <div
-          className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
-          onClick={(e) => e.target === e.currentTarget && setClassify(null)}
-          role="presentation"
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Clasificar la tarea"
-            className="card card-raised w-full md:max-w-lg max-h-[92dvh] overflow-y-auto rounded-b-none md:rounded-b-[18px] p-5 pb-safe"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg text-forest-deep">Convertida en tarea ✓</h2>
-              <button type="button" onClick={() => setClassify(null)} aria-label="Cerrar" className="btn btn-ghost !p-2">
-                <X size={18} aria-hidden />
-              </button>
-            </div>
-            <ClassifyStep
-              cardId={classify.cardId}
-              title={classify.title}
-              onDone={() => setClassify(null)}
-              showOpenTask
-            />
-          </div>
-        </div>
       )}
     </>
   );
 }
 
-function InboxCard({ item, onProcess }: { item: Item; onProcess: () => void }) {
+function InboxCard({
+  item,
+  today,
+  onProcess,
+}: {
+  item: Item;
+  today: string;
+  onProcess: (type: string | null) => void;
+}) {
   const [menu, setMenu] = useState(false);
+  const [dates, setDates] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
   const toast = useToast();
@@ -104,89 +96,174 @@ function InboxCard({ item, onProcess }: { item: Item; onProcess: () => void }) {
     setConfirmDelete(false);
   }
 
+  /** Captura → tarea en un toque más: sin proyecto (se asigna después si hace falta). */
+  function toTask(date: string | null) {
+    const fd = new FormData();
+    fd.set("id", item.id);
+    fd.set("target", "tarea");
+    fd.set("content", item.content);
+    fd.set("note", item.note ?? "");
+    if (date) fd.set("date", date);
+    start(async () => {
+      try {
+        const res = await convertInboxItem(fd);
+        const cardId = res?.convertedTo.split(":")[1];
+        toast.show({
+          message: "Convertida en tarea ✓",
+          action: {
+            label: "Deshacer",
+            onClick: async () => {
+              const ok = await undoInboxToTaskAction(item.id);
+              if (!ok) toast.show({ tone: "warn", message: "Ya no se puede deshacer: la tarea cambió." });
+            },
+          },
+          link: cardId ? { label: "Abrir", href: `/tareas?abrir=${cardId}` } : undefined,
+          duration: 8000,
+        });
+      } catch {
+        toast.show({ tone: "error", message: "No se pudo convertir. La captura sigue en el Inbox." });
+      }
+    });
+  }
+
   return (
-    <li className="card p-4 flex items-start gap-3" data-testid="inbox-item">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{item.content}</p>
-        {item.note && <p className="text-sm text-stone mt-0.5 line-clamp-1">{item.note}</p>}
-        <div className="flex flex-wrap gap-1.5 mt-1.5">
-          <span className="chip">{item.createdAt.slice(0, 10)}</span>
-          {item.typeHint && <span className="chip chip-sage">{TYPE_LABEL[item.typeHint] ?? item.typeHint}</span>}
-          {item.isStarter && <span className="chip">Ejemplo</span>}
+    <li className="card p-4" data-testid="inbox-item">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium break-words">{item.content}</p>
+          {item.note && <p className="text-sm text-stone mt-0.5 line-clamp-1">{item.note}</p>}
+          <p className="text-xs text-stone-soft mt-1 flex flex-wrap items-center gap-1.5">
+            <span data-testid="inbox-age">{captureAge(item.createdAt, today)}</span>
+            {item.typeHint && <span className="chip chip-sage">{TYPE_LABEL[item.typeHint] ?? item.typeHint}</span>}
+            {item.isStarter && <span className="chip">Ejemplo</span>}
+          </p>
         </div>
-      </div>
-      <button
-        type="button"
-        className="btn btn-primary !py-1.5 !px-3.5 text-sm shrink-0"
-        onClick={onProcess}
-        data-testid="inbox-process"
-      >
-        <Sparkles size={14} aria-hidden /> Procesar
-      </button>
-      <div className="relative shrink-0">
-        <button
-          type="button"
-          aria-label={`Más opciones para «${item.content}»`}
-          className="btn btn-ghost !p-2"
-          onClick={toggleMenu}
-          data-testid="inbox-menu"
-        >
-          <MoreHorizontal size={16} aria-hidden />
-        </button>
-        {menu && (
-          <div className="absolute right-0 z-20 mt-1 card p-1.5 flex flex-col min-w-44 text-sm">
-            <button
-              type="button"
-              disabled={pending}
-              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-beige"
-              onClick={() =>
-                start(async () => {
-                  await archiveInboxItem(item.id);
-                  toast.show({ message: "Captura archivada." });
-                })
-              }
-            >
-              <Archive size={14} aria-hidden /> Archivar
-            </button>
-            {confirmDelete ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5">
-                <span className="text-xs text-stone">¿Eliminar?</span>
-                <button
-                  type="button"
-                  disabled={pending}
-                  className="btn btn-danger !py-1 !px-2 text-xs"
-                  data-testid="inbox-delete-confirm"
-                  onClick={() =>
-                    start(async () => {
-                      await deleteInboxItem(item.id);
-                      toast.show({ tone: "info", message: "Captura eliminada." });
-                    })
-                  }
-                >
-                  Sí, eliminar
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost !py-1 !px-2 text-xs"
-                  onClick={() => setConfirmDelete(false)}
-                >
-                  No
-                </button>
-              </div>
-            ) : (
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            aria-label={`Más opciones para «${item.content}»`}
+            className="btn btn-ghost !p-2"
+            onClick={toggleMenu}
+            data-testid="inbox-menu"
+          >
+            <MoreHorizontal size={16} aria-hidden />
+          </button>
+          {menu && (
+            <div className="absolute right-0 z-20 mt-1 card p-1.5 flex flex-col min-w-44 text-sm">
               <button
                 type="button"
                 disabled={pending}
-                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-blocked hover:bg-blocked-soft"
-                data-testid="inbox-delete"
-                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-beige"
+                onClick={() => {
+                  setMenu(false);
+                  onProcess(null);
+                }}
               >
-                <Trash2 size={14} aria-hidden /> Eliminar
+                <PencilLine size={14} aria-hidden /> Editar captura
               </button>
-            )}
-          </div>
-        )}
+              <button
+                type="button"
+                disabled={pending}
+                className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left hover:bg-beige"
+                data-testid="inbox-archive"
+                onClick={() =>
+                  start(async () => {
+                    await archiveInboxItem(item.id);
+                    toast.show({ message: "Captura archivada." });
+                  })
+                }
+              >
+                <Archive size={14} aria-hidden /> Archivar
+              </button>
+              {confirmDelete ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+                  <span className="text-xs text-stone">¿Eliminar?</span>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    className="btn btn-danger !py-1 !px-2 text-xs"
+                    data-testid="inbox-delete-confirm"
+                    onClick={() =>
+                      start(async () => {
+                        await deleteInboxItem(item.id);
+                        toast.show({ tone: "info", message: "Captura eliminada." });
+                      })
+                    }
+                  >
+                    Sí, eliminar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost !py-1 !px-2 text-xs"
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={pending}
+                  className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-blocked hover:bg-blocked-soft"
+                  data-testid="inbox-delete"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 size={14} aria-hidden /> Eliminar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Salidas rápidas */}
+      <div className="flex flex-wrap items-center gap-1.5 mt-3" role="group" aria-label={`Convertir «${item.content}»`}>
+        <button
+          type="button"
+          className={`btn !py-1.5 !px-3 text-sm ${dates ? "btn-primary" : "btn-secondary"}`}
+          aria-expanded={dates}
+          disabled={pending}
+          onClick={() => setDates((d) => !d)}
+          data-testid="inbox-to-task"
+        >
+          <CircleCheckBig size={14} aria-hidden /> Tarea
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary !py-1.5 !px-3 text-sm"
+          disabled={pending}
+          onClick={() => onProcess("evento")}
+          data-testid="inbox-to-event"
+        >
+          <CalendarDays size={14} aria-hidden /> Evento
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost !py-1.5 !px-3 text-sm"
+          disabled={pending}
+          onClick={() => onProcess(item.typeHint || null)}
+          data-testid="inbox-process"
+        >
+          <Sparkles size={14} aria-hidden /> Más…
+        </button>
+      </div>
+      {dates && (
+        <div className="flex flex-wrap items-center gap-1.5 mt-2" role="group" aria-label="¿Para cuándo?" data-testid="inbox-task-dates">
+          <span className="text-xs text-stone mr-0.5">¿Para cuándo?</span>
+          {quickDueDates(today).map((q) => (
+            <button
+              key={q.key}
+              type="button"
+              className="chip hover:bg-sand transition-colors !py-1 !px-2.5 text-[13px]"
+              disabled={pending}
+              onClick={() => toTask(q.date)}
+              data-testid={`inbox-task-${q.key}`}
+            >
+              {q.label}
+            </button>
+          ))}
+        </div>
+      )}
     </li>
   );
 }
@@ -195,16 +272,16 @@ function InboxCard({ item, onProcess }: { item: Item; onProcess: () => void }) {
  *  Progressive disclosure: primero «¿Qué es esto?», luego solo los campos del tipo. */
 function ProcessPanel({
   item,
+  initialType,
   projects,
   onClose,
-  onConverted,
 }: {
   item: Item;
+  initialType: string | null;
   projects: Project[];
   onClose: () => void;
-  onConverted: (t: { cardId: string; title: string }) => void;
 }) {
-  const [type, setType] = useState<string | null>(item.typeHint || null);
+  const [type, setType] = useState<string | null>(initialType);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, start] = useTransition();
   const toast = useToast();
@@ -235,14 +312,10 @@ function ProcessPanel({
               if (type) {
                 const res = await convertInboxItem(fd);
                 const [tipo, targetId] = res?.convertedTo.split(":") ?? [];
-                if (tipo === "tarea" && targetId) {
-                  // clasificación breve y opcional (sugerencia + confirmar / ahora no)
-                  onConverted({ cardId: targetId, title: String(fd.get("content") ?? item.content).trim() || item.content });
-                } else {
-                  toast.show({
-                    message: `Convertido en ${TYPE_LABEL[type].toLowerCase()} ✓`,
-                  });
-                }
+                toast.show({
+                  message: `Convertido en ${TYPE_LABEL[type].toLowerCase()} ✓`,
+                  link: tipo === "tarea" && targetId ? { label: "Abrir", href: `/tareas?abrir=${targetId}` } : undefined,
+                });
               } else {
                 await updateInboxItem(fd);
                 toast.show({ message: "Cambios guardados. Sigue en tu Inbox." });

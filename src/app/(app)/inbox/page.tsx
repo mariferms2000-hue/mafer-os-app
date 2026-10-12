@@ -1,11 +1,11 @@
 import { asc, desc, eq } from "drizzle-orm";
 import { Inbox as InboxIcon, Sparkles } from "lucide-react";
-import { db, schema } from "@/lib/db";
+import { db, schema, today } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { InboxList } from "@/components/inbox/inbox-list";
 import { LifecycleHelp } from "@/components/inbox/lifecycle-help";
-import { QuickCaptureBar, NewCaptureButton } from "@/components/inbox/quick-capture";
+import { QuickCaptureBar } from "@/components/inbox/quick-capture";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Inbox" };
@@ -33,10 +33,8 @@ export default async function InboxPage() {
       <PageHeader
         icon={InboxIcon}
         title="Inbox"
-        intro="Captura sin decidir. Cuando tengas un momento, toca «Procesar» y dale un destino a cada cosa."
-      >
-        <NewCaptureButton />
-      </PageHeader>
+        intro="Captura sin decidir. Cuando quieras, conviértelas en tareas con dos toques: «Tarea» y ¿para cuándo?"
+      />
 
       <QuickCaptureBar />
 
@@ -44,10 +42,10 @@ export default async function InboxPage() {
         <EmptyState
           icon={Sparkles}
           title="Inbox en cero 🌿"
-          hint="Cuando algo te pase por la cabeza, usa el botón + (está en todas las pantallas). Se guarda aquí al instante."
+          hint="Cuando algo te pase por la cabeza, escríbelo arriba, usa el botón + o díselo a Siri. Se guarda aquí al instante."
         />
       ) : (
-        <InboxList items={pending} projects={projects} />
+        <InboxList items={pending} projects={projects} today={today()} />
       )}
 
       <LifecycleHelp />
