@@ -94,7 +94,7 @@ test("mover entre listas conserva el orden de la lista origen", async ({ page })
   // tras recargar: B está en Próximo y el origen mantiene A antes que C
   await page.reload();
   await expect(page.getByTestId("column-proximo").getByText("Tarjeta B")).toBeVisible();
-  const backlogCards = page.getByTestId("column-backlog").locator('[data-testid^="card-"]');
+  const backlogCards = page.getByTestId("column-backlog").locator('[data-testid^="card-"]:not([data-testid^="card-menu"])');
   await expect(backlogCards).toHaveCount(2);
   await expect(backlogCards.nth(0)).toContainText("Tarjeta A");
   await expect(backlogCards.nth(1)).toContainText("Tarjeta C");

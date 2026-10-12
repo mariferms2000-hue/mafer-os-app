@@ -102,12 +102,20 @@ test("móvil: Hoy responde en un vistazo — Haz esto ahora y antiolvido sin scr
   await page.getByTestId("card-cancel").click();
 });
 
-test("móvil: continuar la revisión desde Hoy con el dedo", async ({ page }) => {
+test("móvil: Buscar en la barra superior y continuar la revisión desde Ajustes", async ({ page }) => {
   await login(page);
-  const nudge = page.getByTestId("review-nudge");
-  await expect(nudge).toBeVisible();
-  await expect(nudge.getByTestId("nudge-cta")).toContainText("Continuar"); // la dejó abierta la prueba de Safari
-  await nudge.getByTestId("nudge-cta").click();
+  // Bloque 2: Buscar tiene acceso en el iPhone (antes solo ⌘K y barra lateral)
+  await page.getByTestId("mobile-search-link").tap();
+  await page.waitForURL("/buscar");
+  // Revisiones ya no ocupa Hoy: se llega desde Ajustes
+  await page.getByTestId("mobile-settings-link").tap();
+  await page.waitForURL("/ajustes");
+  await expect(page.getByTestId("ajustes-logout")).toBeVisible(); // «Cerrar sesión» también en el iPhone
+  await page.getByTestId("ajustes-revisiones-link").tap();
+  await page.waitForURL("/revisiones");
+  const continuar = page.getByTestId("center-diaria").getByTestId("continue-diaria");
+  await expect(continuar).toContainText("Continuar"); // la dejó abierta la prueba de Safari
+  await continuar.tap();
   await expect(page.getByTestId("review-step-label")).toContainText("Paso 2 de 5");
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth
@@ -143,7 +151,7 @@ test("móvil: Proyectos legible — tarjeta, siguiente acción y Retomar", async
 test("móvil: Tareas simple — vistas rápidas y Filtrar como bottom sheet", async ({ page }) => {
   await login(page);
   await page.goto("/tareas");
-  await expect(page.getByTestId("view-ahora")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("view-todas")).toHaveAttribute("aria-pressed", "true");
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth
   );

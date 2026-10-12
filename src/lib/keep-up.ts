@@ -47,7 +47,9 @@ export function buildKeepUp(input: {
         idleDays: idle >= PROJECT_IDLE_DAYS ? idle : null,
       };
     })
-    .filter((p) => p.noNextAction || p.idleDays !== null);
+    .filter((p) => p.noNextAction || p.idleDays !== null)
+    // el más olvidado primero (los que solo carecen de siguiente acción, al final)
+    .sort((a, b) => (b.idleDays ?? -1) - (a.idleDays ?? -1));
 
   return { overdue, blocked, waiting, upcoming, projects: projectAlerts };
 }

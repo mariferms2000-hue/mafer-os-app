@@ -159,13 +159,15 @@ test("completar y reabrir no pierde duración ni energía", async ({ page }, inf
   await expect(page.getByTestId("dur-ten_to_30")).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("energy-low")).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("card-complete").click(); // Reabrir
+  // esperar a que el servidor confirme antes de navegar (si no, la navegación cortaba la acción)
+  await expect(page.getByText("Tarea reabierta — volvió a Próximo.").first()).toBeVisible();
   await page.goto("/tareas?v=todas");
   await abrirDetalle(page, titulo);
   await expect(page.getByTestId("dur-ten_to_30")).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("card-cancel").click();
 });
 
-test("conversión desde Inbox: clasificación opcional con sugerencia", async ({ page }, info) => {
+test("conversión desde Inbox: sin clasificación obligatoria; el toast ofrece abrir la tarea", async ({ page }, info) => {
   const texto = t(info, "Confirmar cita con laboratorio");
   await login(page);
   await page.goto("/inbox");
@@ -176,15 +178,13 @@ test("conversión desde Inbox: clasificación opcional con sugerencia", async ({
   await page.getByTestId("type-tarea").click();
   await page.getByTestId("process-submit").click();
 
-  await expect(page.getByTestId("classify-step")).toBeVisible();
-  await expect(page.getByTestId("classify-suggestion")).toContainText("«confirmar»");
-  await page.getByTestId("classify-confirm").click();
-  await expect(page.getByText("Clasificación guardada ✓")).toBeVisible();
-
-  await page.goto("/tareas?v=todas");
-  await abrirDetalle(page, texto);
-  await expect(page.getByTestId("dur-under_10")).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByTestId("energy-low")).toHaveAttribute("aria-checked", "true");
+  // Bloque 2: organizar no exige clasificar (la duración y la energía siguen en el detalle)
+  await expect(page.getByTestId("classify-step")).toHaveCount(0);
+  await expect(page.getByText("Convertido en tarea ✓")).toBeVisible();
+  await page.getByRole("link", { name: "Abrir", exact: true }).click();
+  await expect(page.getByTestId("card-title-input")).toHaveValue(texto);
+  // queda sin estimar, lista para clasificar cuando Mafer quiera
+  await expect(page.getByTestId("dur-under_10")).toHaveAttribute("aria-checked", "false");
   await page.getByTestId("card-cancel").click();
 });
 

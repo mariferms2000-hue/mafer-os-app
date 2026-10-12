@@ -46,7 +46,7 @@ export function recommendNow(opts: {
     const pIdx = priorityIds.indexOf(t.id);
     if (pIdx >= 0) {
       score += 100 - pIdx * 8;
-      reasons.push(`es tu prioridad #${pIdx + 1} de hoy`);
+      reasons.push("la destacaste hoy"); // Bloque 2: «Destacar hoy»; el orden de destacado sigue pesando
     }
 
     // 2) Fechas: lo vencido y lo de hoy no se pueden olvidar

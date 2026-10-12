@@ -13,12 +13,20 @@ import { PASSWORD } from "./lib/credentials";
 
 const QA_DIR = path.join(__dirname, "..", "docs", "qa", "phase-7e3-garden-view");
 const SPECIES = ["helecho", "monstera", "suculenta", "lavanda", "olivo"];
+// Las 12 especies del motor v2 (7F) — mismas etiquetas que src/lib/plant-svg-v2.ts
 const SPECIES_LABEL: Record<string, string> = {
   helecho: "Helecho",
   monstera: "Monstera",
   suculenta: "Suculenta",
   lavanda: "Lavanda",
   olivo: "Olivo",
+  bambu: "Bambú",
+  cactus: "Cactus",
+  potos: "Potos",
+  sansevieria: "Sansevieria",
+  pilea: "Pilea",
+  palmera: "Palmera",
+  eucalipto: "Eucalipto",
 };
 
 test.describe.configure({ mode: "serial" });
@@ -110,15 +118,15 @@ test.afterAll(async () => {
   await cleanFixtures();
 });
 
-test("la pestaña «Mi jardín» existe en Explorar y muestra la planta actual real", async ({ page }) => {
+test("«Mi jardín» se abre desde la portada de Biblioteca y muestra la planta actual real", async ({ page }) => {
   await login(page);
   await discardLeftoverSessions();
   if (!(await activePlant())) await completeArranque(page); // base fresca: la primera sesión hace nacer la planta
 
-  // llegar sin escribir la URL: Explorar → pestaña Mi jardín
-  await page.goto("/explorar");
-  await page.getByRole("link", { name: "Mi jardín" }).click();
-  await page.waitForURL("/explorar/jardin");
+  // llegar sin escribir la URL: Biblioteca → tarjeta Mi jardín
+  await page.goto("/biblioteca");
+  await page.getByTestId("space-jardin").click();
+  await page.waitForURL("/biblioteca/jardin");
   await expect(page.getByRole("heading", { name: "Mi jardín" })).toBeVisible();
 
   // la planta actual refleja exactamente lo guardado en la base
@@ -147,7 +155,7 @@ test("estado vacío sereno cuando no hay plantas completadas (con respaldo resta
   const before = (await q<{ n: number }>("SELECT COUNT(*) n FROM _z15_respaldo"))[0].n;
 
   await login(page);
-  await page.goto("/explorar/jardin");
+  await page.goto("/biblioteca/jardin");
   await expect(page.getByText("Tu jardín está esperando su primera planta.")).toBeVisible();
   await expect(page.getByTestId("garden-grid")).toHaveCount(0);
   await shot(page, "05-jardin-vacio-claro");
@@ -173,7 +181,7 @@ test("cuadrícula: más reciente primero, 12 iniciales y «Ver más» solo cuand
   expect(all.length).toBeGreaterThan(12);
 
   await login(page);
-  await page.goto("/explorar/jardin");
+  await page.goto("/biblioteca/jardin");
 
   // 12 primeras en orden: la más reciente encabeza la cuadrícula
   const cards = page.getByTestId("garden-plant");
@@ -196,7 +204,7 @@ test("cuadrícula: más reciente primero, 12 iniciales y «Ver más» solo cuand
 
 test("la ilustración es determinista: recargar produce exactamente el mismo arte", async ({ page }) => {
   await login(page);
-  await page.goto("/explorar/jardin");
+  await page.goto("/biblioteca/jardin");
   const firstCardArt = () => page.getByTestId("garden-plant").first().locator("[data-species]").first().innerHTML();
   const currentArt = () => page.getByTestId("garden-room-current").locator("[data-species]").first().innerHTML();
 
@@ -212,7 +220,7 @@ test("el cuarto: las plantas posadas en las repisas abren su popup y el invernad
   const all = await completedOrdered();
 
   await login(page);
-  await page.goto("/explorar/jardin");
+  await page.goto("/biblioteca/jardin");
 
   // La escena es una VITRINA con aforo: muestra una selección, nunca todo.
   const enElCuarto = page.getByTestId("garden-room-plant");
@@ -239,7 +247,7 @@ test("el cuarto: las plantas posadas en las repisas abren su popup y el invernad
 
 test("«Enfocarme» abre el overlay existente; cerrarlo devuelve al jardín sin tocar nada", async ({ page }) => {
   await login(page);
-  await page.goto("/explorar/jardin");
+  await page.goto("/biblioteca/jardin");
   // «Enfocarme» vive dentro de la tarjeta clickeable de la planta actual: el clic
   // no debe burbujear y abrir también el popup de detalle de la planta.
   await page.getByTestId("garden-focus").click();
@@ -249,7 +257,7 @@ test("«Enfocarme» abre el overlay existente; cerrarlo devuelve al jardín sin 
 
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("focus-overlay")).toHaveCount(0);
-  expect(page.url()).toContain("/explorar/jardin");
+  expect(page.url()).toContain("/biblioteca/jardin");
   await expect(page.getByTestId("garden-current")).toBeVisible();
   await expect(page.getByTestId("plant-detail-modal")).toHaveCount(0);
 });
@@ -259,7 +267,7 @@ test("desde Hoy: el enlace discreto «Ver mi jardín» llega a la vista, con y s
   const link = page.getByTestId("focus-module-garden-link");
   await expect(link).toContainText(/jardín/i);
   await link.click();
-  await page.waitForURL("/explorar/jardin");
+  await page.waitForURL("/biblioteca/jardin");
   await expect(page.getByRole("heading", { name: "Mi jardín" })).toBeVisible();
 
   // con sesión activa, el módulo «En foco» conserva el enlace (la base real tiene
@@ -272,7 +280,7 @@ test("desde Hoy: el enlace discreto «Ver mi jardín» llega a la vista, con y s
   await page.goto("/");
   await expect(page.getByTestId("focus-module")).toContainText("En foco");
   await page.getByTestId("focus-module-garden-link").click();
-  await page.waitForURL("/explorar/jardin");
+  await page.waitForURL("/biblioteca/jardin");
 
   // terminar antes desde el overlay: la base queda sin sesiones abiertas
   await page.getByTestId("garden-focus").click();
@@ -285,11 +293,11 @@ test("desde Hoy: el enlace discreto «Ver mi jardín» llega a la vista, con y s
 
 test("Incubadora, Learn Fast, Journal e Inbox siguen intactos", async ({ page }) => {
   await login(page);
-  await page.goto("/explorar");
+  await page.goto("/biblioteca/ideas");
   await expect(page.getByRole("heading", { name: /incubadora/i })).toBeVisible();
-  await page.goto("/explorar/learn-fast");
+  await page.goto("/biblioteca/ideas/learn-fast");
   await expect(page.getByRole("heading", { name: /learn fast/i })).toBeVisible();
-  await page.goto("/explorar/journal");
+  await page.goto("/biblioteca/journal");
   await expect(page.getByRole("heading", { name: /journal/i })).toBeVisible();
   await page.goto("/inbox");
   await expect(page.getByRole("heading", { name: /inbox/i })).toBeVisible();
@@ -299,7 +307,7 @@ test("Incubadora, Learn Fast, Journal e Inbox siguen intactos", async ({ page })
 test("capturas: oscuro en escritorio y iPhone", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("mafer-theme", "dark"));
   await login(page);
-  await page.goto("/explorar/jardin");
+  await page.goto("/biblioteca/jardin");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.getByTestId("garden-plant").first()).toBeVisible();
   await page.waitForTimeout(400);
@@ -315,7 +323,7 @@ test("capturas: oscuro en escritorio y iPhone", async ({ page }) => {
 test("capturas: claro (jardín y enlace desde Hoy)", async ({ page }) => {
   await login(page);
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await page.goto("/explorar/jardin");
+  await page.goto("/biblioteca/jardin");
   await expect(page.getByTestId("garden-plant").first()).toBeVisible();
   await page.waitForTimeout(400);
   await shot(page, "02-jardin-claro");

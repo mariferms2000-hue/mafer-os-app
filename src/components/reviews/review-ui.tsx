@@ -141,7 +141,8 @@ export function ReviewShell({
         <span className="text-xs text-stone tabular-nums" data-testid="review-step-label">
           Paso {paso} de {total} · {titulos[paso - 1]}
         </span>
-        <Link href="/" className="ml-auto text-xs text-stone hover:text-forest underline underline-offset-4" data-testid="review-exit">
+        {/* Bloque 2: Hoy ya no muestra el aviso de Revisiones; «Continuar» vive en el centro. */}
+        <Link href="/revisiones" className="ml-auto text-xs text-stone hover:text-forest underline underline-offset-4" data-testid="review-exit">
           <DoorOpen size={12} className="inline mr-0.5" aria-hidden /> Salir y continuar después
         </Link>
       </div>

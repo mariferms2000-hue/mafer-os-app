@@ -9,7 +9,16 @@ let client: ReturnType<typeof postgres> | null = null;
 
 function db() {
   if (!client) {
-    client = postgres(requireTestDatabaseUrl(), { max: 1, prepare: false, idle_timeout: 20 });
+    // max_pipeline: 0 — igual que la app (src/lib/db/index.ts): el pooler de
+    // transacción de Supabase deja de responder si recibe una consulta mientras
+    // otra sigue en curso por la misma conexión, y las aserciones que consultan
+    // en paralelo (Promise.all) se colgaban hasta el timeout de la prueba.
+    client = postgres(requireTestDatabaseUrl(), {
+      max: 1,
+      prepare: false,
+      idle_timeout: 20,
+      max_pipeline: 0,
+    } as postgres.Options<Record<string, never>>);
   }
   return client;
 }

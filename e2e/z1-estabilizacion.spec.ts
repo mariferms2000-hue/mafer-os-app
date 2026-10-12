@@ -55,6 +55,8 @@ test("completar muestra toast con Deshacer, y deshacer funciona", async ({ page 
 
   // reabrir desde terminadas (equivalente a deshacer en cualquier momento)
   await page.getByRole("button", { name: "Reabrir «Tarea creada desde Tareas»" }).first().click();
+  // esperar a que el servidor confirme antes de navegar (si no, la navegación cortaba la acción)
+  await expect(page.getByText("Tarea reabierta — volvió a Próximo.").first()).toBeVisible();
   await page.goto("/tareas?v=todas");
   await expect(page.getByTestId("task-groups").getByText("Tarea creada desde Tareas").first()).toBeVisible();
 });
@@ -65,6 +67,8 @@ test("deshacer inmediato desde el toast", async ({ page }) => {
   await page.getByRole("button", { name: "Completar «Tarea creada desde Tareas»" }).first().click();
   await expect(page.getByText("Tarea completada ✓")).toBeVisible();
   await page.getByRole("button", { name: "Deshacer" }).click();
+  // esperar a que la acción llegue al servidor: recargar en el mismo instante la cortaba
+  await page.waitForLoadState("networkidle");
   // sigue (o vuelve a estar) en abiertas tras refrescar
   await page.reload();
   await expect(page.getByTestId("task-groups").getByText("Tarea creada desde Tareas").first()).toBeVisible();
@@ -127,26 +131,26 @@ test("tema oscuro, claro y automático", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
 
-test("energía alta muestra trabajo profundo; baja lo oculta", async ({ page }) => {
+test("la energía del día vive dentro de «Haz esto ahora» y Hoy ya no lista trabajo profundo", async ({ page }) => {
   await login(page);
-  await page.getByTestId("energy-alta").click();
+  const doNow = page.getByTestId("do-now");
+  await doNow.getByTestId("energy-alta").click();
   await expect(page.getByText("He ajustado tus sugerencias para energía alta")).toBeVisible();
-  await expect(page.getByTestId("deep-work-list").getByText("Tarea creada desde Tareas").first()).toBeVisible();
-  await shot(page, "28-hoy-energia-alta");
-  await page.getByTestId("energy-baja").click();
-  await expect(page.getByText("He ajustado tus sugerencias para energía baja")).toBeVisible();
+  // Bloque 2: el trabajo profundo es una vista de Tareas, no un bloque de Hoy
   await expect(page.getByTestId("deep-work-list")).toHaveCount(0);
+  await shot(page, "28-hoy-energia-alta");
+  await doNow.getByTestId("energy-baja").click();
+  await expect(page.getByText("He ajustado tus sugerencias para energía baja")).toBeVisible();
 });
 
-test("inventario real: agentes globales y skills aparecen", async ({ page }) => {
+test("Agentes y Skills se retiraron de la interfaz: sus enlaces llevan a la Biblioteca", async ({ page }) => {
   await login(page);
   await page.goto("/biblioteca/agentes");
-  // el inventario del test corre sobre una base limpia sin seed → puede no haber datos;
-  // lo importante es que la página renderiza sin errores y el encabezado del inventario existe
-  await expect(page.getByRole("heading", { level: 1, name: "Agentes" })).toBeVisible();
+  await page.waitForURL("/biblioteca");
+  await expect(page.getByRole("heading", { level: 1, name: "Biblioteca" })).toBeVisible();
   await page.goto("/biblioteca/skills");
-  await expect(page.getByRole("heading", { level: 1, name: "Skills", exact: true })).toBeVisible();
-  await expect(page.getByText("Para no confundirse")).toBeVisible();
+  await page.waitForURL("/biblioteca");
+  await expect(page.getByText("Agentes", { exact: true })).toHaveCount(0);
 });
 
 test("FAB abre menú claro con las 6 acciones", async ({ page }) => {

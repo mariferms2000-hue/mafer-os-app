@@ -296,7 +296,9 @@ test.describe("acceso desde la barra superior (móvil)", () => {
 
   test("la barra inferior sigue con exactamente sus 6 secciones", async ({ page }) => {
     const bottom = page.locator("nav.fixed.bottom-0");
-    await expect(bottom.getByRole("link")).toHaveText(["Hoy", "Inbox", "Proyectos", "Calendario", "Explorar", "Biblioteca"]);
+    // Bloque 2: Tareas vuelve a la barra; Explorar vive dentro de Biblioteca.
+    // (Inbox puede llevar su contador: se compara el inicio de cada etiqueta.)
+    await expect(bottom.getByRole("link")).toHaveText([/^Hoy/, /Inbox$/, /^Tareas/, /^Proyectos/, /^Calendario/, /^Biblioteca/]);
     await expect(bottom.locator('a[href="/sueno"]')).toHaveCount(0);
   });
 

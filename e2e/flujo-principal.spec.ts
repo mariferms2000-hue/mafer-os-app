@@ -138,44 +138,49 @@ test("drag & drop de tarjeta entre listas persiste", async ({ page }) => {
   await expect(page.getByTestId("column-proceso").getByText("Tarjeta arrastrable")).toBeVisible();
 });
 
-test("elegir una prioridad del día en Hoy", async ({ page }) => {
+test("destacar una tarea hoy: aparece en «Destacadas hoy»", async ({ page }) => {
   await login(page);
-  await page.getByTestId("pick-priority").click();
-  await page.getByTestId("priority-candidates").getByText("Comprar regalo para mamá").first().click();
-  await expect(page.locator("ol").getByText("Comprar regalo para mamá").first()).toBeVisible();
-  await shot(page, "06-hoy-con-prioridad");
+  // Sin destacadas, Hoy no muestra espacios vacíos que llenar (Bloque 2).
+  await expect(page.getByTestId("highlights")).toHaveCount(0);
+  await page.goto("/tareas?v=todas");
+  await page.getByTestId("task-groups").getByText("Comprar regalo para mamá").first().click();
+  await page.getByTestId("mark-priority").click();
+  await expect(page.getByText("Destacada para hoy ✓")).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByTestId("highlights").getByText("Comprar regalo para mamá").first()).toBeVisible();
+  await shot(page, "06-hoy-con-destacada");
 });
 
 test("journal: crear, escribir y guardar", async ({ page }) => {
   await login(page);
-  await page.goto("/explorar/journal");
+  await page.goto("/biblioteca/journal");
   await page.getByTestId("new-journal-input").fill("Mi primera reflexión");
   await page.getByTestId("new-journal-save").click();
-  await page.waitForURL(/\/explorar\/journal\/.+/);
+  await page.waitForURL(/\/biblioteca\/journal\/.+/);
   await page.getByTestId("journal-body").fill("Hoy construí mi sistema operativo personal.");
   await page.getByTestId("journal-save").click();
   await expect(page.getByText("Guardado")).toBeVisible();
-  await page.goto("/explorar/journal");
+  await page.goto("/biblioteca/journal");
   await expect(page.getByTestId("journal-list").getByText("Mi primera reflexión")).toBeVisible();
   await shot(page, "07-journal");
 });
 
 test("learn fast: crear tema y editarlo", async ({ page }) => {
   await login(page);
-  await page.goto("/explorar/learn-fast");
+  await page.goto("/biblioteca/ideas/learn-fast");
   await page.getByTestId("new-learning-input").fill("Storytelling E2E");
   await page.getByTestId("new-learning-save").click();
-  await page.waitForURL(/\/explorar\/learn-fast\/.+/);
+  await page.waitForURL(/\/biblioteca\/ideas\/learn-fast\/.+/);
   await page.getByLabel("¿Por qué me importa?").fill("Para vender sin sentirme vendedora.");
   await page.getByLabel("Estado").selectOption("activo");
   await page.getByTestId("learning-save").click();
-  await page.goto("/explorar/learn-fast");
+  await page.goto("/biblioteca/ideas/learn-fast");
   await expect(page.getByText("Storytelling E2E")).toBeVisible();
 });
 
 test("incubadora: crear idea", async ({ page }) => {
   await login(page);
-  await page.goto("/explorar");
+  await page.goto("/biblioteca/ideas");
   await page.getByTestId("new-idea-input").fill("Idea incubada de prueba");
   await page.getByTestId("new-idea-save").click();
   await expect(page.getByTestId("idea-list").getByText("Idea incubada de prueba")).toBeVisible();
@@ -196,15 +201,22 @@ test("prompts: crear y copiar al portapapeles", async ({ page }) => {
   expect(clip).toBe("Contenido del prompt de prueba");
 });
 
-test("recomendador de IA responde con reglas", async ({ page }) => {
+test("biblioteca: portada con sus cinco espacios; IA, Agentes y Skills retirados", async ({ page }) => {
   await login(page);
   await page.goto("/biblioteca");
-  await page.getByTestId("recommender-input").fill("Necesito diseñar un carrusel para MACA");
-  await page.getByTestId("recommender-go").click();
-  const result = page.getByTestId("recommender-result");
-  await expect(result).toContainText("Canva");
-  await expect(result).toContainText("/maca-crear-contenido");
-  await shot(page, "08-recomendador");
+  for (const id of ["space-ideas", "space-journal", "space-prompts", "space-recursos", "space-jardin"]) {
+    await expect(page.getByTestId(id)).toBeVisible();
+  }
+  await expect(page.getByText("Mi sistema de IA")).toHaveCount(0);
+  await page.getByTestId("space-ideas").click();
+  await page.waitForURL("/biblioteca/ideas");
+  await expect(page.getByRole("navigation", { name: "Espacios de Ideas" }).getByRole("link")).toHaveText(["Incubadora", "Learn Fast"]);
+  // Los enlaces viejos siguen funcionando
+  await page.goto("/biblioteca/agentes");
+  await page.waitForURL("/biblioteca");
+  await page.goto("/explorar/journal");
+  await page.waitForURL("/biblioteca/journal");
+  await shot(page, "08-biblioteca");
 });
 
 test("calendario: crear evento y verlo en la vista", async ({ page }) => {

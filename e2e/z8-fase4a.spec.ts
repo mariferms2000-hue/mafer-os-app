@@ -43,11 +43,12 @@ async function crear(page: Page, titulo: string, opts?: { date?: string; dur?: s
   await expect(page.getByTestId("task-groups").getByText(titulo, { exact: true })).toBeVisible();
 }
 
-test("«Haz ahora» es la vista inicial: una sola lista sin bosque de chips", async ({ page }) => {
+test("«Todas» es la vista inicial: una sola lista sin bosque de chips", async ({ page }) => {
   await login(page);
   await page.goto("/tareas");
-  // vista por defecto
-  await expect(page.getByTestId("view-ahora")).toHaveAttribute("aria-pressed", "true");
+  // vista por defecto (Bloque 2: «Todas»; «Haz ahora» pasó a «Más vistas»)
+  await expect(page.getByTestId("view-todas")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-testid^="view-"]')).toHaveText(["Todas", "Próximas", "Esperando", "Bloqueadas", "Terminadas"]);
   // encabezado simple: buscador + Filtrar + Agrupar + Nueva tarea
   await expect(page.getByPlaceholder("Buscar tareas…")).toBeVisible();
   await expect(page.getByTestId("open-filters")).toContainText("Filtrar");
@@ -75,11 +76,18 @@ test("las cinco vistas responden y muestran lo suyo", async ({ page }, info) => 
   await crear(page, deHoy, { date: hoy });
 
   await page.goto("/tareas");
-  await page.getByTestId("view-hoy").click();
+  await page.getByTestId("view-proximas").click();
+  await expect(page).toHaveURL(/v=proximas/);
+  await expect(page.getByTestId("task-groups").getByText(deHoy, { exact: true })).toBeVisible();
+  await expect(page.getByTestId("task-groups").getByText(corta, { exact: true })).toHaveCount(0); // sin fecha
+
+  await page.getByTestId("more-views").click();
+  await page.getByTestId("moreview-hoy").click();
   await expect(page).toHaveURL(/v=hoy/);
   await expect(page.getByTestId("task-groups").getByText(deHoy, { exact: true })).toBeVisible();
 
-  await page.getByTestId("view-rapidas").click();
+  await page.getByTestId("more-views").click();
+  await page.getByTestId("moreview-rapidas").click();
   await expect(page).toHaveURL(/v=rapidas/);
   await expect(page.getByTestId("task-groups").getByText(corta, { exact: true })).toBeVisible();
   await expect(page.getByTestId("task-groups").getByText(esperando, { exact: true })).toHaveCount(0);
@@ -89,13 +97,10 @@ test("las cinco vistas responden y muestran lo suyo", async ({ page }, info) => 
   await expect(page.getByTestId("task-groups").getByText(esperando, { exact: true })).toBeVisible();
 
   await page.getByTestId("view-todas").click();
-  await expect(page).toHaveURL(/v=todas/);
+  await expect(page).not.toHaveURL(/v=/); // «Todas» es la vista por defecto: URL limpia
   for (const titulo of [esperando, corta, deHoy]) {
     await expect(page.getByTestId("task-groups").getByText(titulo, { exact: true })).toBeVisible();
   }
-
-  await page.getByTestId("view-ahora").click();
-  await expect(page).not.toHaveURL(/v=/);
 });
 
 test("Filtrar: abrir, cancelar, aplicar, combinar, contador y resumen compacto", async ({ page }, info) => {
@@ -172,8 +177,10 @@ test("búsqueda + filtros + agrupación persisten al abrir una tarea, volver y r
   await page.getByTestId("open-filters").click();
   await page.getByTestId("flt-en").selectOption("low");
   await page.getByTestId("apply-filters").click();
+  await expect(page).toHaveURL(/en=low/); // cada cambio termina de navegar antes del siguiente
   await page.getByTestId("open-group").click();
   await page.getByTestId("group-proyecto").click();
+  await expect(page).toHaveURL(/agrupar=proyecto/);
 
   await expect(page.getByTestId("task-groups").getByText(ligera, { exact: true })).toBeVisible();
 
@@ -197,26 +204,29 @@ test("búsqueda + filtros + agrupación persisten al abrir una tarea, volver y r
   await expect(page.getByTestId("task-groups").getByText(ligera, { exact: true })).toBeVisible();
 });
 
-test("Más vistas: terminadas discreta y favoritas junto a las principales", async ({ page }) => {
+test("Más vistas: Terminadas es principal; «Con recordatorio» y favoritas desde Más vistas", async ({ page }) => {
   await login(page);
   await page.goto("/tareas");
 
-  // Terminadas vive dentro de Más vistas, no como vista principal permanente
-  await expect(page.getByTestId("view-terminadas")).toHaveCount(0);
-  await page.getByTestId("more-views").click();
-  await page.getByTestId("moreview-terminadas").click();
+  // Bloque 2: Terminadas pasa a ser vista principal
+  await page.getByTestId("view-terminadas").click();
   await expect(page).toHaveURL(/v=terminadas/);
+
+  // «Con recordatorio» vive en Más vistas
+  await page.getByTestId("more-views").click();
+  await page.getByTestId("moreview-recordatorio").click();
+  await expect(page).toHaveURL(/v=recordatorio/);
 
   // marcar una favorita → aparece junto a las cinco principales
   await page.getByTestId("more-views").click();
-  await page.getByTestId("fav-bloqueadas").click();
-  await page.getByTestId("moreview-bloqueadas").click();
-  await expect(page).toHaveURL(/v=bloqueadas/);
+  await page.getByTestId("fav-ahora").click();
+  await page.getByTestId("moreview-ahora").click();
+  await expect(page).toHaveURL(/v=ahora/);
   await page.reload();
-  await expect(page.getByTestId("view-bloqueadas")).toBeVisible(); // favorita persistida
+  await expect(page.getByTestId("view-ahora")).toBeVisible(); // favorita persistida
   // quitarla para dejar el entorno limpio
   await page.getByTestId("more-views").click();
-  await page.getByTestId("fav-bloqueadas").click();
+  await page.getByTestId("fav-ahora").click();
 });
 
 test("modo oscuro: la página Tareas mantiene contraste", async ({ page }) => {
@@ -225,7 +235,7 @@ test("modo oscuro: la página Tareas mantiene contraste", async ({ page }) => {
   await page.getByTestId("theme-dark").click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.goto("/tareas");
-  await expect(page.getByTestId("view-ahora")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("view-todas")).toHaveAttribute("aria-pressed", "true");
   await page.getByTestId("open-filters").click();
   await expect(page.getByTestId("filters-panel")).toBeVisible();
   await shot(page, "06-tareas-oscuro");

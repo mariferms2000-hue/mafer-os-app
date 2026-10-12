@@ -8,7 +8,15 @@ import { PASSWORD } from "./lib/credentials";
  *  dos cuando una sesión completa una planta (cierre + excedente), y sesiones
  *  «antiguas» que permanecen honestamente sin planta asociada. */
 
-const SPECIES = ["helecho", "monstera", "suculenta", "lavanda", "olivo"];
+// Las plantas nacen bajo el motor v2 (7F): 12 especies y renderer_version 2.
+const SPECIES = [
+  "helecho", "monstera", "suculenta", "lavanda", "olivo", "bambu",
+  "cactus", "potos", "sansevieria", "pilea", "palmera", "eucalipto",
+];
+// visual_seed es int4 de Postgres: la semilla uint32 se guarda con sus mismos 32
+// bits leídos con signo (seedForStorage), así que puede ser negativa.
+const INT4_MIN = -2147483648;
+const INT4_MAX = 2147483647;
 
 test.describe.configure({ mode: "serial" });
 
@@ -92,9 +100,10 @@ test("una sesión nueva queda asignada a la planta correcta; la planta tiene ide
 
   const plant = await activePlant();
   expect(SPECIES).toContain(plant.species);
-  expect(plant.renderer_version).toBe(1);
+  expect(plant.renderer_version).toBe(2);
   expect(Number.isInteger(plant.visual_seed)).toBe(true);
-  expect(plant.visual_seed).toBeGreaterThanOrEqual(0);
+  expect(plant.visual_seed).toBeGreaterThanOrEqual(INT4_MIN);
+  expect(plant.visual_seed).toBeLessThanOrEqual(INT4_MAX);
   expect(plant.name).toBeNull();
   expect(plant.note).toBeNull();
 
@@ -145,7 +154,7 @@ test("una sesión que completa la planta conserva ambas contribuciones: cierre +
   expect(seedling.id).not.toBe(oldPlant.id);
   expect(seedling.accumulated_minutes).toBe(15);
   expect(SPECIES).toContain(seedling.species);
-  expect(seedling.renderer_version).toBe(1);
+  expect(seedling.renderer_version).toBe(2);
   expect(Number.isInteger(seedling.visual_seed)).toBe(true);
 
   // dos asignaciones: 10 a la planta cerrada + 15 a la nueva == 25 acreditados
@@ -186,18 +195,19 @@ test("una sesión antigua (pre-migración) permanece sin planta asociada; nada s
 test("invariante global y datos intactos: suma de asignaciones == credited_minutes; nada más cambió", async () => {
   // toda sesión cerrada por el motor nuevo cuadra exacto (la legada queda excluida por diseño)
   const mismatches = await q<{ id: string; credited: number; allocated: number }>(
-    `SELECT s.id, s.credited_minutes AS credited, COALESCE(SUM(a.credited_minutes), 0) AS allocated
+    // Postgres: HAVING no admite el alias; SUM() devuelve bigint → ::int para comparar números
+    `SELECT s.id, s.credited_minutes AS credited, COALESCE(SUM(a.credited_minutes), 0)::int AS allocated
      FROM focus_sessions s
      LEFT JOIN focus_session_plant_allocations a ON a.session_id = s.id
      WHERE s.finished_at IS NOT NULL AND s.id != 'sesion-legada-7e2'
      GROUP BY s.id
-     HAVING allocated != s.credited_minutes`
+     HAVING COALESCE(SUM(a.credited_minutes), 0) != s.credited_minutes`
   );
   expect(mismatches).toEqual([]);
 
   // y los minutos de las plantas son exactamente los asignados (para plantas nacidas con el motor nuevo)
   const plants = await q<PlantRow & { allocated: number }>(
-    `SELECT p.*, COALESCE((SELECT SUM(a.credited_minutes) FROM focus_session_plant_allocations a WHERE a.plant_id = p.id), 0) AS allocated
+    `SELECT p.*, COALESCE((SELECT SUM(a.credited_minutes) FROM focus_session_plant_allocations a WHERE a.plant_id = p.id), 0)::int AS allocated
      FROM focus_plants p`
   );
   for (const p of plants) {
