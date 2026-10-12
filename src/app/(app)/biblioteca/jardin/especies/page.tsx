@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
-import { ExplorarTabs } from "@/components/explore/tabs";
 import { PlantArt } from "@/components/focus/plant-art";
 import { STAGES, type StageKey } from "@/lib/focus-logic";
 import type { PlantSpeciesV2 } from "@/lib/plant-render-v2";
+import { BibliotecaBack } from "@/components/library/section-nav";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Catálogo de especies" };
@@ -65,15 +65,15 @@ function SpeciesRow({
 export default function EspeciesPage() {
   return (
     <div>
+      <BibliotecaBack />
       <PageHeader
         title="Catálogo de especies"
         intro="Las especies con ilustración botánica, en sus 5 etapas, dibujadas con el mismo componente que usa la app (Enfoque, Mi jardín, grid y popup). Vista de solo lectura, no depende de tus plantas guardadas."
       >
-        <Link href="/explorar/jardin" className="btn btn-ghost" data-testid="especies-back">
+        <Link href="/biblioteca/jardin" className="btn btn-ghost" data-testid="especies-back">
           <ArrowLeft size={15} aria-hidden /> Volver a Mi jardín
         </Link>
       </PageHeader>
-      <ExplorarTabs />
 
       <section aria-labelledby="especies-chico" className="mt-8">
         <h2 id="especies-chico" className="section-eyebrow mb-3">

@@ -9,8 +9,12 @@ import {
   ALargeSmall,
   FlaskConical,
   Volume2,
+  RotateCcw,
+  LogOut,
 } from "lucide-react";
+import Link from "next/link";
 import { getUserName, getSetting } from "@/lib/auth";
+import { logoutAction } from "@/lib/actions/auth";
 import { googleStatus } from "@/lib/google/calendar";
 import { PageHeader } from "@/components/ui/page-header";
 import { updateNameAction } from "@/lib/actions/settings";
@@ -43,6 +47,8 @@ export default async function AjustesPage() {
   const g = await googleStatus();
   const build = buildInfo();
   const entorno = process.env.NODE_ENV === "production" ? "producción" : "desarrollo";
+  // Respaldo en carpeta y Obsidian escriben en el disco: solo existen en local.
+  const localTools = !process.env.VERCEL;
   const demoCounts = await getDemoCounts();
   const qaTools = await qaToolsEnabled();
   const qaCount = qaTools ? await alertQaCount() : 0;
@@ -70,7 +76,12 @@ export default async function AjustesPage() {
 
       {/* Revisiones */}
       <section className="card p-5 mb-5">
-        <h2 className="section-eyebrow mb-2">Revisiones</h2>
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h2 className="section-eyebrow">Revisiones</h2>
+          <Link href="/revisiones" className="btn btn-secondary !py-1.5 text-xs" data-testid="ajustes-revisiones-link">
+            <RotateCcw size={13} aria-hidden /> Ir a Revisiones
+          </Link>
+        </div>
         <WeeklyReviewDay current={weeklyDay} />
       </section>
 
@@ -148,10 +159,16 @@ export default async function AjustesPage() {
         <ul className="text-sm text-stone mb-4 flex flex-col gap-1">
           <li><strong className="text-charcoal">Descargar JSON:</strong> copia completa para restauración técnica.</li>
           <li><strong className="text-charcoal">Descargar Markdown:</strong> copia legible de todo tu sistema.</li>
-          <li><strong className="text-charcoal">Crear respaldo completo:</strong> guarda una carpeta con fecha en <code className="bg-beige px-1 rounded">backups-and-exports</code> (JSON + Markdown + base de datos).</li>
-          <li><strong className="text-charcoal">Actualizar Obsidian:</strong> lleva la información actual a tu vault local.</li>
+          {localTools ? (
+            <>
+              <li><strong className="text-charcoal">Crear respaldo completo:</strong> guarda una carpeta con fecha en <code className="bg-beige px-1 rounded">backups-and-exports</code> (JSON + Markdown + base de datos).</li>
+              <li><strong className="text-charcoal">Actualizar Obsidian:</strong> lleva la información actual a tu vault local.</li>
+            </>
+          ) : (
+            <li>Además, Supabase guarda respaldos automáticos de la base. El respaldo en carpeta y Obsidian solo están disponibles al usar la app en tu Mac.</li>
+          )}
         </ul>
-        <BackupButtons lastBackup={lastBackup} lastSync={lastSync} />
+        <BackupButtons lastBackup={lastBackup} lastSync={lastSync} localTools={localTools} />
         <details className="mt-4">
           <summary className="text-sm text-forest cursor-pointer underline underline-offset-4">¿Cómo restaurar un respaldo?</summary>
           <ol className="list-decimal ml-5 text-sm text-stone mt-2 flex flex-col gap-1">
@@ -192,6 +209,13 @@ export default async function AjustesPage() {
 
       {/* Herramientas QA — solo existen fuera de producción */}
       {qaTools && <div className="mt-5"><AlertQaPanel initialCount={qaCount} /></div>}
+
+      {/* Salir: en el iPhone no hay barra lateral, así que vive aquí */}
+      <form action={logoutAction} className="mt-5 flex justify-center">
+        <button type="submit" className="btn btn-ghost text-sm" data-testid="ajustes-logout">
+          <LogOut size={15} aria-hidden /> Cerrar sesión
+        </button>
+      </form>
 
       {/* Versión en ejecución — para comprobar de un vistazo que ves lo más reciente */}
       <p className="text-xs text-stone-soft mt-6 text-center" data-testid="version-info">

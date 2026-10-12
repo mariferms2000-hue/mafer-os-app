@@ -6,27 +6,44 @@ import { Suspense, useEffect } from "react";
 import {
   Sun,
   Inbox,
+  CircleCheckBig,
   SquareKanban,
   CalendarDays,
-  Compass,
   LibraryBig,
   Moon,
   Search,
   Settings,
   LogOut,
+  RotateCcw,
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
 import { ThemeQuickToggle } from "./theme";
 import { SidebarPlant } from "@/components/ui/botanical";
 
+/** Las seis secciones principales (Bloque 2). Explorar vive ahora dentro de
+ *  Biblioteca; Buscar, Sueño, Revisiones y Ajustes son herramientas secundarias. */
 const NAV = [
   { href: "/", label: "Hoy", icon: Sun },
   { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/tareas", label: "Tareas", icon: CircleCheckBig },
   { href: "/proyectos", label: "Proyectos", icon: SquareKanban },
   { href: "/calendario", label: "Calendario", icon: CalendarDays },
-  { href: "/explorar", label: "Explorar", icon: Compass },
   { href: "/biblioteca", label: "Biblioteca", icon: LibraryBig },
 ];
+
+/** Contador del Inbox: discreto, tope «99+». */
+function InboxCount({ n, className = "" }: { n: number; className?: string }) {
+  if (n <= 0) return null;
+  return (
+    <span
+      className={`inline-flex min-w-[1.15rem] h-[1.15rem] items-center justify-center rounded-full bg-forest px-1 text-[10px] font-semibold leading-none text-cream tabular-nums ${className}`}
+      aria-label={`${n} sin procesar`}
+      data-testid="inbox-count"
+    >
+      {n > 99 ? "99+" : n}
+    </span>
+  );
+}
 
 function sectionOf(pathname: string): string | null {
   if (pathname === "/") return "/";
@@ -74,7 +91,38 @@ function useSectionMemory() {
   return { pathname, onNavClick };
 }
 
-function SidebarInner() {
+function SecondaryLink({
+  href,
+  icon: Icon,
+  label,
+  pathname,
+  testid,
+  children,
+}: {
+  href: string;
+  icon: typeof Search;
+  label: string;
+  pathname: string;
+  testid?: string;
+  children?: React.ReactNode;
+}) {
+  const active = isActive(pathname, href);
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      data-testid={testid}
+      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
+        active ? "nav-active bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+      }`}
+    >
+      <Icon size={17} aria-hidden /> {label}
+      {children}
+    </Link>
+  );
+}
+
+function SidebarInner({ inboxCount }: { inboxCount: number }) {
   const { pathname, onNavClick } = useSectionMemory();
   return (
     <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-sand sidebar-surface px-4 py-6 sticky top-0 h-dvh">
@@ -102,6 +150,7 @@ function SidebarInner() {
             >
               <Icon size={19} strokeWidth={active ? 2.2 : 1.8} aria-hidden />
               {label}
+              {href === "/inbox" && <InboxCount n={inboxCount} className="ml-auto" />}
             </Link>
           );
         })}
@@ -114,36 +163,15 @@ function SidebarInner() {
           todos los días.
         </p>
       </div>
+      {/* Herramientas secundarias: no son secciones. */}
       <div className="flex flex-col gap-1 pt-5 border-t border-sand">
-        <Link
-          href="/buscar"
-          className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
-            isActive(pathname, "/buscar") ? "nav-active bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
-          }`}
-        >
-          <Search size={17} aria-hidden /> Buscar
+        <SecondaryLink href="/buscar" icon={Search} label="Buscar" pathname={pathname}>
           <kbd className="ml-auto text-[10px] text-stone-soft border border-sand rounded px-1.5 py-0.5">⌘K</kbd>
-        </Link>
-        {/* Herramienta secundaria, no sección: sin parámetros, Sueño recupera la
-            última selección del dispositivo. */}
-        <Link
-          href="/sueno"
-          aria-current={isActive(pathname, "/sueno") ? "page" : undefined}
-          className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
-            isActive(pathname, "/sueno") ? "nav-active bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
-          }`}
-          data-testid="sidebar-sueno-link"
-        >
-          <Moon size={17} aria-hidden /> Sueño
-        </Link>
-        <Link
-          href="/ajustes"
-          className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm ${
-            isActive(pathname, "/ajustes") ? "nav-active bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
-          }`}
-        >
-          <Settings size={17} aria-hidden /> Ajustes
-        </Link>
+        </SecondaryLink>
+        <SecondaryLink href="/revisiones" icon={RotateCcw} label="Revisiones" pathname={pathname} testid="sidebar-revisiones-link" />
+        {/* Sin parámetros, Sueño recupera la última selección del dispositivo. */}
+        <SecondaryLink href="/sueno" icon={Moon} label="Sueño" pathname={pathname} testid="sidebar-sueno-link" />
+        <SecondaryLink href="/ajustes" icon={Settings} label="Ajustes" pathname={pathname} />
         <form action={logoutAction}>
           <button type="submit" className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-stone hover:bg-beige">
             <LogOut size={17} aria-hidden /> Salir
@@ -154,7 +182,7 @@ function SidebarInner() {
   );
 }
 
-function BottomNavInner() {
+function BottomNavInner({ inboxCount }: { inboxCount: number }) {
   const { pathname, onNavClick } = useSectionMemory();
   return (
     <nav
@@ -174,8 +202,9 @@ function BottomNavInner() {
                 active ? "text-forest-deep" : "text-stone-soft"
               }`}
             >
-              <span className={`rounded-full px-3 py-1 ${active ? "bg-sage-soft" : ""}`}>
+              <span className={`relative rounded-full px-3 py-1 ${active ? "bg-sage-soft" : ""}`}>
                 <Icon size={20} strokeWidth={active ? 2.2 : 1.8} aria-hidden />
+                {href === "/inbox" && <InboxCount n={inboxCount} className="absolute -top-1 right-0.5" />}
               </span>
               {label}
             </Link>
@@ -186,14 +215,43 @@ function BottomNavInner() {
   );
 }
 
-/** usePathname() no necesita Suspense (a diferencia de useSearchParams(), que
+function TopBarIcon({
+  href,
+  label,
+  icon: Icon,
+  pathname,
+  testid,
+}: {
+  href: string;
+  label: string;
+  icon: typeof Search;
+  pathname: string;
+  testid: string;
+}) {
+  const active = isActive(pathname, href);
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      data-testid={testid}
+      className={`flex items-center justify-center h-9 w-9 rounded-full ${
+        active ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
+      }`}
+    >
+      <Icon size={19} aria-hidden />
+    </Link>
+  );
+}
+
+/** Barra superior del iPhone: tres accesos fijos (Buscar, Sueño, Ajustes).
+ *  Revisiones y Salir viven en Ajustes para no saturarla.
+ *  usePathname() no necesita Suspense (a diferencia de useSearchParams(), que
  *  sí usan Sidebar/BottomNav vía useSectionMemory) — se renderiza directo,
  *  sin boundary, para que nunca dependa de un fallback que pueda quedarse
  *  en null. */
 export function MobileTopBar() {
   const pathname = usePathname();
-  const active = isActive(pathname, "/ajustes");
-  const sleepActive = isActive(pathname, "/sueno");
   return (
     <header className="md:hidden fixed top-0 inset-x-0 z-50 sidebar-surface backdrop-blur border-b border-sand pt-safe">
       <div className="flex items-center justify-between px-4 py-2.5">
@@ -202,46 +260,27 @@ export function MobileTopBar() {
           <span className="font-display text-base text-forest-deep">Mafer OS</span>
         </Link>
         <div className="flex items-center gap-1">
-          <Link
-            href="/sueno"
-            aria-label="Sueño"
-            aria-current={sleepActive ? "page" : undefined}
-            data-testid="mobile-sueno-link"
-            className={`flex items-center justify-center h-9 w-9 rounded-full ${
-              sleepActive ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
-            }`}
-          >
-            <Moon size={19} aria-hidden />
-          </Link>
-          <Link
-            href="/ajustes"
-            aria-label="Ajustes"
-            aria-current={active ? "page" : undefined}
-            data-testid="mobile-settings-link"
-            className={`flex items-center justify-center h-9 w-9 rounded-full ${
-              active ? "bg-sage-soft text-forest-deep" : "text-stone hover:bg-beige"
-            }`}
-          >
-            <Settings size={19} aria-hidden />
-          </Link>
+          <TopBarIcon href="/buscar" label="Buscar" icon={Search} pathname={pathname} testid="mobile-search-link" />
+          <TopBarIcon href="/sueno" label="Sueño" icon={Moon} pathname={pathname} testid="mobile-sueno-link" />
+          <TopBarIcon href="/ajustes" label="Ajustes" icon={Settings} pathname={pathname} testid="mobile-settings-link" />
         </div>
       </div>
     </header>
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ inboxCount = 0 }: { inboxCount?: number }) {
   return (
     <Suspense fallback={null}>
-      <SidebarInner />
+      <SidebarInner inboxCount={inboxCount} />
     </Suspense>
   );
 }
 
-export function BottomNav() {
+export function BottomNav({ inboxCount = 0 }: { inboxCount?: number }) {
   return (
     <Suspense fallback={null}>
-      <BottomNavInner />
+      <BottomNavInner inboxCount={inboxCount} />
     </Suspense>
   );
 }

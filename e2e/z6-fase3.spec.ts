@@ -55,23 +55,26 @@ test("«Haz esto ahora» muestra una sola recomendación con sus razones", async
   await expect(page.getByTestId("do-now-reasons")).toContainText("Porque");
 });
 
-test("la prioridad #1 manual manda, y «La terminé» la completa desde ahí", async ({ page }, info) => {
+test("la tarea destacada manda, y «La terminé» la completa desde ahí", async ({ page }, info) => {
   const titulo = t(info, "Prioridad absoluta");
   await login(page);
   await crearClasificada(page, titulo, { skip: true });
 
   await page.goto("/");
-  // deja las prioridades en cero (suites anteriores pudieron dejar alguna) para que la nueva sea la #1
+  // deja las destacadas en cero (suites anteriores pudieron dejar alguna) para que la nueva sea la primera
   const quitar = page.getByRole("button", { name: /^Quitar «/ });
   for (let n = await quitar.count(); n > 0; n--) {
     await quitar.first().click();
     await expect(quitar).toHaveCount(n - 1);
   }
-  await page.getByTestId("pick-priority").click();
-  await page.getByTestId("priority-candidates").getByText(titulo, { exact: true }).click();
+  await page.goto("/tareas?v=todas");
+  await page.getByTestId("task-groups").getByText(titulo, { exact: true }).click();
+  await page.getByTestId("mark-priority").click();
+  await expect(page.getByText("Destacada para hoy ✓")).toBeVisible();
+  await page.goto("/");
 
   await expect(page.getByTestId("do-now-title")).toContainText(titulo);
-  await expect(page.getByTestId("do-now-reasons")).toContainText("prioridad #1");
+  await expect(page.getByTestId("do-now-reasons")).toContainText("la destacaste hoy");
   await shot(page, "02-haz-esto-ahora", page.getByTestId("do-now"));
 
   // completar directo desde la recomendación
@@ -112,31 +115,31 @@ test("«Otra sugerencia» rota entre candidatas y abrir lleva al detalle", async
   await page.getByTestId("card-cancel").click();
 });
 
-test("alertas antiolvido: vencida, proyecto sin siguiente acción y tarea de hoy sin estimar", async ({ page }, info) => {
+test("«Para que nada se caiga»: vencida y proyecto sin siguiente acción, y se resuelven con un toque", async ({ page }, info) => {
   const vencida = t(info, "Renovar el seguro del coche");
   const ayer = new Date(Date.now() - 86_400_000).toLocaleDateString("en-CA");
   await login(page);
   await crearClasificada(page, vencida, { date: ayer, skip: true });
 
   await page.goto("/");
-  const alerts = page.getByTestId("forget-alerts");
-  await expect(alerts).toBeVisible();
+  const keep = page.getByTestId("keep-up");
+  await expect(keep).toBeVisible();
 
-  // vencida: la más urgente, va primero y enlaza a la acción
-  const alertaVencida = page.getByTestId("alert-tarea-vencida");
-  await expect(alertaVencida).toBeVisible();
-  await expect(alertaVencida).toContainText(/venció|vencidas/);
+  // vencida: en su grupo, con «venció ayer»
+  const fila = page.getByTestId("keepup-overdue").getByTestId("keepup-task").filter({ hasText: vencida });
+  await expect(fila).toBeVisible();
+  await expect(fila).toContainText("venció ayer");
 
   // proyecto activo sin siguiente acción (los de las suites anteriores no la tienen)
-  await expect(page.getByTestId("alert-proyecto-sin-accion").first()).toContainText("no tiene siguiente acción");
+  await expect(page.getByTestId("keepup-projects")).toContainText("sin siguiente acción");
 
-  // tarea de hoy sin duración o energía (la vencida de ayer no cuenta; las de hoy sí)
-  await expect(page.getByTestId("alert-hoy-sin-estimar")).toBeVisible();
-  await shot(page, "03-alertas", alerts);
+  // Bloque 2: ya no hay avisos para clasificar (duración/energía) en Hoy
+  await expect(keep.getByText(/sin duración o energía|no tiene duración/)).toHaveCount(0);
+  await shot(page, "03-alertas", keep);
   await shot(page, "01-hoy-completa");
 
-  // la alerta lleva a la acción con un clic
-  await alertaVencida.click();
+  // un toque abre la tarea
+  await fila.click();
   await expect(page.getByTestId("card-detail")).toBeVisible();
   await expect(page.getByTestId("card-title-input")).toHaveValue(vencida);
   // resolverla aquí mismo: quitarle la fecha y guardar
@@ -144,7 +147,7 @@ test("alertas antiolvido: vencida, proyecto sin siguiente acción y tarea de hoy
   await page.getByTestId("card-save").click();
   await expect(page.getByText("Tarea actualizada ✓").first()).toBeVisible();
   await page.goto("/");
-  await expect(page.getByTestId("alert-tarea-vencida")).toHaveCount(0);
+  await expect(page.getByTestId("keep-up").getByText(vencida, { exact: true })).toHaveCount(0);
 });
 
 test("la recomendación nunca es una tarea bloqueada o en espera", async ({ page }, info) => {

@@ -12,11 +12,11 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const [entry] = await db.select().from(schema.journalEntries).where(eq(schema.journalEntries.id, id)).limit(1);
   if (!entry) notFound();
-  await touchRecent("journal", id, entry.title, `/explorar/journal/${id}`);
+  await touchRecent("journal", id, entry.title, `/biblioteca/journal/${id}`);
 
   return (
     <div className="max-w-3xl">
-      <Link href="/explorar/journal" className="text-sm text-stone hover:text-charcoal inline-flex items-center gap-1 mb-4">
+      <Link href="/biblioteca/journal" className="text-sm text-stone hover:text-charcoal inline-flex items-center gap-1 mb-4">
         <ArrowLeft size={14} aria-hidden /> Journal
       </Link>
       <JournalEditor entry={entry} />

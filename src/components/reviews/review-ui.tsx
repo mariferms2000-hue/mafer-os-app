@@ -141,7 +141,8 @@ export function ReviewShell({
         <span className="text-xs text-stone tabular-nums" data-testid="review-step-label">
           Paso {paso} de {total} · {titulos[paso - 1]}
         </span>
-        <Link href="/" className="ml-auto text-xs text-stone hover:text-forest underline underline-offset-4" data-testid="review-exit">
+        {/* Bloque 2: Hoy ya no muestra el aviso de Revisiones; «Continuar» vive en el centro. */}
+        <Link href="/revisiones" className="ml-auto text-xs text-stone hover:text-forest underline underline-offset-4" data-testid="review-exit">
           <DoorOpen size={12} className="inline mr-0.5" aria-hidden /> Salir y continuar después
         </Link>
       </div>
@@ -404,7 +405,7 @@ export function ReviewLearnRow({
       <p className="text-sm font-medium flex items-center gap-1.5"><Rocket size={13} className="text-olive" aria-hidden /> {title}</p>
       <p className="text-xs text-stone mt-0.5">{note}</p>
       <div className="flex flex-wrap gap-1.5 mt-1.5">
-        <Link href={`/explorar/learn-fast/${id}`} className="btn btn-secondary !py-1 !px-2 text-xs" data-testid="rl-abrir">
+        <Link href={`/biblioteca/ideas/learn-fast/${id}`} className="btn btn-secondary !py-1 !px-2 text-xs" data-testid="rl-abrir">
           <ArrowRight size={12} aria-hidden /> {status === "pausado" ? "Continuar" : "Definir siguiente paso"}
         </Link>
         {status === "activo" ? (

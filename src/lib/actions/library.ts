@@ -23,7 +23,7 @@ export async function createResourceAction(formData: FormData) {
     createdAt: now(),
   });
   revalidatePath("/biblioteca/recursos");
-  revalidatePath("/explorar/learn-fast");
+  revalidatePath("/biblioteca/ideas/learn-fast");
 }
 
 export async function updateResourceStatusAction(id: string, status: string) {

@@ -16,7 +16,7 @@ import {
   type FocusState,
   type PresetKey,
 } from "@/lib/focus-logic";
-import { newPlantIdentityV2 } from "@/lib/plant-render-v2";
+import { newPlantIdentityV2, seedForStorage } from "@/lib/plant-render-v2";
 
 /* Server actions de Focus Garden — Fase 7B (motor sin interfaz).
    Regla de una sola sesión: si ya hay una abierta, empezar devuelve esa.
@@ -61,7 +61,7 @@ function newbornPlant(accumulatedMinutes: number) {
   return {
     id,
     species: identity.species,
-    visualSeed: identity.visualSeed,
+    visualSeed: seedForStorage(identity.visualSeed), // int4 de Postgres: ver seedForStorage
     rendererVersion: identity.rendererVersion,
     accumulatedMinutes,
     name: null,
@@ -140,12 +140,23 @@ export async function startFocusAction(input: {
     breakMin = p.breakMin;
   }
 
+  // Solo se vincula una tarea que existe y sigue abierta (el id puede venir de la URL).
+  let cardId: string | null = null;
+  if (input.cardId) {
+    const [card] = await db
+      .select({ id: schema.cards.id, completedAt: schema.cards.completedAt, archived: schema.cards.archived })
+      .from(schema.cards)
+      .where(eq(schema.cards.id, input.cardId))
+      .limit(1);
+    if (card && !card.completedAt && !card.archived) cardId = card.id;
+  }
+
   const nowIso = now();
   const s = initialState(focusMin, breakMin, nowIso);
   const id = uid();
   await db.insert(schema.focusSessions).values({
     id,
-    cardId: input.cardId ?? null,
+    cardId,
     preset: input.preset,
     plannedFocusMin: focusMin,
     plannedBreakMin: breakMin,

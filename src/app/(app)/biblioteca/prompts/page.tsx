@@ -4,9 +4,9 @@ import { ScrollText, Star, Plus } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { BibliotecaTabs } from "@/components/library/tabs";
 import { PromptCard } from "@/components/library/prompt-card";
 import { createPromptAction } from "@/lib/actions/library";
+import { BibliotecaBack } from "@/components/library/section-nav";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Prompts maestros" };
@@ -36,12 +36,12 @@ export default async function PromptsPage({
 
   return (
     <div>
+      <BibliotecaBack />
       <PageHeader
         icon={ScrollText}
         title="Prompts maestros"
         intro="Tu biblioteca de prompts probados: copia, versiona, duplica y exporta."
       />
-      <BibliotecaTabs />
 
       <details className="card mb-6">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-forest flex items-center gap-2">

@@ -428,10 +428,10 @@ test("convertir captura en tarea ofrece abrirla al momento", async ({ page }, in
   await item.getByTestId("inbox-process").click();
   await page.getByTestId("type-tarea").click();
   await page.getByTestId("process-submit").click();
-  // tras convertir aparece la clasificación opcional, con acceso directo a la tarea
-  await expect(page.getByTestId("classify-step")).toBeVisible();
-  await expect(page.getByText("Convertida en tarea ✓")).toBeVisible();
-  await page.getByTestId("classify-open-task").click();
+  // Bloque 2: sin clasificación obligatoria; el toast ofrece abrir la tarea al momento
+  await expect(page.getByTestId("classify-step")).toHaveCount(0);
+  await expect(page.getByText("Convertido en tarea ✓")).toBeVisible();
+  await page.getByRole("link", { name: "Abrir", exact: true }).click();
   await expect(page.getByTestId("card-detail")).toBeVisible();
   await expect(page.getByTestId("card-title-input")).toHaveValue(texto);
 });

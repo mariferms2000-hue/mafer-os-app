@@ -41,112 +41,124 @@ async function limpiarPrioridades(page: Page) {
   }
 }
 
-test("elegir prioridad desde Hoy: feedback, visible al instante y persiste", async ({ page }, info) => {
+/* Bloque 2: «Prioridad de hoy» pasa a «Destacar hoy». Sin espacios vacíos en
+ * Hoy: el bloque «Destacadas hoy» solo aparece si hay alguna. Se conservan el
+ * máximo de tres, el selector de sustitución y Deshacer. */
+
+async function destacarDesdeDetalle(page: Page, titulo: string) {
+  await page.goto("/tareas?v=todas");
+  await page.getByTestId("task-open").filter({ hasText: titulo }).first().click();
+  await page.getByTestId("mark-priority").click();
+}
+
+test("destacar desde el detalle: feedback, visible en Hoy al instante y persiste", async ({ page }, info) => {
   const titulo = t(info, "Prioridad desde Hoy");
   await login(page);
   await crearTarea(page, titulo);
   await limpiarPrioridades(page);
+  await expect(page.getByTestId("highlights")).toHaveCount(0); // sin espacios vacíos
 
-  await page.getByTestId("pick-priority").click();
-  await page.getByTestId("priority-candidates").getByText(titulo, { exact: true }).click();
-  await expect(page.getByText("Añadida a tus prioridades de hoy ✓").first()).toBeVisible();
-  await expect(page.locator("ol").getByText(titulo, { exact: true })).toBeVisible();
-  await shot(page, "01-prioridad-asignada");
+  await destacarDesdeDetalle(page, titulo);
+  await expect(page.getByText("Destacada para hoy ✓").first()).toBeVisible();
+  await page.getByTestId("card-cancel").click();
+  await page.goto("/");
+  await expect(page.getByTestId("highlights").getByText(titulo, { exact: true })).toBeVisible();
+  await shot(page, "01-prioridad-asignada", page.getByTestId("highlights"));
 
   await page.reload();
-  await expect(page.locator("ol").getByText(titulo, { exact: true })).toBeVisible();
+  await expect(page.getByTestId("highlights").getByText(titulo, { exact: true })).toBeVisible();
 });
 
-test("marcar desde el detalle: añadida, y duplicado avisa «Ya está»", async ({ page }, info) => {
+test("destacar dos veces la misma: avisa «Ya está» y no duplica", async ({ page }, info) => {
   const titulo = t(info, "Prioridad desde detalle");
   await login(page);
   await crearTarea(page, titulo);
-  await page.getByTestId("task-open").filter({ hasText: titulo }).first().click();
-  await page.getByTestId("mark-priority").click();
-  await expect(page.getByText("Añadida a tus prioridades de hoy ✓").first()).toBeVisible();
+  await destacarDesdeDetalle(page, titulo);
+  await expect(page.getByText("Destacada para hoy ✓").first()).toBeVisible();
   // segundo intento: sin duplicar, con aviso claro
   await page.getByTestId("mark-priority").click();
-  await expect(page.getByText("Ya está en tus prioridades de hoy.").first()).toBeVisible();
+  await expect(page.getByText("Ya está destacada hoy.").first()).toBeVisible();
   await page.getByTestId("card-cancel").click();
-  // no hay duplicados en Hoy
   await page.goto("/");
-  await expect(page.locator("ol").getByText(titulo, { exact: true })).toHaveCount(1);
+  await expect(page.getByTestId("highlights").getByText(titulo, { exact: true })).toHaveCount(1);
 });
 
-test("tres espacios llenos: selector de reemplazo, nunca en silencio", async ({ page }, info) => {
+test("con tres destacadas: selector de sustitución, nunca en silencio", async ({ page }, info) => {
   const tercera = t(info, "Tercera prioridad");
   const cuarta = t(info, "Cuarta que pide espacio");
   await login(page);
   await crearTarea(page, tercera);
   await crearTarea(page, cuarta);
 
-  // llenar el tercer espacio (los otros dos vienen de las pruebas anteriores)
-  await page.goto("/");
-  await page.getByTestId("pick-priority").click();
-  await page.getByTestId("priority-candidates").getByText(tercera, { exact: true }).click();
-  await expect(page.getByText("Añadida a tus prioridades de hoy ✓").first()).toBeVisible();
+  // la tercera (las otras dos vienen de las pruebas anteriores)
+  await destacarDesdeDetalle(page, tercera);
+  await expect(page.getByText("Destacada para hoy ✓").first()).toBeVisible();
+  await page.getByTestId("card-cancel").click();
 
-  // la cuarta desde su detalle → los tres están llenos → selector
-  await page.goto("/tareas?v=todas");
-  await page.getByTestId("task-open").filter({ hasText: cuarta }).first().click();
-  await page.getByTestId("mark-priority").click();
+  // la cuarta → ya hay tres → selector
+  await destacarDesdeDetalle(page, cuarta);
   const dialog = page.getByTestId("priority-replace-dialog");
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Ya tienes 3 destacadas hoy")).toBeVisible();
   await expect(dialog.getByText(tercera)).toBeVisible();
   await shot(page, "02-selector-reemplazo");
 
   await dialog.getByText(tercera).click();
-  await expect(page.getByText(/Prioridad reemplazada/).first()).toBeVisible();
+  await expect(page.getByText(/Destacada en lugar de/).first()).toBeVisible();
   await page.getByTestId("card-cancel").click();
   await page.goto("/");
-  await expect(page.locator("ol").getByText(cuarta, { exact: true })).toBeVisible();
-  await expect(page.locator("ol").getByText(tercera, { exact: true })).toHaveCount(0);
+  const destacadas = page.getByTestId("highlights");
+  await expect(destacadas.getByText(cuarta, { exact: true })).toBeVisible();
+  await expect(destacadas.getByText(tercera, { exact: true })).toHaveCount(0);
 
-  // Deshacer del reemplazo restaura la anterior — lo probamos con el flujo inverso explícito
-  await page.goto("/tareas?v=todas");
-  await page.getByTestId("task-open").filter({ hasText: tercera }).first().click();
-  await page.getByTestId("mark-priority").click();
+  // Deshacer la sustitución restaura la anterior
+  await destacarDesdeDetalle(page, tercera);
   await expect(page.getByTestId("priority-replace-dialog")).toBeVisible();
   await page.getByTestId("priority-replace-dialog").getByText(cuarta).click();
-  await expect(page.getByText(/Prioridad reemplazada/).first()).toBeVisible();
+  await expect(page.getByText(/Destacada en lugar de/).first()).toBeVisible();
   await page.getByRole("button", { name: "Deshacer" }).first().click();
   await page.getByTestId("card-cancel").click();
   await page.goto("/");
-  await expect(page.locator("ol").getByText(cuarta, { exact: true })).toBeVisible();
+  await expect(page.getByTestId("highlights").getByText(cuarta, { exact: true })).toBeVisible();
 });
 
-test("completar una prioridad libera su espacio y ofrece reemplazo; Deshacer la restaura completa", async ({ page }, info) => {
-  const titulo = t(info, "Prioridad desde Hoy"); // sigue siendo prioridad
+test("completar una destacada la saca del bloque; Deshacer la reabre y la vuelve a destacar", async ({ page }, info) => {
+  const titulo = t(info, "Prioridad desde Hoy"); // sigue destacada
   await login(page);
   await page.goto("/");
-  await page.getByRole("button", { name: `Completar «${titulo}»` }).first().click();
-  await expect(page.getByText("Prioridad completada ✓ — su espacio quedó libre").first()).toBeVisible();
-  // el espacio quedó libre (no se eligió otra automáticamente)
-  await expect(page.locator("ol").getByText(titulo, { exact: true })).toHaveCount(0);
-  // ofrece elegir reemplazo
-  await expect(page.getByRole("button", { name: "Elegir reemplazo" })).toBeVisible();
+  const destacadas = page.getByTestId("highlights");
+  await destacadas.getByRole("button", { name: `Completar «${titulo}»` }).first().click();
+  await expect(page.getByText("Tarea completada ✓").first()).toBeVisible();
 
-  // Deshacer: la tarea se reabre Y recupera su espacio de prioridad
   await page.getByRole("button", { name: "Deshacer" }).first().click();
-  await expect(page.locator("ol").getByText(titulo, { exact: true })).toBeVisible({ timeout: 10_000 });
+  // esperar a que la acción llegue al servidor: recargar en el mismo instante la cortaba
+  await page.waitForLoadState("networkidle");
   await page.reload();
-  await expect(page.locator("ol").getByText(titulo, { exact: true })).toBeVisible();
+  await expect(page.getByTestId("highlights").getByText(titulo, { exact: true })).toBeVisible();
+  await expect(
+    page.getByTestId("highlights").getByRole("button", { name: `Completar «${titulo}»` })
+  ).toBeVisible(); // abierta otra vez
 });
 
-test("marcar como prioridad desde «Haz esto ahora» y abrir la tarea desde la prioridad", async ({ page }) => {
+test("destacar desde «Haz esto ahora», quitar desde Hoy y abrir la tarea desde Destacadas", async ({ page }) => {
   await login(page);
   await limpiarPrioridades(page);
   await page.goto("/");
-  // desde la recomendación
-  const recomendada = (await page.getByTestId("do-now-title").textContent()) ?? "";
+  const recomendada = ((await page.getByTestId("do-now-title").textContent()) ?? "").trim();
   await page.getByTestId("do-now").getByTestId("mark-priority").click();
-  await expect(page.getByText(/Añadida a tus prioridades|Ya está en tus prioridades/).first()).toBeVisible();
-  await expect(page.locator("ol").getByText(recomendada.trim(), { exact: true })).toBeVisible();
+  await expect(page.getByText(/Destacada para hoy|Ya está destacada/).first()).toBeVisible();
+  const destacadas = page.getByTestId("highlights");
+  await expect(destacadas.getByText(recomendada, { exact: true })).toBeVisible();
 
-  // abrir la tarea desde la prioridad
-  await page.getByTestId("priority-open").first().click();
+  // abrir la tarea desde Destacadas
+  await destacadas.getByTestId("task-open").first().click();
   await expect(page.getByTestId("card-detail")).toBeVisible();
   await page.getByTestId("card-cancel").click();
+
+  // quitarla: el bloque desaparece si no queda ninguna
+  await destacadas.getByTestId("highlight-remove").first().click();
+  await expect(page.getByText("Ya no está destacada (la tarea sigue en Tareas).").first()).toBeVisible();
+  await expect(page.getByTestId("highlights")).toHaveCount(0);
 });
 
 test("toasts legibles en modo oscuro (éxito e información) y en claro", async ({ page }, testInfo) => {
@@ -197,7 +209,7 @@ test("toasts legibles en modo oscuro (éxito e información) y en claro", async 
   await toastClaro.getByRole("button", { name: "Deshacer" }).click();
 });
 
-test("panel QA de alertas: los seis escenarios, orden, máximo cinco y limpieza total", async ({ page }) => {
+test("panel QA de alertas: escenarios visibles en «Para que nada se caiga», sin duplicados, y limpieza total", async ({ page }) => {
   await login(page);
   await page.goto("/ajustes");
   const panel = page.getByTestId("alert-qa-panel");
@@ -207,18 +219,19 @@ test("panel QA de alertas: los seis escenarios, orden, máximo cinco y limpieza 
   await page.getByTestId("qa-seed-alerts").click();
   await expect(page.getByText("Escenarios QA creados ✓ — revísalos en Hoy.").first()).toBeVisible();
 
+  // Bloque 2: los escenarios se ven en «Para que nada se caiga», cada uno en su grupo
   await page.goto("/");
-  const alerts = page.getByTestId("forget-alerts");
-  await expect(alerts).toBeVisible();
-  // máximo cinco, y la vencida (lo más urgente) va primero
-  await expect(alerts.locator("li")).toHaveCount(5);
-  await expect(alerts.locator("li").first()).toContainText("QA ALERTA — Tarea vencida");
-  await expect(page.getByTestId("alert-esperando-mucho").first()).toContainText("QA ALERTA — Esperando respuesta");
-  await expect(page.getByTestId("alert-proyecto-inactivo").first()).toContainText("QA ALERTA — Proyecto dormido");
-  await shot(page, "05-alertas-simuladas", alerts);
+  const keep = page.getByTestId("keep-up");
+  await expect(keep).toBeVisible();
+  await expect(page.getByTestId("keepup-overdue").getByText("QA ALERTA — Tarea vencida")).toBeVisible();
+  await expect(page.getByTestId("keepup-waiting").getByText("QA ALERTA — Esperando respuesta")).toBeVisible();
+  await expect(page.getByTestId("keepup-projects").getByText("QA ALERTA — Proyecto dormido")).toBeVisible();
+  // cada tarea una sola vez en todo el bloque
+  await expect(keep.getByText("QA ALERTA — Tarea vencida", { exact: true })).toHaveCount(1);
+  await shot(page, "05-alertas-simuladas", keep);
 
-  // la alerta abre el elemento correcto
-  await page.getByTestId("alert-tarea-vencida").click();
+  // la fila abre el elemento correcto
+  await page.getByTestId("keepup-overdue").getByText("QA ALERTA — Tarea vencida").click();
   await expect(page.getByTestId("card-detail")).toBeVisible();
   await expect(page.getByTestId("card-title-input")).toHaveValue("QA ALERTA — Tarea vencida");
   await page.getByTestId("card-cancel").click();

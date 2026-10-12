@@ -5,6 +5,7 @@ import { addDays } from "@/lib/tz";
 import { getSetting } from "@/lib/auth";
 import { QUICK_DURATIONS } from "@/lib/estimates";
 import { recommendNow, buildForgetAlerts, type ForgetAlert } from "@/lib/recommend";
+import { buildKeepUp } from "@/lib/keep-up";
 import { getProjectsOverview } from "@/lib/queries/projects";
 
 export type CardRow = typeof schema.cards.$inferSelect & {
@@ -56,6 +57,13 @@ export async function getTodayData() {
     .orderBy(asc(schema.events.startTime));
 
   const dueToday = open.filter((c) => c.dueDate === d);
+  const tomorrow = addDays(d, 1);
+  const dueTomorrow = open.filter((c) => c.dueDate === tomorrow);
+  const eventsTomorrow = await db
+    .select()
+    .from(schema.events)
+    .where(eq(schema.events.date, tomorrow))
+    .orderBy(asc(schema.events.startTime));
   const overdue = open.filter((c) => c.dueDate && c.dueDate < d);
   const d7 = addDays(d, 7);
   const approaching = open.filter((c) => c.dueDate && c.dueDate > d && c.dueDate <= d7);
@@ -118,8 +126,22 @@ export async function getTodayData() {
     priorityIds,
   });
 
+  const keepUp = buildKeepUp({
+    today: d,
+    open,
+    projects: proyectosActivos.map((o) => ({
+      id: o.project.id,
+      title: o.project.title,
+      hasNextAction: o.hasNextAction,
+      lastActivity: o.lastActivity,
+    })),
+  });
+
   return {
     date: d,
+    keepUp,
+    dueTomorrow,
+    eventsTomorrow,
     userName,
     energy,
     doNow,

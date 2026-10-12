@@ -22,22 +22,21 @@ async function login(page: Page) {
   await page.waitForURL("/");
 }
 
-test("Hoy muestra el acceso compacto con UN solo aviso (semanal pendiente gana a diaria)", async ({ page }) => {
+test("Revisiones no ocupa Hoy: se abre desde la barra lateral y desde Ajustes", async ({ page }) => {
   await login(page);
-  const nudge = page.getByTestId("review-nudge");
-  await expect(nudge).toBeVisible();
-  // ambas pendientes → el único CTA es el semanal
-  await expect(nudge.getByTestId("start-semanal")).toBeVisible();
-  await expect(nudge.getByTestId("start-diaria")).toHaveCount(0);
-  await shot(page, "02-hoy-acceso", nudge);
-  // «Haz esto ahora» sigue siendo el elemento principal
+  // Bloque 2: sin aviso de revisiones en Hoy; «Haz esto ahora» sigue al frente
+  await expect(page.getByTestId("review-nudge")).toHaveCount(0);
   await expect(page.getByTestId("do-now")).toBeVisible();
 
-  await nudge.getByRole("link", { name: "Ver todo" }).click();
+  await page.getByTestId("sidebar-revisiones-link").click();
   await expect(page).toHaveURL(/\/revisiones/);
   await expect(page.getByTestId("center-diaria")).toBeVisible();
   await expect(page.getByTestId("center-semanal")).toBeVisible();
   await shot(page, "01-centro");
+
+  await page.goto("/ajustes");
+  await page.getByTestId("ajustes-revisiones-link").click();
+  await expect(page).toHaveURL(/\/revisiones$/);
 });
 
 test("revisión diaria completa: inbox → tareas → prioridades → energía → cierre", async ({ page }, info) => {
@@ -110,7 +109,7 @@ test("revisión diaria completa: inbox → tareas → prioridades → energía �
   await expect(page.getByTestId("center-diaria")).toContainText("Hecha hoy");
 });
 
-test("salir a mitad, continuar desde Hoy y conservar el paso tras refrescar", async ({ page }) => {
+test("salir a mitad, continuar desde Revisiones y conservar el paso tras refrescar", async ({ page }) => {
   await login(page);
   await page.goto("/revisiones");
   // segunda vez el mismo día: permitido
@@ -119,15 +118,15 @@ test("salir a mitad, continuar desde Hoy y conservar el paso tras refrescar", as
   await page.getByTestId("review-next").click();
   await expect(page.getByTestId("review-step-label")).toContainText("Paso 2 de 5");
 
-  // salir
+  // salir → el centro de Revisiones ofrece continuar
   await page.getByTestId("review-exit").click();
-  await page.waitForURL("/");
-  const nudge = page.getByTestId("review-nudge");
-  await expect(nudge.getByTestId("nudge-cta")).toContainText("Continuar");
-  await shot(page, "07-continuar", nudge);
+  await page.waitForURL("/revisiones");
+  const continuar = page.getByTestId("center-diaria").getByTestId("continue-diaria");
+  await expect(continuar).toContainText("Continuar");
+  await shot(page, "07-continuar", page.getByTestId("center-diaria"));
 
   // continuar → vuelve al paso 2
-  await nudge.getByTestId("nudge-cta").click();
+  await continuar.click();
   await expect(page.getByTestId("review-step-label")).toContainText("Paso 2 de 5");
   // refrescar conserva el paso
   await page.reload();
@@ -220,13 +219,7 @@ test("revisión semanal completa: proyectos → tareas → incubadora → learn 
   await expect(page.getByText("Semana preparada ✓ Tu revisión quedó guardada.").first()).toBeVisible();
   await expect(page).toHaveURL(/\/revisiones/);
   await expect(page.getByTestId("center-semanal")).toContainText("Hecha esta semana");
-
-  // Hoy: sin avisos pendientes, solo el acceso con sus estados
-  await page.goto("/");
-  const nudge = page.getByTestId("review-nudge");
-  await expect(nudge.getByText("Hecha hoy")).toBeVisible();
-  await expect(nudge.getByText("Hecha esta semana")).toBeVisible();
-  await expect(nudge.getByTestId("nudge-cta")).toHaveCount(0);
+  await expect(page.getByTestId("center-diaria")).toContainText("Hecha hoy");
 });
 
 test("semanal: salir y continuar conserva el paso", async ({ page }) => {
@@ -237,9 +230,9 @@ test("semanal: salir y continuar conserva el paso", async ({ page }) => {
   await page.getByTestId("review-next").click();
   await expect(page.getByTestId("review-step-label")).toContainText("Paso 2 de 6");
   await page.getByTestId("review-exit").click();
-  await page.waitForURL("/");
-  await expect(page.getByTestId("review-nudge").getByTestId("nudge-cta")).toContainText("Continuar");
-  await page.getByTestId("review-nudge").getByTestId("nudge-cta").click();
+  await page.waitForURL("/revisiones");
+  await expect(page.getByTestId("center-semanal").getByTestId("continue-semanal")).toContainText("Continuar");
+  await page.getByTestId("center-semanal").getByTestId("continue-semanal").click();
   await expect(page.getByTestId("review-step-label")).toContainText("Paso 2 de 6");
   // cerrar limpio para no dejar sesión abierta
   await page.goto("/revisiones");

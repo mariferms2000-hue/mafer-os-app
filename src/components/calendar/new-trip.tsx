@@ -16,7 +16,7 @@ export function NewTripButton() {
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-50 overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
+          className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
           onClick={(e) => e.target === e.currentTarget && setOpen(false)}
           role="presentation"
         >

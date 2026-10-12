@@ -1,32 +1,36 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, PencilLine, Shuffle, Target, Sprout } from "lucide-react";
+import { CheckCircle2, PencilLine, Shuffle, Target } from "lucide-react";
 import { completeCardAction } from "@/lib/actions/cards";
 import { openTaskUrl } from "@/components/tasks/task-detail";
-import { openFocusUrl } from "@/components/focus/focus-overlay";
 import { MarkPriorityButton } from "@/components/tasks/priority-button";
+import { EnergySelector } from "@/components/hoy/priorities";
 import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 
 /** «Haz esto ahora»: UNA sola recomendación clara y explicada, para saber qué
  *  hacer en menos de diez segundos. «Otra sugerencia» rota entre las 3 mejores
- *  candidatas sin recargar. */
-export function DoNow({ items, focusActive = false }: { items: { card: CardRow; reasons: string[] }[]; focusActive?: boolean }) {
+ *  candidatas sin recargar.
+ *  Bloque 2: versión compacta. Tres acciones (La terminé, Abrir, Destacar); el
+ *  enfoque se abre desde la tarjeta del Jardín, como Mafer lo usa. La energía
+ *  del día vive aquí abajo, en una línea, porque solo afecta a esta sugerencia. */
+export function DoNow({ items, energy }: { items: { card: CardRow; reasons: string[] }[]; energy: string }) {
   const [index, setIndex] = useState(0);
   const [pending, start] = useTransition();
   const toast = useToast();
 
   if (items.length === 0) {
     return (
-      <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-6 text-center" data-testid="do-now">
+      <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-5 text-center" data-testid="do-now">
         <h2 id="haz-ahora" className="section-eyebrow !text-sage-deep flex items-center justify-center gap-1.5 mb-2">
           <Target size={13} aria-hidden /> Haz esto ahora
         </h2>
-        <p className="text-sm text-stone">
-          No hay nada urgente pendiente. Elige una prioridad de hoy, procesa el Inbox o descansa sin culpa. 🌿
-        </p>
+        <p className="text-sm text-stone">No hay nada urgente pendiente. Procesa el Inbox o descansa sin culpa. 🌿</p>
+        <div className="flex justify-center mt-3">
+          <EnergySelector current={energy} />
+        </div>
       </section>
     );
   }
@@ -63,7 +67,7 @@ export function DoNow({ items, focusActive = false }: { items: { card: CardRow; 
   }
 
   return (
-    <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-6 md:p-7 text-center" data-testid="do-now">
+    <section aria-labelledby="haz-ahora" className="card card-raised glow-focus p-5 md:p-6 text-center min-w-0" data-testid="do-now">
       <div className="relative flex flex-col sm:flex-row items-center justify-center gap-1 mb-3">
         <h2 id="haz-ahora" className="section-eyebrow !text-sage-deep flex items-center gap-1.5">
           <Target size={13} aria-hidden /> Haz esto ahora
@@ -87,19 +91,12 @@ export function DoNow({ items, focusActive = false }: { items: { card: CardRow; 
         data-testid="do-now-title"
         aria-label={`Abrir «${card.title}»`}
       >
-        <p className="font-display text-2xl md:text-[30px] font-medium leading-snug text-charcoal group-hover:text-forest transition-colors text-balance">
+        <p className="font-display text-xl md:text-2xl font-medium leading-snug text-charcoal group-hover:text-forest transition-colors text-balance break-words">
           {card.title}
         </p>
       </button>
 
-      {/* separador editorial fino, como respiración */}
-      <div className="flex items-center justify-center gap-3 my-3.5" aria-hidden>
-        <span className="h-px w-16 md:w-24 bg-sand" />
-        <span className="h-1.5 w-1.5 rotate-45 bg-sage-deep/60" />
-        <span className="h-px w-16 md:w-24 bg-sand" />
-      </div>
-
-      <div className="flex flex-wrap justify-center gap-1.5">
+      <div className="flex flex-wrap justify-center gap-1.5 mt-2.5">
         {card.projectTitle && <span className="chip">{card.projectTitle}</span>}
         {durationLabel(card.duration) && <span className="chip">{durationLabel(card.duration)}</span>}
         {energyLabel(card.energy) && <span className="chip">Energía {energyLabel(card.energy)?.toLowerCase()}</span>}
@@ -122,14 +119,6 @@ export function DoNow({ items, focusActive = false }: { items: { card: CardRow; 
         </button>
         <button
           type="button"
-          className="btn btn-secondary !py-2"
-          onClick={() => (focusActive ? openFocusUrl() : openFocusUrl(card.id))}
-          data-testid="do-now-focus"
-        >
-          <Sprout size={15} aria-hidden /> {focusActive ? "Volver al enfoque" : "Enfocarme"}
-        </button>
-        <button
-          type="button"
           className="btn btn-ghost !py-2"
           onClick={() => openTaskUrl(card.id)}
           data-testid="do-now-open"
@@ -137,6 +126,10 @@ export function DoNow({ items, focusActive = false }: { items: { card: CardRow; 
           <PencilLine size={15} aria-hidden /> Abrir tarea
         </button>
         <MarkPriorityButton cardId={card.id} className="btn btn-ghost !py-2 text-sm" />
+      </div>
+
+      <div className="flex justify-center mt-4 pt-3 border-t border-beige">
+        <EnergySelector current={energy} />
       </div>
     </section>
   );

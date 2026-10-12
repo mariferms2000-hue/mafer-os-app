@@ -47,8 +47,8 @@ export function CaptureFab({ projects }: { projects: ProjectOption[] }) {
     { key: "tarea", label: "Nueva tarea", hint: "Con proyecto y fecha", icon: CircleCheckBig, onClick: () => { setMenu(false); setModal("tarea"); }, testid: "fab-tarea" },
     { key: "proyecto", label: "Nuevo proyecto", hint: "Con su tablero", icon: SquareKanban, onClick: () => go("/proyectos?nuevo=1"), testid: "fab-proyecto" },
     { key: "evento", label: "Nuevo evento", hint: "Reunión o fecha", icon: CalendarDays, onClick: () => go("/calendario?nuevo=1"), testid: "fab-evento" },
-    { key: "journal", label: "Nota de journal", hint: "Pensar por escrito", icon: NotebookPen, onClick: () => go("/explorar/journal?nueva=1"), testid: "fab-journal" },
-    { key: "idea", label: "Nueva idea", hint: "A la incubadora", icon: Lightbulb, onClick: () => go("/explorar?nueva=1"), testid: "fab-idea" },
+    { key: "journal", label: "Nota de journal", hint: "Pensar por escrito", icon: NotebookPen, onClick: () => go("/biblioteca/journal?nueva=1"), testid: "fab-journal" },
+    { key: "idea", label: "Nueva idea", hint: "A la incubadora", icon: Lightbulb, onClick: () => go("/biblioteca/ideas?nueva=1"), testid: "fab-idea" },
   ];
 
   return (
@@ -131,7 +131,7 @@ function CaptureModal({ projects, onClose }: { projects: ProjectOption[]; onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="presentation"
     >

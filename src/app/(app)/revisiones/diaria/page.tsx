@@ -74,7 +74,7 @@ export default async function RevisionDiariaPage({
         <p className="text-sm text-stone" data-testid="step-empty">Inbox en cero. Nada que procesar hoy. 🌿</p>
       ) : (
         <>
-          <InboxList items={pendientes.slice(0, 5)} projects={projects} />
+          <InboxList items={pendientes.slice(0, 5)} projects={projects} today={d} />
           {pendientes.length > 5 && (
             <p className="text-xs text-stone">
               Hay {pendientes.length - 5} más.{" "}

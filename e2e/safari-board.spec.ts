@@ -65,7 +65,10 @@ test("safari/webkit: estrés de drag & drop sin crash", async ({ page }) => {
     await expect(page.getByTestId("board").getByText(`Safari ${i}`, { exact: true }).first()).toBeVisible();
   }
   // El registro del service worker sobre http puede fallar en WebKit de pruebas; no es un error de la app.
-  const relevantes = pageErrors.filter((e) => !e.includes("sw.js"));
+  // WebKit también reporta como «…due to access control checks» las peticiones que cancela
+  // al navegar (precargas ?_rsc de los enlaces): son cancelaciones, no errores. La prueba
+  // busca caídas y errores reales de la página.
+  const relevantes = pageErrors.filter((e) => !e.includes("sw.js") && !e.includes("due to access control checks"));
   expect(relevantes, `errores de página: ${relevantes.join(" | ")}`).toHaveLength(0);
 });
 
@@ -128,7 +131,7 @@ test("safari/webkit: chips de duración y energía en el detalle", async ({ page
   await expect(page.getByTestId("energy-high")).toHaveAttribute("aria-checked", "true");
 });
 
-test("safari/webkit: «Haz esto ahora» y alertas antiolvido funcionan", async ({ page }) => {
+test("safari/webkit: «Haz esto ahora» y «Para que nada se caiga» funcionan", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("Contraseña", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Entrar" }).click();
@@ -136,7 +139,7 @@ test("safari/webkit: «Haz esto ahora» y alertas antiolvido funcionan", async (
 
   await expect(page.getByTestId("do-now")).toBeVisible();
   await expect(page.getByTestId("do-now-reasons")).toContainText("Porque");
-  await expect(page.getByTestId("forget-alerts")).toBeVisible();
+  await expect(page.getByTestId("keep-up")).toBeVisible();
 
   // abrir la recomendación lleva al detalle editable
   await page.getByTestId("do-now-open").click();
@@ -185,8 +188,8 @@ test("safari/webkit: revisión diaria — empezar, avanzar y salir guardando", a
   await page.getByTestId("review-next").click();
   await expect(page.getByTestId("review-step-label")).toContainText("Paso 2 de 5");
   await page.getByTestId("review-exit").click();
-  await page.waitForURL("/");
-  await expect(page.getByTestId("review-nudge").getByTestId("nudge-cta")).toContainText("Continuar");
+  await page.waitForURL("/revisiones");
+  await expect(page.getByTestId("center-diaria").getByTestId("continue-diaria")).toContainText("Continuar");
 });
 
 test("safari/webkit: página Tareas simple — vistas, Filtrar y Agrupar", async ({ page }) => {
@@ -196,15 +199,17 @@ test("safari/webkit: página Tareas simple — vistas, Filtrar y Agrupar", async
   await page.waitForURL("/");
 
   await page.goto("/tareas");
-  await expect(page.getByTestId("view-ahora")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("view-todas")).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("task-groups").locator("section")).toHaveCount(0);
 
   await page.getByTestId("open-filters").click();
   await expect(page.getByTestId("filters-panel")).toBeVisible();
   await page.getByTestId("cancel-filters").click();
 
+  await page.getByTestId("view-proximas").click();
+  await expect(page).toHaveURL(/v=proximas/);
   await page.getByTestId("view-todas").click();
-  await expect(page).toHaveURL(/v=todas/);
+  await expect(page).not.toHaveURL(/v=/);
   await page.getByTestId("open-group").click();
   await page.getByTestId("group-proyecto").click();
   await expect(page).toHaveURL(/agrupar=proyecto/);
@@ -220,10 +225,10 @@ test("safari/webkit: prioridad con feedback y toast legible en modo oscuro", asy
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.waitForURL("/");
 
-  // marcar prioridad desde «Haz esto ahora» SIEMPRE responde algo (toast o selector)
+  // destacar desde «Haz esto ahora» SIEMPRE responde algo (toast o selector)
   await page.getByTestId("do-now").getByTestId("mark-priority").click();
   await expect(
-    page.getByText(/Añadida a tus prioridades|Ya está en tus prioridades|prioridades están llenas/).first()
+    page.getByText(/Destacada para hoy|Ya está destacada|Ya tienes 3 destacadas/).first()
   ).toBeVisible();
 
   // toast en oscuro: superficie bosque, texto crema
@@ -258,7 +263,7 @@ test("safari/webkit: modo oscuro — niveles de profundidad y chip activo legibl
   expect(await card.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(21, 26, 19)");
 
   await page.goto("/tareas");
-  const activo = page.getByTestId("view-ahora");
+  const activo = page.getByTestId("view-todas");
   const css = await activo.evaluate((el) => {
     const s = getComputedStyle(el);
     return { bg: s.backgroundColor, fg: s.color };

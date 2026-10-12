@@ -3,7 +3,6 @@ import { Scale, Plus } from "lucide-react";
 import { db, today, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ExplorarTabs } from "@/components/explore/tabs";
 import { createDecisionAction } from "@/lib/actions/explore";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +29,6 @@ export default async function DecisionesPage({
         title="Decisiones"
         intro="Un registro simple de qué decidiste, por qué y qué esperabas. Tu yo del futuro te lo agradecerá."
       />
-      <ExplorarTabs />
 
       <details className="card mb-6">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-forest flex items-center gap-2">

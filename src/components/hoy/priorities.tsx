@@ -241,6 +241,8 @@ const ENERGY_EXPLANATION: Record<string, string> = {
   alta: "He ajustado tus sugerencias para energía alta: trabajo profundo primero.",
 };
 
+/** Energía del día: solo ordena las sugerencias de «Haz esto ahora», nunca
+ *  cambia tus tareas. */
 export function EnergySelector({ current }: { current: string }) {
   const [pending, start] = useTransition();
   const toast = useToast();
@@ -250,8 +252,8 @@ export function EnergySelector({ current }: { current: string }) {
     { v: "alta", label: "Alta" },
   ];
   return (
-    <div className="flex items-center gap-1.5" role="group" aria-label="¿Cómo está tu energía hoy?">
-      <span className="text-xs text-stone mr-1">¿Tu energía hoy?</span>
+    <div className="flex flex-wrap items-center justify-center gap-1.5" role="group" aria-label="¿Cómo está tu energía hoy?">
+      <span className="text-xs text-stone mr-1">Mi energía hoy:</span>
       {options.map((o) => (
         <button
           key={o.v}

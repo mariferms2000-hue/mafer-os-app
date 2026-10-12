@@ -10,18 +10,22 @@ import { FocusOverlayFromUrl } from "@/components/focus/focus-overlay";
 import { FocusWatcher } from "@/components/focus/focus-watcher";
 import { ToastProvider } from "@/components/ui/toast";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const projects = await db
     .select({ id: schema.projects.id, title: schema.projects.title })
     .from(schema.projects)
     .where(eq(schema.projects.archived, false));
+  const [{ n: inboxCount }] = await db
+    .select({ n: count() })
+    .from(schema.inboxItems)
+    .where(eq(schema.inboxItems.processed, false));
 
   return (
     <ToastProvider>
       <div className="min-h-dvh md:flex">
-        <Sidebar />
+        <Sidebar inboxCount={inboxCount} />
         <MobileTopBar />
         <div className="flex-1 min-w-0 flex flex-col">
           <main className="flex-1 px-4 pb-28 pt-20 md:px-8 md:pb-12 md:pt-8 max-w-7xl w-full mx-auto">
@@ -29,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </main>
         </div>
         <CaptureFab projects={projects} />
-        <BottomNav />
+        <BottomNav inboxCount={inboxCount} />
         <GlobalShortcuts />
         <Suspense fallback={null}>
           <TaskDetailFromUrl />

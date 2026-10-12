@@ -251,7 +251,7 @@ test("modo oscuro: página de proyecto legible", async ({ page }, info) => {
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
 
-test("marcar la siguiente acción como prioridad de Hoy e integración con Hoy", async ({ page }, info) => {
+test("destacar la siguiente acción desde el proyecto e integración con Hoy", async ({ page }, info) => {
   const proyecto = t(info, "Proyecto en blanco");
   await login(page);
   await page.goto("/proyectos");
@@ -259,13 +259,13 @@ test("marcar la siguiente acción como prioridad de Hoy e integración con Hoy",
   await page.waitForURL(/\/proyectos\/.+/);
   await page.getByTestId("next-action-block").getByTestId("mark-priority").click();
   await expect(
-    page.getByText(/Añadida a tus prioridades|Ya está en tus prioridades|prioridades están llenas/).first()
+    page.getByText(/Destacada para hoy|Ya está destacada|Ya tienes 3 destacadas/).first()
   ).toBeVisible();
 
-  // Hoy: la siguiente acción del proyecto aparece en «Siguiente paso por proyecto»
-  const paso = t(info, "Paso visible en tarjeta");
+  // Bloque 2: Hoy ya no lista «Siguiente paso por proyecto» (vive en Proyectos);
+  // los proyectos sin siguiente acción aparecen en «Para que nada se caiga».
   await page.goto("/");
-  await expect(page.getByText(paso).first()).toBeVisible();
-  // y los proyectos sin siguiente acción alimentan las alertas antiolvido
-  await expect(page.getByTestId("alert-proyecto-sin-accion").first()).toBeVisible();
+  await expect(page.getByText("Siguiente paso por proyecto")).toHaveCount(0);
+  await expect(page.getByTestId("keepup-projects")).toBeVisible();
+  await expect(page.getByTestId("keepup-projects")).toContainText("sin siguiente acción");
 });

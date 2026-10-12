@@ -29,7 +29,7 @@ describe("recommendNow — «Haz esto ahora»", () => {
       today: HOY,
     });
     expect(r[0].id).toBe("b");
-    expect(r[0].reasons).toContain("es tu prioridad #1 de hoy");
+    expect(r[0].reasons).toContain("la destacaste hoy");
   });
 
   it("lo vencido pesa más que lo normal y dice la fecha", () => {

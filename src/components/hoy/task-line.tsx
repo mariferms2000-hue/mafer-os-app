@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass, MoreHorizontal, PencilLine, Trash2 } from "lucide-react";
+import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass, MoreHorizontal, PencilLine, Trash2, Bell } from "lucide-react";
 import Link from "next/link";
 import { completeCardAction, deleteCardAction } from "@/lib/actions/cards";
 import { openTaskUrl } from "@/components/tasks/task-detail";
@@ -13,7 +13,16 @@ import type { CardRow } from "@/lib/queries/today";
  *  El cuerpo abre el detalle editable (reflejado en la URL con ?abrir=<id>);
  *  el círculo solo completa/reabre. Completar nunca borra: mueve a Terminado,
  *  guarda la fecha y ofrece deshacer. */
-export function TaskLine({ card, showProject = true }: { card: CardRow; showProject?: boolean }) {
+/** `compact`: sin chips de duración ni energía (Agenda y Destacadas en Hoy). */
+export function TaskLine({
+  card,
+  showProject = true,
+  compact = false,
+}: {
+  card: CardRow;
+  showProject?: boolean;
+  compact?: boolean;
+}) {
   const [pending, start] = useTransition();
   const [menu, setMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -95,12 +104,12 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
               {card.projectTitle}
             </Link>
           )}
-          {durationLabel(card.duration) && (
+          {!compact && durationLabel(card.duration) && (
             <span className="chip">
               <Clock size={11} aria-hidden /> {durationLabel(card.duration)}
             </span>
           )}
-          {energyLabel(card.energy) && (
+          {!compact && energyLabel(card.energy) && (
             <span className="chip">
               <Zap size={11} aria-hidden /> Energía {energyLabel(card.energy)?.toLowerCase()}
             </span>
@@ -108,16 +117,25 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
           {card.dueDate && (
             <span className="chip">
               <CalendarClock size={11} aria-hidden /> {card.dueDate}
+              {card.startTime ? ` · ${card.startTime}` : ""}
             </span>
           )}
+          {(card.reminder ?? "").startsWith("gcal") && (
+            <span className="chip" title="Con recordatorio en Google Calendar" data-testid="task-reminder-chip">
+              <Bell size={11} aria-hidden /> Recordatorio
+            </span>
+          )}
+          {/* Textos libres: se recortan con «…» en vez de ensanchar la página
+              (un motivo largo desbordaba Hoy en el iPhone). El texto completo
+              queda en el title y en el detalle. */}
           {card.blockedReason && (
-            <span className="chip chip-blocked">
-              <Ban size={11} aria-hidden /> {card.blockedReason}
+            <span className="chip chip-blocked max-w-full" title={card.blockedReason}>
+              <Ban size={11} className="shrink-0" aria-hidden /> <span className="truncate">{card.blockedReason}</span>
             </span>
           )}
           {card.waitingFor && (
-            <span className="chip chip-waiting">
-              <Hourglass size={11} aria-hidden /> Espera: {card.waitingFor}
+            <span className="chip chip-waiting max-w-full" title={`Espera: ${card.waitingFor}`}>
+              <Hourglass size={11} className="shrink-0" aria-hidden /> <span className="truncate">Espera: {card.waitingFor}</span>
             </span>
           )}
           {done && card.completedAt && (

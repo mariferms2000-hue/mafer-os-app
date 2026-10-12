@@ -119,7 +119,7 @@ test("chips y filtros activos legibles en oscuro (verde luminoso + texto oscuro)
   await loginDark(page);
   await page.goto("/tareas");
 
-  const activo = page.getByTestId("view-ahora");
+  const activo = page.getByTestId("view-todas");
   await expect(activo).toHaveAttribute("aria-pressed", "true");
   const css = await activo.evaluate((el) => {
     const s = getComputedStyle(el);
@@ -129,7 +129,7 @@ test("chips y filtros activos legibles en oscuro (verde luminoso + texto oscuro)
   expect(css.fg).toBe(CHIP_ON_FG);
 
   // el resto de vistas no compiten (siguen siendo discretas)
-  const inactivo = page.getByTestId("view-hoy");
+  const inactivo = page.getByTestId("view-proximas");
   expect(await inactivo.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(CHIP_ON_BG);
 });
 

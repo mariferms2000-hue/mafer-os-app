@@ -64,6 +64,16 @@ export function newPlantIdentityV2(plantId: string): PlantIdentityV2 {
   };
 }
 
+/** La semilla es un uint32 (0 … 4 294 967 295), pero la columna
+ *  focus_plants.visual_seed es `integer` de Postgres (int4, con signo): toda
+ *  semilla mayor que 2 147 483 647 hacía fallar el INSERT y la planta nueva no
+ *  nacía (≈ la mitad de las veces). Se guarda con los MISMOS 32 bits leídos con
+ *  signo; los motores de dibujo normalizan con `>>> 0` al entrar, así que la
+ *  planta se ve idéntica. Las semillas ya guardadas (todas < 2^31) no cambian. */
+export function seedForStorage(seed: number): number {
+  return seed | 0;
+}
+
 // ── PRNG con semilla (mulberry32, idéntico a v1) ──────────────────
 
 function mulberry32(seed: number): () => number {

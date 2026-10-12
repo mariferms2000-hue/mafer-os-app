@@ -101,24 +101,27 @@ test("indicador «En foco» en Hoy, reabrir con Volver, Escape y Atrás sin perd
   await page.getByTestId("focus-back-app").click();
 });
 
-test("«Haz esto ahora»: Enfocarme abre con la tarea correcta y dos clics bastan", async ({ page }) => {
+test("enfocarse en la tarea de «Haz esto ahora»: Abrir → Enfocar esta tarea; el Jardín ofrece volver", async ({ page }) => {
   await crearTareaSiFalta(page);
   await page.goto("/");
+  // Bloque 2: «Haz esto ahora» ya no duplica el acceso al enfoque
+  await expect(page.getByTestId("do-now-focus")).toHaveCount(0);
   const titulo = ((await page.getByTestId("do-now-title").textContent()) ?? "").trim();
   expect(titulo.length).toBeGreaterThan(0);
 
-  await page.getByTestId("do-now-focus").click(); // clic 1
+  await page.getByTestId("do-now-open").click();
+  await page.getByTestId("card-focus").click();
   await expect(page.getByTestId("focus-overlay")).toBeVisible();
   await expect(page.getByTestId("focus-task")).toContainText(titulo);
 
-  await page.getByTestId("focus-start").click(); // clic 2 → sesión vinculada corriendo
+  await page.getByTestId("focus-start").click(); // sesión vinculada corriendo
   await expect(page.getByTestId("focus-clock")).toBeVisible();
   await expect(page.getByTestId("focus-task")).toContainText(titulo);
 
-  // con sesión activa, el hero ofrece volver — no crear otra
+  // con sesión activa, el Jardín de enfoque de Hoy ofrece volver — no crear otra
   await page.goto("/");
-  await expect(page.getByTestId("do-now-focus")).toContainText("Volver al enfoque");
-  await page.getByTestId("do-now-focus").click();
+  await expect(page.getByTestId("focus-module")).toContainText("En foco");
+  await page.getByTestId("focus-module-open").click();
   await expect(page.getByTestId("focus-clock")).toBeVisible();
   await terminarSesionAbierta(page);
 });
@@ -174,7 +177,8 @@ test("cierre con decisión: «Sigue en curso» no toca la tarea", async ({ page 
   await login(page);
   await page.goto("/");
   const titulo = ((await page.getByTestId("do-now-title").textContent()) ?? "").trim();
-  await page.getByTestId("do-now-focus").click();
+  await page.getByTestId("do-now-open").click();
+  await page.getByTestId("card-focus").click();
   await page.getByTestId("focus-preset-pomodoro").click();
   await page.getByTestId("focus-start").click();
   await expect(page.getByTestId("focus-clock")).toBeVisible();
@@ -245,8 +249,9 @@ test("capturas: Hoy sin y con sesión, accesos y iPhone (oscuro y claro)", async
   await page.waitForTimeout(400);
   await shot(page, "01-hoy-sin-sesion-oscuro");
 
-  // acceso desde el hero con la tarea correcta
-  await page.getByTestId("do-now-focus").click();
+  // acceso a la tarea de «Haz esto ahora» desde su detalle
+  await page.getByTestId("do-now-open").click();
+  await page.getByTestId("card-focus").click();
   await expect(page.getByTestId("focus-overlay")).toBeVisible();
   await page.waitForTimeout(300);
   await shot(page, "02-acceso-haz-esto-ahora-oscuro");

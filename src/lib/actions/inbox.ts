@@ -57,6 +57,26 @@ export async function deleteInboxItem(id: string) {
   revalidatePath("/");
 }
 
+/** Deshace «captura → tarea» desde el toast: borra la tarea recién creada y la
+ *  captura vuelve al Inbox tal como estaba. Solo actúa si la captura sigue
+ *  apuntando a esa tarea y la tarea no se ha completado ni archivado, para no
+ *  borrar trabajo hecho después. */
+export async function undoInboxToTaskAction(itemId: string): Promise<boolean> {
+  await requireAuth();
+  const [item] = await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, itemId)).limit(1);
+  const [tipo, cardId] = (item?.convertedTo ?? "").split(":");
+  if (!item || tipo !== "tarea" || !cardId) return false;
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, cardId)).limit(1);
+  if (card && (card.completedAt || card.archived)) return false;
+  if (card) await db.delete(schema.cards).where(eq(schema.cards.id, cardId));
+  await db.update(schema.inboxItems).set({ processed: false, convertedTo: null }).where(eq(schema.inboxItems.id, itemId));
+  revalidatePath("/inbox");
+  revalidatePath("/");
+  revalidatePath("/tareas");
+  if (card?.projectId) revalidatePath(`/proyectos/${card.projectId}`);
+  return true;
+}
+
 /** Convierte una captura en otra entidad sin re-escribirla.
  *  Los campos específicos por tipo llegan en el mismo formulario (progressive disclosure).
  *  Devuelve el destino ("tipo:id") para poder abrirlo justo después. */
@@ -189,7 +209,7 @@ export async function convertInboxItem(formData: FormData): Promise<{ convertedT
   revalidatePath("/");
   revalidatePath("/tareas");
   revalidatePath("/proyectos");
-  revalidatePath("/explorar");
+  revalidatePath("/biblioteca/ideas");
   revalidatePath("/biblioteca/recursos");
   revalidatePath("/calendario");
   return { convertedTo };

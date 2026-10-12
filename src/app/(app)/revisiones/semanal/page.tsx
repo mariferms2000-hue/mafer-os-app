@@ -151,7 +151,7 @@ export default async function RevisionSemanalPage({
             <ReviewIdeaRow key={i.id} id={i.id} title={i.title} sessionId={session.id} />
           ))}
           <p className="text-xs text-stone">
-            <Link href="/explorar" className="underline underline-offset-4 hover:text-forest">Ver la incubadora completa</Link>
+            <Link href="/biblioteca/ideas" className="underline underline-offset-4 hover:text-forest">Ver la incubadora completa</Link>
           </p>
         </>
       );

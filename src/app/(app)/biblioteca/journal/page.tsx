@@ -4,13 +4,13 @@ import { NotebookPen, Star, Plus } from "lucide-react";
 import { db, today, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ExplorarTabs } from "@/components/explore/tabs";
 import { createJournalAction } from "@/lib/actions/explore";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Journal" };
 
 import { TEMPLATE_LABEL } from "@/components/explore/journal-labels";
+import { BibliotecaBack } from "@/components/library/section-nav";
 
 export default async function JournalPage({
   searchParams,
@@ -30,12 +30,12 @@ export default async function JournalPage({
 
   return (
     <div>
+      <BibliotecaBack />
       <PageHeader
         icon={NotebookPen}
         title="Journal"
         intro="Tu espacio privado para pensar por escrito. Nadie lo analiza, nadie lo interpreta: es solo tuyo."
       />
-      <ExplorarTabs />
 
       <form action={createJournalAction} className="card p-4 mb-6 flex flex-col md:flex-row gap-2.5">
         <input type="hidden" name="date" value={today()} />
@@ -61,7 +61,7 @@ export default async function JournalPage({
           ))}
         </select>
         <button type="submit" className="btn btn-secondary !min-h-9 text-sm">Filtrar</button>
-        <Link href="/explorar/journal?fav=1" className={`chip self-center ${fav ? "chip-on" : "hover:bg-sand"}`}>
+        <Link href="/biblioteca/journal?fav=1" className={`chip self-center ${fav ? "chip-on" : "hover:bg-sand"}`}>
           <Star size={11} aria-hidden /> Favoritas
         </Link>
       </form>
@@ -76,7 +76,7 @@ export default async function JournalPage({
         <ul className="flex flex-col gap-3" data-testid="journal-list">
           {entries.map((e) => (
             <li key={e.id}>
-              <Link href={`/explorar/journal/${e.id}`} className="card p-4 flex flex-col gap-1.5 hover:shadow-lift transition-shadow">
+              <Link href={`/biblioteca/journal/${e.id}`} className="card p-4 flex flex-col gap-1.5 hover:shadow-lift transition-shadow">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold flex-1">{e.title}</p>
                   {e.favorite && <Star size={14} className="text-waiting fill-current" aria-label="Favorita" />}

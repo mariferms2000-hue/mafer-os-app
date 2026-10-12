@@ -72,16 +72,42 @@ test("deshacer desde el toast elimina la captura", async ({ page }, testInfo) =>
   await expect(page.getByTestId("inbox-item").filter({ hasText: texto })).toHaveCount(0);
 });
 
-test("botón «+ Nueva captura» abre el panel y guarda", async ({ page }, testInfo) => {
-  const texto = `Captura desde panel ${testInfo.retry}`;
+test("captura → tarea con dos toques: «Tarea» y «Mañana»; Deshacer la devuelve al Inbox", async ({ page }, testInfo) => {
+  const texto = `Captura a tarea ${testInfo.retry}`;
   await login(page);
   await page.goto("/inbox");
-  await page.getByTestId("new-capture").click();
-  await expect(page.getByTestId("new-capture-panel")).toBeVisible();
-  await page.getByTestId("new-capture-content").fill(texto);
-  await page.getByTestId("new-capture-save").click();
-  await expect(page.getByTestId("new-capture-panel")).not.toBeVisible();
-  await expect(page.getByTestId("inbox-item").first()).toContainText(texto);
+  // Una sola vía de captura en la página: la barra (el botón del encabezado se retiró)
+  await expect(page.getByTestId("new-capture")).toHaveCount(0);
+  await page.getByTestId("quickbar-input").fill(texto);
+  await page.keyboard.press("Enter");
+  const item = page.getByTestId("inbox-item").filter({ hasText: texto });
+  await expect(item).toHaveCount(1);
+  await expect(item.getByTestId("inbox-age")).toHaveText("hoy");
+
+  await item.getByTestId("inbox-to-task").click();
+  await item.getByTestId("inbox-task-manana").click();
+  await expect(page.getByText("Convertida en tarea ✓")).toBeVisible();
+  await expect(item).toHaveCount(0, { timeout: 10_000 });
+
+  // Deshacer: la tarea desaparece y la captura vuelve
+  // (el toast de «Guardado en Inbox» también tiene Deshacer: se usa el de la conversión)
+  await page
+    .locator('[role="status"]')
+    .filter({ hasText: "Convertida en tarea" })
+    .getByRole("button", { name: "Deshacer", exact: true })
+    .click();
+  await expect(page.getByTestId("inbox-item").filter({ hasText: texto })).toHaveCount(1, { timeout: 10_000 });
+  await page.goto("/tareas?v=todas");
+  await expect(page.getByTestId("task-groups").getByText(texto)).toHaveCount(0);
+
+  // Convertir de nuevo, ahora sí se queda, con fecha de mañana
+  await page.goto("/inbox");
+  const otra = page.getByTestId("inbox-item").filter({ hasText: texto });
+  await otra.getByTestId("inbox-to-task").click();
+  await otra.getByTestId("inbox-task-manana").click();
+  await expect(otra).toHaveCount(0, { timeout: 10_000 });
+  await page.goto("/tareas?v=proximas");
+  await expect(page.getByTestId("task-groups").getByText(texto)).toBeVisible();
 });
 
 test("FAB contextual: en Inbox abre Nueva captura directo; fuera abre el menú", async ({ page }, testInfo) => {

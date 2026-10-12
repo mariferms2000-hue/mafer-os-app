@@ -21,12 +21,15 @@ export function countActiveFilters(f: TaskFilters): number {
   );
 }
 
+/** Vista con la que abre Tareas (Bloque 2: «Todas»; antes «Haz ahora»). */
+export const DEFAULT_VIEW = "todas";
+
 /** Construye la URL de /tareas conservando todo el estado. Los valores por
- *  defecto (vista «ahora», sin agrupar) no ensucian la URL. */
+ *  defecto (vista «Todas», sin agrupar) no ensucian la URL. */
 export function tareasUrl(s: Partial<ToolbarState> & { base: ToolbarState }): string {
   const m = { ...s.base, ...s };
   const p = new URLSearchParams();
-  if (m.v && m.v !== "ahora") p.set("v", m.v);
+  if (m.v && m.v !== DEFAULT_VIEW) p.set("v", m.v);
   if (m.q) p.set("q", m.q);
   if (m.agrupar && m.agrupar !== "ninguno") p.set("agrupar", m.agrupar);
   if (m.proy) p.set("proy", m.proy);

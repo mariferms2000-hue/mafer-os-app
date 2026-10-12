@@ -7,10 +7,11 @@ import { useToast } from "@/components/ui/toast";
 
 type Current = { cardId: string; title: string; position: number }[];
 
-/** «Marcar como prioridad de hoy» con feedback SIEMPRE:
- *  - espacio libre → se añade al primero disponible + toast con Deshacer;
- *  - ya es prioridad → «Ya está en tus prioridades»;
- *  - tres ocupados → selector para elegir cuál reemplazar (nunca en silencio). */
+/** «Destacar hoy» (antes «Prioridad de hoy», Bloque 2) con feedback SIEMPRE:
+ *  - hay lugar → se destaca + toast con Deshacer;
+ *  - ya está destacada → se avisa;
+ *  - ya hay tres → selector para elegir cuál sustituir (nunca en silencio).
+ *  Por dentro sigue siendo today_priorities: solo cambió la presentación. */
 export function MarkPriorityButton({ cardId, className }: { cardId: string; className?: string }) {
   const [full, setFull] = useState<Current | null>(null);
   const [pending, start] = useTransition();
@@ -22,16 +23,16 @@ export function MarkPriorityButton({ cardId, className }: { cardId: string; clas
         const res = await addTodayPriority(cardId);
         if (res.status === "added") {
           toast.show({
-            message: "Añadida a tus prioridades de hoy ✓",
+            message: "Destacada para hoy ✓",
             action: { label: "Deshacer", onClick: () => removeTodayPriority(cardId) },
           });
         } else if (res.status === "duplicate") {
-          toast.show({ tone: "info", message: "Ya está en tus prioridades de hoy." });
+          toast.show({ tone: "info", message: "Ya está destacada hoy." });
         } else {
           setFull(res.current); // elegir cuál reemplazar
         }
       } catch {
-        toast.show({ tone: "error", message: "No se pudo marcar como prioridad. Inténtalo de nuevo." });
+        toast.show({ tone: "error", message: "No se pudo destacar. Inténtalo de nuevo." });
       }
     });
   }
@@ -41,12 +42,12 @@ export function MarkPriorityButton({ cardId, className }: { cardId: string; clas
       try {
         await replaceTodayPriority(old.cardId, cardId);
         toast.show({
-          message: `Prioridad reemplazada («${old.title}» salió) ✓`,
+          message: `Destacada en lugar de «${old.title}» ✓`,
           action: { label: "Deshacer", onClick: () => replaceTodayPriority(cardId, old.cardId) },
           duration: 8000,
         });
       } catch {
-        toast.show({ tone: "error", message: "No se pudo reemplazar la prioridad." });
+        toast.show({ tone: "error", message: "No se pudo cambiar la destacada." });
       }
       setFull(null);
     });
@@ -60,9 +61,9 @@ export function MarkPriorityButton({ cardId, className }: { cardId: string; clas
         disabled={pending}
         onClick={mark}
         data-testid="mark-priority"
-        title="Marcar como prioridad de hoy"
+        title="Destacar esta tarea hoy"
       >
-        <Star size={14} aria-hidden /> Prioridad de hoy
+        <Star size={14} aria-hidden /> Destacar hoy
       </button>
 
       {full && (
@@ -74,17 +75,17 @@ export function MarkPriorityButton({ cardId, className }: { cardId: string; clas
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Reemplazar una prioridad"
+            aria-label="Sustituir una destacada"
             className="card card-raised w-full max-w-sm p-5"
             data-testid="priority-replace-dialog"
           >
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-base text-forest-deep font-medium">Tus 3 prioridades están llenas</h3>
+              <h3 className="text-base text-forest-deep font-medium">Ya tienes 3 destacadas hoy</h3>
               <button type="button" onClick={() => setFull(null)} aria-label="Cerrar" className="btn btn-ghost !p-1.5">
                 <X size={16} aria-hidden />
               </button>
             </div>
-            <p className="text-sm text-stone mb-3">Elige cuál reemplazar (la que salga no se pierde: sigue en Tareas).</p>
+            <p className="text-sm text-stone mb-3">Elige cuál sustituir (la que salga no se pierde: sigue en Tareas).</p>
             <ul className="flex flex-col gap-1.5">
               {full.map((p) => (
                 <li key={p.cardId}>
@@ -102,7 +103,7 @@ export function MarkPriorityButton({ cardId, className }: { cardId: string; clas
               ))}
             </ul>
             <button type="button" className="btn btn-ghost text-xs mt-3" onClick={() => setFull(null)}>
-              Mejor no — conservar las tres
+              Mejor no — dejar las tres
             </button>
           </div>
         </div>
