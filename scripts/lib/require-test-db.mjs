@@ -3,14 +3,19 @@
 // producción. Si falta, o si coincide con DATABASE_URL/MIGRATE_DATABASE_URL,
 // se detiene con un error claro ANTES de tocar cualquier base de datos.
 //
-// Hay DOS bases de prueba, en el mismo proyecto Supabase (mafer-os-testing):
-// - «postgres»: solo E2E. Se vacía entera antes de cada corrida.
-// - «mafer_preview»: solo Vercel Preview, con datos ficticios que se conservan.
-// Las E2E se niegan a tocar mafer_preview, y los scripts de preview se niegan a
-// tocar producción o la base de E2E. Ver docs/previews.md.
+// Desde la consolidación (oct 2026) hay tres bases en el proyecto Supabase de
+// producción, cada una con su usuario:
+// - «postgres» (usuario postgres): tus datos reales. Nada de aquí la toca.
+// - «mafer_e2e» (usuario mafer_e2e_app): solo E2E. Se vacía antes de cada corrida.
+// - «mafer_preview» (usuario mafer_preview_app): solo Vercel Preview, datos ficticios.
+// Los usuarios de pruebas no tienen permisos sobre los datos reales; además,
+// estas guardias se niegan a apuntar las E2E o las previews a la base real o con
+// el usuario administrador. (Las reglas aceptan también el antiguo proyecto
+// mafer-os-testing, que queda como reversión.) Ver docs/previews.md.
 import { readFileSync, existsSync } from "node:fs";
 
 export const PREVIEW_DB_NAME = "mafer_preview";
+export const E2E_DB_NAME = "mafer_e2e";
 
 function loadEnvLocalIfNeeded() {
   if (!existsSync(".env.local")) return;
@@ -29,12 +34,34 @@ export function databaseNameOf(url) {
   }
 }
 
-/** Proyecto Supabase de una URL del pooler: el usuario es «postgres.<ref>». */
+/** Proyecto Supabase de una URL del pooler: el usuario es «<rol>.<ref>». */
 export function supabaseProjectOf(url) {
   try {
     return decodeURIComponent(new URL(url).username).split(".")[1] ?? null;
   } catch {
     return null;
+  }
+}
+
+/** Rol de Postgres de una URL del pooler («postgres», «mafer_e2e_app»…). */
+export function databaseRoleOf(url) {
+  try {
+    return decodeURIComponent(new URL(url).username).split(".")[0] || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Dentro del proyecto de producción, una URL de pruebas solo vale para SU base
+ *  y nunca con el administrador. Fuera de él (mafer-os-testing) no aplica. */
+function assertSafeInsideProductionProject(label, url, expectedDb) {
+  const prodProject = supabaseProjectOf(process.env.DATABASE_URL ?? "");
+  if (!prodProject || supabaseProjectOf(url) !== prodProject) return;
+  if (databaseNameOf(url) !== expectedDb) {
+    throw new Error(`${label} apunta a la base «${databaseNameOf(url)}» del proyecto de producción. Solo puede usar «${expectedDb}».`);
+  }
+  if (databaseRoleOf(url) === "postgres") {
+    throw new Error(`${label} usa el usuario administrador «postgres» en el proyecto de producción. Debe usar su usuario propio.`);
   }
 }
 
@@ -75,6 +102,7 @@ export function requireTestDatabaseUrl() {
   }
   assertNotSameAsProduction("TEST_DATABASE_URL", url);
   assertNotPreviewDatabase("TEST_DATABASE_URL", url);
+  assertSafeInsideProductionProject("TEST_DATABASE_URL", url, E2E_DB_NAME);
   return url;
 }
 
@@ -92,13 +120,14 @@ export function requireTestMigrateDatabaseUrl() {
   }
   assertNotSameAsProduction("TEST_MIGRATE_DATABASE_URL", url);
   assertNotPreviewDatabase("TEST_MIGRATE_DATABASE_URL", url);
+  assertSafeInsideProductionProject("TEST_MIGRATE_DATABASE_URL", url, E2E_DB_NAME);
   return url;
 }
 
 /** Base de las previews (mafer_preview). `migrate: true` devuelve la conexión
  *  de sesión para DDL. Exige: el nombre exacto de la base, que no sea la URL de
- *  producción ni la de E2E, y que viva en un proyecto Supabase distinto del de
- *  producción.
+ *  producción ni la de E2E y, dentro del proyecto de producción, un usuario que
+ *  no sea el administrador.
  *  @param {{ migrate?: boolean }} [opts]
  *  @returns {string} */
 export function requirePreviewDatabaseUrl({ migrate = false } = {}) {
@@ -117,9 +146,6 @@ export function requirePreviewDatabaseUrl({ migrate = false } = {}) {
   if (databaseNameOf(url) !== PREVIEW_DB_NAME) {
     throw new Error(`${name} debe apuntar a la base «${PREVIEW_DB_NAME}», no a «${databaseNameOf(url)}».`);
   }
-  const prodProject = supabaseProjectOf(process.env.DATABASE_URL ?? "");
-  if (prodProject && supabaseProjectOf(url) === prodProject) {
-    throw new Error(`${name} vive en el proyecto Supabase de producción. Debe estar en mafer-os-testing.`);
-  }
+  assertSafeInsideProductionProject(name, url, PREVIEW_DB_NAME);
   return url;
 }
