@@ -140,12 +140,23 @@ export async function startFocusAction(input: {
     breakMin = p.breakMin;
   }
 
+  // Solo se vincula una tarea que existe y sigue abierta (el id puede venir de la URL).
+  let cardId: string | null = null;
+  if (input.cardId) {
+    const [card] = await db
+      .select({ id: schema.cards.id, completedAt: schema.cards.completedAt, archived: schema.cards.archived })
+      .from(schema.cards)
+      .where(eq(schema.cards.id, input.cardId))
+      .limit(1);
+    if (card && !card.completedAt && !card.archived) cardId = card.id;
+  }
+
   const nowIso = now();
   const s = initialState(focusMin, breakMin, nowIso);
   const id = uid();
   await db.insert(schema.focusSessions).values({
     id,
-    cardId: input.cardId ?? null,
+    cardId,
     preset: input.preset,
     plannedFocusMin: focusMin,
     plannedBreakMin: breakMin,

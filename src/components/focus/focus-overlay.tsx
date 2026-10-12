@@ -300,7 +300,11 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
     start(async () => {
       await startFocusAction({
         preset,
-        cardId: selectedTask?.id ?? null,
+        // La preselección (?ftarea) se carga en segundo plano: si se pulsa «Empezar»
+        // antes de que llegue, se usa la tarea pedida en vez de arrancar sin tarea
+        // (antes la sesión quedaba suelta y al cerrar no preguntaba por la tarea).
+        // Con el selector ya cargado, manda lo elegido (incluido «Enfoque libre»).
+        cardId: selectedTask?.id ?? (picker ? null : (preselectCardId ?? null)),
         customFocusMin: preset === "personalizado" ? clampCustomFocus(customMin) : undefined,
         customWithBreak: preset === "personalizado" ? customBreak : undefined,
       });
