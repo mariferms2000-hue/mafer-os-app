@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { PASSWORD } from "./lib/credentials";
 
-const PASSWORD = "prueba-mafer-123";
 
 /** Estrés de drag & drop en WebKit (motor de Safari): antes crasheaba el renderer
  *  («This page couldn't load»). Este test protege contra regresiones. */

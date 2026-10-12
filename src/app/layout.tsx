@@ -59,10 +59,15 @@ import { THEME_INIT_SCRIPT } from "@/components/shell/theme-script";
 import { ThemeWatcher } from "@/components/shell/theme";
 import { KeyboardInset } from "@/components/shell/keyboard-inset";
 import { FONT_SIZE_INIT_SCRIPT } from "@/components/shell/font-size-script";
+import { PreviewBanner, PreviewBlocked } from "@/components/shell/preview-banner";
+import { isPreviewDeployment, previewDataReady } from "@/lib/data-environment";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Solo en previews de Vercel; en producción no consulta nada.
+  const preview = isPreviewDeployment();
+  const blocked = preview && !(await previewDataReady());
   return (
     <html lang="es" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
@@ -72,7 +77,8 @@ export default function RootLayout({
       <body>
         <ThemeWatcher />
         <KeyboardInset />
-        {children}
+        {preview && <PreviewBanner />}
+        {blocked ? <PreviewBlocked /> : children}
       </body>
     </html>
   );

@@ -2,12 +2,12 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { q, run } from "./lib/test-db";
+import { PASSWORD } from "./lib/credentials";
 
 /** Fase 7D — integración del Jardín de enfoque con Hoy y las tareas.
  *  Nadie escribe ?focus=1: todos los accesos son botones reales. */
 
 const QA_DIR = path.join(__dirname, "..", "docs", "qa", "phase-7d-focus-integration");
-const PASSWORD = "prueba-mafer-123";
 
 test.describe.configure({ mode: "serial" });
 

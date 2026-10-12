@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db, now, schema } from "./db";
+import { assertDataEnvironment, previewDataReady } from "./data-environment";
 
 const COOKIE = "mafer_session";
 const SESSION_DAYS = 90;
@@ -44,6 +45,7 @@ export async function verifyPassword(password: string): Promise<boolean> {
 }
 
 export async function createSession() {
+  await assertDataEnvironment(); // en una preview, nunca sesión sobre una base que no es la de pruebas
   const token = await new SignJWT({ u: "mafer" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -66,6 +68,7 @@ export async function destroySession() {
 export async function isAuthenticated(): Promise<boolean> {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return false;
+  if (!(await previewDataReady())) return false;
   try {
     await jwtVerify(token, secret());
     return true;

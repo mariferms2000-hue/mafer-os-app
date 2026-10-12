@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { q, run } from "./lib/test-db";
+import { PASSWORD } from "./lib/credentials";
 
 /** Fase 7E.3 — Explorar → Mi jardín: la vista de solo lectura del jardín.
  *  Se verifica contra la base de prueba: la planta actual con su identidad real
@@ -11,7 +12,6 @@ import { q, run } from "./lib/test-db";
  *  plantas completadas son aislados (ids z15-*) y se limpian al final. */
 
 const QA_DIR = path.join(__dirname, "..", "docs", "qa", "phase-7e3-garden-view");
-const PASSWORD = "prueba-mafer-123";
 const SPECIES = ["helecho", "monstera", "suculenta", "lavanda", "olivo"];
 const SPECIES_LABEL: Record<string, string> = {
   helecho: "Helecho",

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
+import { PASSWORD } from "./lib/credentials";
 
-const PASSWORD = "prueba-mafer-123";
 
 async function login(page: Page) {
   await page.goto("/login");

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { q, run } from "./lib/test-db";
+import { PASSWORD } from "./lib/credentials";
 
 /** Fase 7E.2 — identidad de plantas y asignaciones sesión→planta (sin interfaz nueva).
  *  Se verifica CONTRA LA BASE de prueba usando el overlay existente de 7C/7D:
@@ -7,7 +8,6 @@ import { q, run } from "./lib/test-db";
  *  dos cuando una sesión completa una planta (cierre + excedente), y sesiones
  *  «antiguas» que permanecen honestamente sin planta asociada. */
 
-const PASSWORD = "prueba-mafer-123";
 const SPECIES = ["helecho", "monstera", "suculenta", "lavanda", "olivo"];
 
 test.describe.configure({ mode: "serial" });
