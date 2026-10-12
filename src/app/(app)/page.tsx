@@ -1,25 +1,12 @@
 import Link from "next/link";
-import {
-  Sun,
-  CalendarDays,
-  Timer,
-  Ban,
-  Hourglass,
-  ArrowRight,
-  Moon,
-  Inbox,
-  Sparkles,
-  RotateCcw,
-} from "lucide-react";
+import { CalendarDays, CircleCheckBig, Inbox, Sparkles, ArrowRight } from "lucide-react";
 import { getTodayData } from "@/lib/queries/today";
 import { currentHour, dayOfWeek } from "@/lib/tz";
 import { getFocusOverview } from "@/lib/queries/focus";
 import { FocusModule } from "@/components/hoy/focus-module";
-import { Priorities, EnergySelector } from "@/components/hoy/priorities";
 import { DoNow } from "@/components/hoy/do-now";
-import { Rhythm } from "@/components/hoy/rhythm";
-import { ForgetAlerts } from "@/components/hoy/forget-alerts";
-import { ReviewNudge } from "@/components/hoy/review-nudge";
+import { Highlights } from "@/components/hoy/highlights";
+import { KeepUp } from "@/components/hoy/keep-up";
 import { TaskLine } from "@/components/hoy/task-line";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Sprig } from "@/components/ui/botanical";
@@ -43,70 +30,84 @@ function saludo() {
   return "Buenas noches";
 }
 
+type AgendaEvent = { id: string; title: string; startTime: string | null; type: string | null };
+
+function EventLine({ e }: { e: AgendaEvent }) {
+  return (
+    <li className="py-2 flex items-center gap-3 text-sm min-w-0">
+      <span className="chip chip-sage shrink-0">{e.startTime ?? "Todo el día"}</span>
+      <span className="font-medium min-w-0 truncate">{e.title}</span>
+      <span className="text-xs text-stone ml-auto capitalize shrink-0">{e.type}</span>
+    </li>
+  );
+}
+
+/** Hoy (Bloque 2): un tablero personal, no una lista interminable.
+ *  Arriba lo que haces ahora y tu enfoque; en medio tus compromisos; a la
+ *  derecha (abajo en el iPhone) lo que no debe caerse. Las listas completas
+ *  viven en Tareas y Proyectos, a un toque desde aquí.
+ *
+ *  Orden en el iPhone: los bloques se aplanan con `contents` y se ordenan con
+ *  `order-*`; en escritorio vuelven a ser dos columnas. */
 export default async function HoyPage() {
   const data = await getTodayData();
   const focus = await getFocusOverview();
-  // La energía del DÍA (baja|media|alta, en settings) cambia las sugerencias automáticas
-  // (nunca tus 3 prioridades manuales). La energía REQUERIDA de cada tarjeta usa
-  // low|medium|high y es independiente: aquí solo se cruzan para ordenar sugerencias.
-  const quickFiltered =
-    data.energy === "baja"
-      ? data.quick.filter((c) => !c.energy || c.energy === "low")
-      : data.energy === "alta"
-        ? data.quick.filter((c) => c.energy !== "low").concat(data.quick.filter((c) => c.energy === "low"))
-        : data.quick;
-  const showDeepWork = data.energy === "alta" && data.deepWork.length > 0;
 
   const resumen: string[] = [];
-  if (data.priorities.length) resumen.push(`${data.priorities.length} prioridad${data.priorities.length > 1 ? "es" : ""}`);
-  if (data.eventsToday.length) resumen.push(`${data.eventsToday.length} evento${data.eventsToday.length > 1 ? "s" : ""}`);
+  const eventos = data.eventsToday.length;
+  if (eventos) resumen.push(`${eventos} evento${eventos > 1 ? "s" : ""}`);
   if (data.dueToday.length) resumen.push(`${data.dueToday.length} con fecha de hoy`);
-  if (data.inboxCount) resumen.push(`${data.inboxCount} en el Inbox`);
+  if (data.keepUp.overdue.length) resumen.push(`${data.keepUp.overdue.length} vencida${data.keepUp.overdue.length > 1 ? "s" : ""}`);
+
+  const agendaVacia = eventos === 0 && data.dueToday.length === 0;
+  const mananaN = data.eventsTomorrow.length + data.dueTomorrow.length;
+  const sinNada = data.doNow.length === 0 && data.priorities.length === 0 && agendaVacia && data.inboxCount === 0;
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-3 mb-1">
-        <div>
-          <p className="section-eyebrow">{fechaLarga(data.date)}</p>
-          <h1 className="text-[34px] md:text-[40px] leading-tight text-forest-deep mt-1 flex items-center gap-3">
-            {saludo()}, {data.userName}
-            <Sprig className="h-9 w-9 text-sage-deep/70 shrink-0 hidden sm:block" />
-          </h1>
-          <p className="intro-italic text-[15px] mt-1">
-            {resumen.length ? `Hoy tienes ${resumen.join(", ")}.` : "Día tranquilo por ahora. Tú decides el rumbo."}
-          </p>
-        </div>
-        <EnergySelector current={data.energy} />
+      <header className="mb-1">
+        <p className="section-eyebrow">{fechaLarga(data.date)}</p>
+        <h1 className="text-[32px] md:text-[40px] leading-tight text-forest-deep mt-1 flex items-center gap-3">
+          {saludo()}, {data.userName}
+          <Sprig className="h-9 w-9 text-sage-deep/70 shrink-0 hidden sm:block" />
+        </h1>
+        <p className="intro-italic text-[15px] mt-1">
+          {resumen.length ? `Hoy tienes ${resumen.join(", ")}.` : "Día tranquilo por ahora. Tú decides el rumbo."}
+        </p>
+        {/* Accesos rápidos: la lista completa y lo capturado, a un toque */}
+        <nav aria-label="Accesos rápidos" className="flex flex-wrap gap-2 mt-3">
+          <Link href="/tareas" className="btn btn-secondary !py-1.5 !px-3 text-sm" data-testid="hoy-all-tasks">
+            <CircleCheckBig size={15} aria-hidden /> Todas las tareas
+          </Link>
+          <Link href="/inbox" className="btn btn-secondary !py-1.5 !px-3 text-sm" data-testid="hoy-inbox">
+            <Inbox size={15} aria-hidden /> Inbox
+            {data.inboxCount > 0 && <span className="chip chip-sage !py-0 tabular-nums">{data.inboxCount}</span>}
+          </Link>
+        </nav>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 flex flex-col gap-5">
-          {/* Una sola respuesta a «¿qué hago ahora?», explicada */}
-          <DoNow items={data.doNow} focusActive={Boolean(focus.openSession)} />
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:items-start">
+        <div className="contents lg:flex lg:flex-col lg:gap-5 lg:col-span-2 lg:min-w-0">
+          <div className="order-1 lg:order-none min-w-0">
+            <DoNow items={data.doNow} energy={data.energy} />
+          </div>
 
-          {/* Microvisualización honesta del día: elegir → enfocarse → cerrar */}
-          <Rhythm priorities={data.priorities} doNowReady={data.doNow.length > 0} />
-
-          <Priorities priorities={data.priorities} candidates={data.candidates} />
-
-          {/* Reuniones y fechas de hoy */}
-          <section aria-labelledby="agenda-hoy" className="card p-5">
+          {/* Agenda: compromisos de hoy y un vistazo a mañana */}
+          <section aria-labelledby="agenda-hoy" className="card p-5 order-3 lg:order-none min-w-0" data-testid="agenda">
             <div className="flex items-center justify-between mb-2">
               <h2 id="agenda-hoy" className="section-eyebrow flex items-center gap-1.5">
                 <CalendarDays size={13} className="text-sage-deep" aria-hidden /> Agenda de hoy
               </h2>
-              <Link href="/calendario?vista=dia" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
+              <Link href="/calendario?vista=dia" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">
+                Ver calendario
+              </Link>
             </div>
-            {data.eventsToday.length === 0 && data.dueToday.length === 0 ? (
+            {agendaVacia ? (
               <p className="text-sm text-stone">Sin reuniones ni fechas límite hoy. Espacio para trabajo con calma.</p>
             ) : (
               <ul className="divide-y divide-beige">
                 {data.eventsToday.map((e) => (
-                  <li key={e.id} className="py-2 flex items-center gap-3 text-sm">
-                    <span className="chip chip-sage shrink-0">{e.startTime ?? "Todo el día"}</span>
-                    <span className="font-medium">{e.title}</span>
-                    <span className="text-xs text-stone ml-auto capitalize">{e.type}</span>
-                  </li>
+                  <EventLine key={e.id} e={e} />
                 ))}
                 {data.dueToday.map((c) => (
                   <li key={c.id}>
@@ -115,222 +116,49 @@ export default async function HoyPage() {
                 ))}
               </ul>
             )}
-          </section>
-
-          {/* Con energía alta, el trabajo profundo va primero */}
-          {showDeepWork && (
-            <section aria-labelledby="profundo" className="card p-5 !border-sage-deep">
-              <h2 id="profundo" className="section-eyebrow flex items-center gap-1.5 mb-1">
-                <Sun size={13} className="text-sage-deep" aria-hidden /> Aprovecha tu energía alta
-              </h2>
-              <p className="text-xs text-stone mb-2">
-                Trabajo profundo, decisiones y tareas importantes — el mejor uso de un día con pila.
-              </p>
-              <ul className="divide-y divide-beige" data-testid="deep-work-list">
-                {data.deepWork.slice(0, 5).map((c) => (
-                  <li key={c.id}>
-                    <TaskLine card={c} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Menos de 30 minutos */}
-          <section aria-labelledby="rapidas" className="card p-5">
-            <div className="flex items-center justify-between mb-1">
-              <h2 id="rapidas" className="section-eyebrow flex items-center gap-1.5">
-                <Timer size={13} className="text-sage-deep" aria-hidden /> Menos de 30 minutos
-              </h2>
-              <Link href="/tareas?v=rapidas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
-            </div>
-            <p className="text-xs text-stone mb-2">
-              {data.energy === "baja"
-                ? "Ajustado a tu energía baja: solo cosas ligeras que sí puedes terminar hoy."
-                : data.energy === "alta"
-                  ? "Para los huecos entre bloques de trabajo profundo."
-                  : "Cosas que puedes terminar en un hueco corto."}
-            </p>
-            {quickFiltered.length === 0 ? (
-              <p className="text-sm text-stone">
-                Nada corto pendiente. Cuando crees tarjetas, asígnales duración (5, 15 o 30 min) y aparecerán aquí.
-              </p>
-            ) : (
-              <ul className="divide-y divide-beige">
-                {quickFiltered.slice(0, 6).map((c) => (
-                  <li key={c.id}>
-                    <TaskLine card={c} />
-                  </li>
-                ))}
-              </ul>
+            {mananaN > 0 && (
+              <div className="mt-3 pt-3 border-t border-beige" data-testid="agenda-tomorrow">
+                <p className="text-xs font-semibold text-stone mb-0.5">Mañana</p>
+                <ul className="divide-y divide-beige">
+                  {data.eventsTomorrow.map((e) => (
+                    <EventLine key={e.id} e={e} />
+                  ))}
+                  {data.dueTomorrow.map((c) => (
+                    <li key={c.id}>
+                      <TaskLine card={c} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
 
-          {/* Próximos pasos concretos */}
-          <section aria-labelledby="siguientes" className="card p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 id="siguientes" className="section-eyebrow flex items-center gap-1.5">
-                <ArrowRight size={13} className="text-sage-deep" aria-hidden /> Siguiente paso por proyecto
-              </h2>
-              <Link href="/proyectos" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
-            </div>
-            {data.nextSteps.length === 0 ? (
-              <p className="text-sm text-stone">
-                Cuando definas la «próxima acción» de cada proyecto activo, aparecerá aquí para que nunca tengas que
-                recordar dónde ibas.
-              </p>
-            ) : (
-              <ul className="divide-y divide-beige">
-                {data.nextSteps.map((s) => (
-                  <li key={s.projectId} className="py-2.5 flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{s.nextAction}</p>
-                      <p className="text-xs text-stone">{s.projectTitle}</p>
-                    </div>
-                    <Link
-                      href={`/proyectos/${s.projectId}?retomar=1`}
-                      className="btn btn-ghost !py-1 !px-2 text-xs shrink-0"
-                      aria-label={`Retomar ${s.projectTitle}`}
-                    >
-                      <RotateCcw size={13} aria-hidden /> Retomar
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          <div className="order-4 lg:order-none min-w-0 empty:hidden">
+            <Highlights cards={data.priorities} />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-5">
-          {/* Jardín de enfoque: acceso principal, arriba de Revisiones (7A) */}
-          <FocusModule overview={focus} />
-
-          {/* Revisiones: acceso compacto con un solo aviso */}
-          <ReviewNudge />
-
-          {/* Antiolvido: lo que se estaba cayendo por los huecos */}
-          <ForgetAlerts alerts={data.alerts} />
-
-          {/* Vencidas y próximas */}
-          {(data.overdue.length > 0 || data.approaching.length > 0) && (
-            <section aria-labelledby="fechas" className="card p-5">
-              <h2 id="fechas" className="section-eyebrow flex items-center gap-1.5 mb-2">
-                <Sun size={13} className="text-sage-deep" aria-hidden /> Fechas que respiran cerca
-              </h2>
-              {data.overdue.length > 0 && (
-                <>
-                  <p className="text-xs text-stone mb-1">
-                    Se pasaron de fecha — sin drama, solo decide: hacer, reagendar o soltar.
-                  </p>
-                  <ul className="divide-y divide-beige mb-3">
-                    {data.overdue.slice(0, 5).map((c) => (
-                      <li key={c.id}>
-                        <TaskLine card={c} />
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              {data.approaching.length > 0 && (
-                <>
-                  <p className="text-xs text-stone mb-1">Próximos 7 días:</p>
-                  <ul className="divide-y divide-beige">
-                    {data.approaching.slice(0, 5).map((c) => (
-                      <li key={c.id}>
-                        <TaskLine card={c} />
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-            </section>
-          )}
-
-          {/* Bloqueado */}
-          <section aria-labelledby="bloqueado" className="card p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 id="bloqueado" className="section-eyebrow flex items-center gap-1.5">
-                <Ban size={13} className="text-blocked" aria-hidden /> Bloqueado
-              </h2>
-              <Link href="/tareas?v=bloqueadas" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
-            </div>
-            {data.blocked.length === 0 ? (
-              <p className="text-sm text-stone">Nada bloqueado. 🌿</p>
-            ) : (
-              <ul className="divide-y divide-beige">
-                {data.blocked.slice(0, 5).map((c) => (
-                  <li key={c.id}>
-                    <TaskLine card={c} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* Esperando */}
-          <section aria-labelledby="esperando" className="card p-5">
-            <div className="flex items-center justify-between mb-2">
-              <h2 id="esperando" className="section-eyebrow flex items-center gap-1.5">
-                <Hourglass size={13} className="text-waiting" aria-hidden /> Esperando
-              </h2>
-              <Link href="/tareas?v=esperando" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">Ver todo</Link>
-            </div>
-            {data.waiting.length === 0 ? (
-              <p className="text-sm text-stone">No esperas nada de nadie por ahora.</p>
-            ) : (
-              <ul className="divide-y divide-beige">
-                {data.waiting.slice(0, 5).map((c) => (
-                  <li key={c.id}>
-                    <TaskLine card={c} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* Para después */}
-          <section aria-labelledby="despues" className="card p-5">
-            <h2 id="despues" className="section-eyebrow flex items-center gap-1.5 mb-2">
-              <Moon size={13} className="text-stone" aria-hidden /> Para después
-            </h2>
-            {data.deferred.length === 0 ? (
-              <p className="text-sm text-stone">Nada pospuesto conscientemente.</p>
-            ) : (
-              <ul className="divide-y divide-beige">
-                {data.deferred.slice(0, 5).map((c) => (
-                  <li key={c.id}>
-                    <TaskLine card={c} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {data.inboxCount > 0 && (
-            <Link href="/inbox" className="card p-4 flex items-center gap-3 hover:shadow-lift transition-shadow">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sage-soft text-forest">
-                <Inbox size={19} aria-hidden />
-              </span>
-              <div>
-                <p className="text-sm font-medium">
-                  {data.inboxCount} captura{data.inboxCount > 1 ? "s" : ""} sin procesar
-                </p>
-                <p className="text-xs text-stone">Dales un destino cuando tengas 5 minutos.</p>
-              </div>
-              <ArrowRight size={16} className="ml-auto text-stone" aria-hidden />
-            </Link>
-          )}
+        <div className="contents lg:flex lg:flex-col lg:gap-5 lg:min-w-0">
+          {/* Jardín de enfoque: el acceso de siempre al Pomodoro */}
+          <div className="order-2 lg:order-none min-w-0">
+            <FocusModule overview={focus} />
+          </div>
+          <div className="order-5 lg:order-none min-w-0">
+            <KeepUp data={data.keepUp} today={data.date} />
+          </div>
         </div>
       </div>
 
-      {data.candidates.length === 0 && data.priorities.length === 0 && (
+      {sinNada && (
         <EmptyState
           icon={Sparkles}
           variant="brote"
           title="Tu sistema está listo y esperándote"
-          hint="Empieza capturando lo que tengas en la cabeza con el botón + (abajo a la derecha), o crea tu primer proyecto."
+          hint="Captura lo que tengas en la cabeza con el botón + (abajo a la derecha), o crea tu primer proyecto."
         >
-          <Link href="/proyectos" className="btn btn-primary">Ir a Proyectos</Link>
+          <Link href="/proyectos" className="btn btn-primary">
+            Ir a Proyectos <ArrowRight size={15} aria-hidden />
+          </Link>
         </EmptyState>
       )}
     </div>

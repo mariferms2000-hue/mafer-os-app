@@ -110,14 +110,17 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
               <CalendarClock size={11} aria-hidden /> {card.dueDate}
             </span>
           )}
+          {/* Textos libres: se recortan con «…» en vez de ensanchar la página
+              (un motivo largo desbordaba Hoy en el iPhone). El texto completo
+              queda en el title y en el detalle. */}
           {card.blockedReason && (
-            <span className="chip chip-blocked">
-              <Ban size={11} aria-hidden /> {card.blockedReason}
+            <span className="chip chip-blocked max-w-full" title={card.blockedReason}>
+              <Ban size={11} className="shrink-0" aria-hidden /> <span className="truncate">{card.blockedReason}</span>
             </span>
           )}
           {card.waitingFor && (
-            <span className="chip chip-waiting">
-              <Hourglass size={11} aria-hidden /> Espera: {card.waitingFor}
+            <span className="chip chip-waiting max-w-full" title={`Espera: ${card.waitingFor}`}>
+              <Hourglass size={11} className="shrink-0" aria-hidden /> <span className="truncate">Espera: {card.waitingFor}</span>
             </span>
           )}
           {done && card.completedAt && (
