@@ -3,7 +3,6 @@ import { Sprout, Leaf } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { TIMEZONE } from "@/lib/tz";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ExplorarTabs } from "@/components/explore/tabs";
 import { GardenFocusButton } from "@/components/explore/garden-focus-button";
 import { GardenRoom } from "@/components/explore/garden-room";
 import { PlantCardTrigger } from "@/components/explore/plant-card-trigger";
@@ -13,6 +12,7 @@ import { MAX_ROOM_PLANTS } from "@/lib/garden-layout";
 import { STAGES, type StageKey } from "@/lib/focus-logic";
 import { SPECIES_LABEL } from "@/lib/plant-svg-v2";
 import type { PlantSpeciesV2 } from "@/lib/plant-render-v2";
+import { BibliotecaBack } from "@/components/library/section-nav";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mi jardín" };
@@ -62,16 +62,16 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
 
   return (
     <div>
+      <BibliotecaBack />
       <PageHeader
         icon={Sprout}
         title="Mi jardín"
         intro="Cada planta conserva el tiempo que decidiste cuidar. Crece a tu ritmo; aquí nada caduca ni se pierde."
       >
-        <Link href="/explorar/jardin/especies" className="btn btn-secondary" data-testid="garden-view-species">
+        <Link href="/biblioteca/jardin/especies" className="btn btn-secondary" data-testid="garden-view-species">
           <Leaf size={15} aria-hidden /> Ver especies
         </Link>
       </PageHeader>
-      <ExplorarTabs />
 
       {/* El cuarto: la escena con la planta actual y las completadas más recientes */}
       <section aria-labelledby="planta-actual" className="mb-10" data-testid="garden-current">
@@ -169,7 +169,7 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
             {garden.totalCompleted > greenhouse.length && (
               <div className="mt-5 flex justify-center">
                 <Link
-                  href={`/explorar/jardin?mostrar=${shown + PAGE_SIZE}`}
+                  href={`/biblioteca/jardin?mostrar=${shown + PAGE_SIZE}`}
                   scroll={false}
                   className="btn btn-secondary"
                   data-testid="garden-more"

@@ -211,7 +211,7 @@ function ProcessPanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 overlay-screen flex items-end md:items-stretch md:justify-end"
+      className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-stretch md:justify-end"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="presentation"
     >

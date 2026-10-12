@@ -189,7 +189,7 @@ export async function convertInboxItem(formData: FormData): Promise<{ convertedT
   revalidatePath("/");
   revalidatePath("/tareas");
   revalidatePath("/proyectos");
-  revalidatePath("/explorar");
+  revalidatePath("/biblioteca/ideas");
   revalidatePath("/biblioteca/recursos");
   revalidatePath("/calendario");
   return { convertedTo };

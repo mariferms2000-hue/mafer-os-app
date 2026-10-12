@@ -11,12 +11,17 @@ import {
 } from "@/lib/actions/maintenance";
 import { useToast } from "@/components/ui/toast";
 
+/** `localTools`: el respaldo en carpeta y Obsidian escriben en el disco de la
+ *  Mac, así que solo se ofrecen al correr la app en local. En Vercel fallaban
+ *  siempre; ahí quedan las descargas JSON y Markdown. */
 export function BackupButtons({
   lastBackup,
   lastSync,
+  localTools,
 }: {
   lastBackup: string | null;
   lastSync: string | null;
+  localTools: boolean;
 }) {
   const [pending, start] = useTransition();
   const toast = useToast();
@@ -30,47 +35,53 @@ export function BackupButtons({
         <a href="/api/export/markdown" className="btn btn-secondary" download>
           <Download size={15} aria-hidden /> Descargar Markdown
         </a>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={pending}
-          data-testid="create-backup"
-          onClick={() =>
-            start(async () => {
-              const r = await createBackupAction();
-              toast.show(
-                r.ok
-                  ? { message: "Respaldo completo creado ✓", link: { label: "¿Cómo restaurar?", href: "/ajustes" } }
-                  : { tone: "warn", message: r.error ?? "No se pudo crear el respaldo." }
-              );
-            })
-          }
-        >
-          <HardDriveDownload size={15} aria-hidden /> {pending ? "Creando…" : "Crear respaldo completo"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={pending}
-          data-testid="sync-obsidian"
-          onClick={() =>
-            start(async () => {
-              const r = await syncObsidianAction();
-              toast.show(
-                r.ok
-                  ? { message: `Vault de Obsidian actualizado ✓ (${r.notes} notas)` }
-                  : { tone: "warn", message: r.error ?? "No se pudo actualizar el vault." }
-              );
-            })
-          }
-        >
-          <BookOpen size={15} aria-hidden /> Actualizar Obsidian
-        </button>
+        {localTools && (
+          <>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={pending}
+              data-testid="create-backup"
+              onClick={() =>
+                start(async () => {
+                  const r = await createBackupAction();
+                  toast.show(
+                    r.ok
+                      ? { message: "Respaldo completo creado ✓", link: { label: "¿Cómo restaurar?", href: "/ajustes" } }
+                      : { tone: "warn", message: r.error ?? "No se pudo crear el respaldo." }
+                  );
+                })
+              }
+            >
+              <HardDriveDownload size={15} aria-hidden /> {pending ? "Creando…" : "Crear respaldo completo"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={pending}
+              data-testid="sync-obsidian"
+              onClick={() =>
+                start(async () => {
+                  const r = await syncObsidianAction();
+                  toast.show(
+                    r.ok
+                      ? { message: `Vault de Obsidian actualizado ✓ (${r.notes} notas)` }
+                      : { tone: "warn", message: r.error ?? "No se pudo actualizar el vault." }
+                  );
+                })
+              }
+            >
+              <BookOpen size={15} aria-hidden /> Actualizar Obsidian
+            </button>
+          </>
+        )}
       </div>
-      <div className="text-xs text-stone flex flex-col gap-0.5">
-        <p>Último respaldo completo: {lastBackup ? lastBackup.slice(0, 16).replace("T", " a las ") : "aún no has creado uno desde la app"}</p>
-        <p>Última actualización de Obsidian: {lastSync ? lastSync.slice(0, 16).replace("T", " a las ") : "aún no (también puedes usar npm run sync:obsidian)"}</p>
-      </div>
+      {localTools && (
+        <div className="text-xs text-stone flex flex-col gap-0.5">
+          <p>Último respaldo completo: {lastBackup ? lastBackup.slice(0, 16).replace("T", " a las ") : "aún no has creado uno desde la app"}</p>
+          <p>Última actualización de Obsidian: {lastSync ? lastSync.slice(0, 16).replace("T", " a las ") : "aún no (también puedes usar npm run sync:obsidian)"}</p>
+        </div>
+      )}
     </div>
   );
 }

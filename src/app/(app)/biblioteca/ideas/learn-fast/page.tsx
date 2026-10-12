@@ -4,7 +4,6 @@ import { Rocket, Plus } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ExplorarTabs } from "@/components/explore/tabs";
 import { EvidenceChip } from "@/components/explore/evidence";
 import { createLearningAction } from "@/lib/actions/explore";
 
@@ -12,6 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Learn Fast" };
 
 import { DEPTH_LABEL } from "@/components/explore/learning-labels";
+import { BibliotecaBack, IdeasTabs } from "@/components/library/section-nav";
 
 const STATUS_LABEL: Record<string, string> = {
   idea: "Idea",
@@ -29,12 +29,13 @@ export default async function LearnFastPage() {
 
   return (
     <div>
+      <BibliotecaBack />
       <PageHeader
         icon={Rocket}
         title="Learn Fast"
         intro="Para cuando quieres volverte buena en algo, rápido y con foco. Un sprint activo a la vez funciona mejor que cinco a medias."
       />
-      <ExplorarTabs />
+      <IdeasTabs />
 
       <form action={createLearningAction} className="card p-4 mb-6 flex flex-col md:flex-row gap-2.5">
         <label className="sr-only" htmlFor="lf-title">Nuevo tema</label>
@@ -94,7 +95,7 @@ function TopicGrid({
       {topics.map((t) => (
         <li key={t.id}>
           <Link
-            href={`/explorar/learn-fast/${t.id}`}
+            href={`/biblioteca/ideas/learn-fast/${t.id}`}
             className={`card p-4 flex flex-col gap-2 h-full hover:shadow-lift transition-shadow ${
               highlight ? "!border-sage-deep" : ""
             }`}

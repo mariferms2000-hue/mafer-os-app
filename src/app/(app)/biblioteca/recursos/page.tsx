@@ -4,9 +4,9 @@ import { FolderOpen, Star, Plus } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { BibliotecaTabs } from "@/components/library/tabs";
 import { ResourceItem } from "@/components/library/resource-item";
 import { createResourceAction } from "@/lib/actions/library";
+import { BibliotecaBack } from "@/components/library/section-nav";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Recursos guardados" };
@@ -39,12 +39,12 @@ export default async function RecursosPage({
 
   return (
     <div>
+      <BibliotecaBack />
       <PageHeader
         icon={FolderOpen}
         title="Recursos guardados"
         intro="Materiales externos que quieres guardar, revisar o usar dentro de un proyecto o tema de aprendizaje."
       />
-      <BibliotecaTabs />
 
       <details className="card mb-6">
         <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-forest flex items-center gap-2">

@@ -3,14 +3,14 @@ import { Lightbulb, Sprout } from "lucide-react";
 import { db, schema } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ExplorarTabs } from "@/components/explore/tabs";
 import { IdeaCard } from "@/components/explore/idea-card";
 import { createIdeaAction } from "@/lib/actions/explore";
+import { BibliotecaBack, IdeasTabs } from "@/components/library/section-nav";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Explorar" };
+export const metadata = { title: "Ideas" };
 
-export default async function ExplorarPage({
+export default async function IdeasPage({
   searchParams,
 }: {
   searchParams: Promise<{ nueva?: string }>;
@@ -30,12 +30,13 @@ export default async function ExplorarPage({
 
   return (
     <div>
+      <BibliotecaBack />
       <PageHeader
         icon={Lightbulb}
         title="Incubadora"
         intro="Aquí viven las posibilidades sin presión: ideas, maestrías, negocios, curiosidades. Nada de esto es un compromiso todavía — y eso está bien."
       />
-      <ExplorarTabs />
+      <IdeasTabs />
 
       <form action={createIdeaAction} className="card p-4 mb-6 flex flex-col md:flex-row gap-2.5">
         <label className="sr-only" htmlFor="idea-title">Nueva idea</label>

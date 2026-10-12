@@ -22,13 +22,13 @@ export async function createIdeaAction(formData: FormData) {
     createdAt: t,
     updatedAt: t,
   });
-  revalidatePath("/explorar");
+  revalidatePath("/biblioteca/ideas");
 }
 
 export async function updateIdeaStatusAction(id: string, status: string) {
   await requireAuth();
   await db.update(schema.ideas).set({ status, updatedAt: now() }).where(eq(schema.ideas.id, id));
-  revalidatePath("/explorar");
+  revalidatePath("/biblioteca/ideas");
 }
 
 /** Gradúa una idea a proyecto activo o a tema Learn Fast. */
@@ -62,13 +62,13 @@ export async function graduateIdeaAction(id: string, target: "proyecto" | "learn
       updatedAt: t,
     });
     graduatedTo = `aprendizaje:${lid}`;
-    dest = `/explorar/learn-fast/${lid}`;
+    dest = `/biblioteca/ideas/learn-fast/${lid}`;
   }
   await db
     .update(schema.ideas)
     .set({ status: "graduada", graduatedTo, updatedAt: t })
     .where(eq(schema.ideas.id, id));
-  revalidatePath("/explorar");
+  revalidatePath("/biblioteca/ideas");
   redirect(dest);
 }
 
@@ -76,7 +76,7 @@ export async function graduateIdeaAction(id: string, target: "proyecto" | "learn
 export async function touchIdeaAction(id: string) {
   await requireAuth();
   await db.update(schema.ideas).set({ updatedAt: now() }).where(eq(schema.ideas.id, id));
-  revalidatePath("/explorar");
+  revalidatePath("/biblioteca/ideas");
   revalidatePath("/revisiones/semanal");
 }
 
@@ -84,14 +84,14 @@ export async function touchIdeaAction(id: string) {
 export async function setLearningStatusAction(id: string, status: string) {
   await requireAuth();
   await db.update(schema.learningTopics).set({ status, updatedAt: now() }).where(eq(schema.learningTopics.id, id));
-  revalidatePath("/explorar/learn-fast");
+  revalidatePath("/biblioteca/ideas/learn-fast");
   revalidatePath("/revisiones/semanal");
 }
 
 export async function deleteIdeaAction(id: string) {
   await requireAuth();
   await db.delete(schema.ideas).where(eq(schema.ideas.id, id));
-  revalidatePath("/explorar");
+  revalidatePath("/biblioteca/ideas");
 }
 
 /* ── Learn Fast ─────────────────────────────────────── */
@@ -113,8 +113,8 @@ export async function createLearningAction(formData: FormData) {
     createdAt: t,
     updatedAt: t,
   });
-  revalidatePath("/explorar/learn-fast");
-  redirect(`/explorar/learn-fast/${id}`);
+  revalidatePath("/biblioteca/ideas/learn-fast");
+  redirect(`/biblioteca/ideas/learn-fast/${id}`);
 }
 
 export async function updateLearningAction(formData: FormData) {
@@ -150,8 +150,8 @@ export async function updateLearningAction(formData: FormData) {
       updatedAt: now(),
     })
     .where(eq(schema.learningTopics.id, id));
-  revalidatePath("/explorar/learn-fast");
-  revalidatePath(`/explorar/learn-fast/${id}`);
+  revalidatePath("/biblioteca/ideas/learn-fast");
+  revalidatePath(`/biblioteca/ideas/learn-fast/${id}`);
 }
 
 export async function setLearningExercisesAction(
@@ -163,14 +163,14 @@ export async function setLearningExercisesAction(
     .update(schema.learningTopics)
     .set({ exercises, updatedAt: now() })
     .where(eq(schema.learningTopics.id, id));
-  revalidatePath(`/explorar/learn-fast/${id}`);
+  revalidatePath(`/biblioteca/ideas/learn-fast/${id}`);
 }
 
 export async function deleteLearningAction(id: string) {
   await requireAuth();
   await db.delete(schema.learningTopics).where(eq(schema.learningTopics.id, id));
-  revalidatePath("/explorar/learn-fast");
-  redirect("/explorar/learn-fast");
+  revalidatePath("/biblioteca/ideas/learn-fast");
+  redirect("/biblioteca/ideas/learn-fast");
 }
 
 /* ── Journal ────────────────────────────────────────── */
@@ -192,8 +192,8 @@ export async function createJournalAction(formData: FormData) {
     createdAt: t,
     updatedAt: t,
   });
-  revalidatePath("/explorar/journal");
-  redirect(`/explorar/journal/${id}`);
+  revalidatePath("/biblioteca/journal");
+  redirect(`/biblioteca/journal/${id}`);
 }
 
 export async function updateJournalAction(formData: FormData) {
@@ -213,8 +213,8 @@ export async function updateJournalAction(formData: FormData) {
       updatedAt: now(),
     })
     .where(eq(schema.journalEntries.id, id));
-  revalidatePath("/explorar/journal");
-  revalidatePath(`/explorar/journal/${id}`);
+  revalidatePath("/biblioteca/journal");
+  revalidatePath(`/biblioteca/journal/${id}`);
 }
 
 export async function toggleJournalFavoriteAction(id: string) {
@@ -225,15 +225,15 @@ export async function toggleJournalFavoriteAction(id: string) {
     .update(schema.journalEntries)
     .set({ favorite: !e.favorite })
     .where(eq(schema.journalEntries.id, id));
-  revalidatePath("/explorar/journal");
-  revalidatePath(`/explorar/journal/${id}`);
+  revalidatePath("/biblioteca/journal");
+  revalidatePath(`/biblioteca/journal/${id}`);
 }
 
 export async function deleteJournalAction(id: string) {
   await requireAuth();
   await db.delete(schema.journalEntries).where(eq(schema.journalEntries.id, id));
-  revalidatePath("/explorar/journal");
-  redirect("/explorar/journal");
+  revalidatePath("/biblioteca/journal");
+  redirect("/biblioteca/journal");
 }
 
 /* ── Decisiones ─────────────────────────────────────── */

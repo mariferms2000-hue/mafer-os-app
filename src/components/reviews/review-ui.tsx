@@ -404,7 +404,7 @@ export function ReviewLearnRow({
       <p className="text-sm font-medium flex items-center gap-1.5"><Rocket size={13} className="text-olive" aria-hidden /> {title}</p>
       <p className="text-xs text-stone mt-0.5">{note}</p>
       <div className="flex flex-wrap gap-1.5 mt-1.5">
-        <Link href={`/explorar/learn-fast/${id}`} className="btn btn-secondary !py-1 !px-2 text-xs" data-testid="rl-abrir">
+        <Link href={`/biblioteca/ideas/learn-fast/${id}`} className="btn btn-secondary !py-1 !px-2 text-xs" data-testid="rl-abrir">
           <ArrowRight size={12} aria-hidden /> {status === "pausado" ? "Continuar" : "Definir siguiente paso"}
         </Link>
         {status === "activo" ? (

@@ -32,7 +32,7 @@ const STAGE_LABEL: Record<StageKey, string> = Object.fromEntries(STAGES.map((s) 
 function GardenLink({ count }: { count: number }) {
   return (
     <Link
-      href="/explorar/jardin"
+      href="/biblioteca/jardin"
       className="text-[11px] text-stone-soft mt-2 flex items-center gap-1 hover:text-stone underline-offset-4 hover:underline w-fit"
       data-testid="focus-module-garden-link"
     >
@@ -112,7 +112,7 @@ export function FocusModule({ overview }: { overview: FocusOverview }) {
         <Sprout size={13} className="text-sage-deep" aria-hidden /> Jardín de enfoque
       </h2>
       <div className="flex items-center gap-3">
-        <Link href="/explorar/jardin" aria-label="Ver mi jardín" data-testid="focus-module-plant-link">
+        <Link href="/biblioteca/jardin" aria-label="Ver mi jardín" data-testid="focus-module-plant-link">
           <FocusPlant stage={stage} className="h-14 w-14 shrink-0 text-sage-deep" />
         </Link>
         <div className="min-w-0 flex-1">

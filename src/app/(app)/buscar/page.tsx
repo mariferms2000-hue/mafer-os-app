@@ -13,14 +13,13 @@ type Hit = { title: string; sub: string; href: string; category: string };
 const CATS = [
   { key: "", label: "Todo" },
   { key: "proyecto", label: "Proyectos" },
-  { key: "tarea", label: "Tarjetas" },
+  { key: "tarea", label: "Tareas" },
   { key: "journal", label: "Journal" },
   { key: "prompt", label: "Prompts" },
   { key: "aprendizaje", label: "Learn Fast" },
   { key: "idea", label: "Ideas" },
   { key: "decision", label: "Decisiones" },
   { key: "recurso", label: "Recursos" },
-  { key: "agente", label: "Agentes" },
   { key: "evento", label: "Eventos" },
 ];
 
@@ -36,7 +35,7 @@ export default async function BuscarPage({
 
   let hits: Hit[] = [];
   if (needle) {
-    const [projects, cards, journal, prompts, learning, ideas, decisionsRows, resources, agents, events] = await Promise.all([
+    const [projects, cards, journal, prompts, learning, ideas, decisionsRows, resources, events] = await Promise.all([
       db.select().from(schema.projects),
       db.select().from(schema.cards),
       db.select().from(schema.journalEntries),
@@ -45,7 +44,6 @@ export default async function BuscarPage({
       db.select().from(schema.ideas),
       db.select().from(schema.decisions),
       db.select().from(schema.resources),
-      db.select().from(schema.agentsSkills),
       db.select().from(schema.events),
     ]);
     hits = [
@@ -56,19 +54,17 @@ export default async function BuscarPage({
       ...cards.filter((c) => has(c.title, c.description, c.nextAction)).map((c) => ({
         title: c.title, sub: c.description || "", href: `/tareas?abrir=${c.id}`, category: "tarea" })),
       ...journal.filter((j) => has(j.title, j.body)).map((j) => ({
-        title: j.title, sub: j.date, href: `/explorar/journal/${j.id}`, category: "journal" })),
+        title: j.title, sub: j.date, href: `/biblioteca/journal/${j.id}`, category: "journal" })),
       ...prompts.filter((p) => has(p.title, p.body, p.purpose)).map((p) => ({
         title: p.title, sub: p.purpose || "", href: "/biblioteca/prompts?q=" + encodeURIComponent(p.title), category: "prompt" })),
       ...learning.filter((l) => has(l.title, l.motivation, l.notes)).map((l) => ({
-        title: l.title, sub: l.motivation || "", href: `/explorar/learn-fast/${l.id}`, category: "aprendizaje" })),
+        title: l.title, sub: l.motivation || "", href: `/biblioteca/ideas/learn-fast/${l.id}`, category: "aprendizaje" })),
       ...ideas.filter((i) => has(i.title, i.description)).map((i) => ({
-        title: i.title, sub: i.description || "", href: "/explorar", category: "idea" })),
+        title: i.title, sub: i.description || "", href: "/biblioteca/ideas", category: "idea" })),
       ...decisionsRows.filter((d) => has(d.title, d.context, d.decision, d.reason)).map((d) => ({
         title: d.title, sub: d.date, href: "/explorar/decisiones", category: "decision" })),
       ...resources.filter((r) => has(r.title, r.notes, r.topic)).map((r) => ({
         title: r.title, sub: r.notes || r.url || "", href: "/biblioteca/recursos?q=" + encodeURIComponent(r.title), category: "recurso" })),
-      ...agents.filter((a) => has(a.name, a.purpose)).map((a) => ({
-        title: a.name, sub: a.purpose || "", href: a.kind === "skill" ? "/biblioteca/skills" : "/biblioteca/agentes", category: "agente" })),
       ...events.filter((e) => has(e.title, e.notes)).map((e) => ({
         title: e.title, sub: e.date, href: "/calendario?vista=agenda", category: "evento" })),
     ];
