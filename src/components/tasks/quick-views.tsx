@@ -5,23 +5,27 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Star } from "lucide-react";
 import { tareasUrl, type ToolbarState } from "./tareas-url";
 
-/** Las 5 vistas principales — nunca más de cinco a la vista, para no saturar. */
+/** Las 5 vistas principales — nunca más de cinco a la vista, para no saturar.
+ *  Bloque 2: las que Mafer consulta (todas, próximas y vencidas, esperando,
+ *  bloqueadas y terminadas); el resto sigue en «Más vistas» y se puede fijar. */
 export const MAIN_VIEWS = [
-  { key: "ahora", label: "Haz ahora" },
-  { key: "hoy", label: "Hoy" },
-  { key: "rapidas", label: "≤ 30 min" },
-  { key: "esperando", label: "Esperando" },
   { key: "todas", label: "Todas" },
+  { key: "proximas", label: "Próximas" },
+  { key: "esperando", label: "Esperando" },
+  { key: "bloqueadas", label: "Bloqueadas" },
+  { key: "terminadas", label: "Terminadas" },
 ] as const;
 
 /** Vistas secundarias, dentro de «Más vistas». */
 export const MORE_VIEWS = [
+  { key: "recordatorio", label: "Con recordatorio" },
+  { key: "hoy", label: "Hoy" },
+  { key: "ahora", label: "Haz ahora" },
+  { key: "sin-proyecto", label: "Sin proyecto" },
+  { key: "rapidas", label: "≤ 30 min" },
   { key: "baja-energia", label: "Baja energía" },
   { key: "profundo", label: "Trabajo profundo" },
-  { key: "bloqueadas", label: "Bloqueadas" },
   { key: "sin-clasificar", label: "Sin clasificar" },
-  { key: "sin-proyecto", label: "Sin proyecto" },
-  { key: "terminadas", label: "Terminadas" },
   { key: "archivadas", label: "Archivadas" },
 ] as const;
 

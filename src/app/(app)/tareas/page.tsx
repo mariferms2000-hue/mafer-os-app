@@ -13,7 +13,7 @@ import { NewTaskButton } from "@/components/tasks/new-task";
 import { ArchivedLine } from "@/components/tasks/archived-line";
 import { QuickViews } from "@/components/tasks/quick-views";
 import { TasksToolbar } from "@/components/tasks/tasks-toolbar";
-import { tareasUrl, type ToolbarState } from "@/components/tasks/tareas-url";
+import { DEFAULT_VIEW, tareasUrl, type ToolbarState } from "@/components/tasks/tareas-url";
 import type { CardRow } from "@/lib/queries/today";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +48,8 @@ function legacy(f: string | undefined): Partial<{ v: string; fecha: string; dur:
 }
 
 const VISTA_INTRO: Record<string, string> = {
+  proximas: "Lo vencido primero y lo que vence en las próximas dos semanas.",
+  recordatorio: "Tareas marcadas para avisarte por Google Calendar.",
   ahora: "Lo más accionable primero, según tus prioridades, fechas y energía de hoy.",
   hoy: "Tus prioridades, lo vencido y lo que vence hoy.",
   rapidas: "Cosas que puedes terminar en un hueco corto (menos de 10 y 10–30 min).",
@@ -70,7 +72,7 @@ export default async function TareasPage({
   const sp = await searchParams;
   const leg = legacy(sp.f);
   const state: ToolbarState = {
-    v: sp.v ?? leg.v ?? "ahora",
+    v: sp.v ?? leg.v ?? DEFAULT_VIEW,
     q: sp.q ?? "",
     agrupar: sp.agrupar ?? "ninguno",
     proy: sp.proy ?? "",
@@ -127,6 +129,19 @@ export default async function TareasPage({
       cards.sort((a, b) => peso(a) - peso(b));
       break;
     }
+    case "proximas": {
+      const d14 = addDays(d, 14);
+      cards = cards
+        .filter((c) => abierta(c) && c.dueDate !== null && c.dueDate <= d14)
+        .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : a.dueDate! > b.dueDate! ? 1 : (a.startTime ?? "") < (b.startTime ?? "") ? -1 : 1));
+      break;
+    }
+    case "recordatorio":
+      // Solo lectura: qué tareas piden aviso por Google. La sincronización es del Bloque 3.
+      cards = cards
+        .filter((c) => abierta(c) && (c.reminder ?? "").startsWith("gcal"))
+        .sort((a, b) => ((a.dueDate ?? "9999") < (b.dueDate ?? "9999") ? -1 : 1));
+      break;
     case "rapidas":
       cards = cards.filter((c) => accionable(c) && QUICK_DURATIONS.includes(c.duration ?? ""));
       cards.sort((a, b) => (a.duration === b.duration ? 0 : a.duration === "under_10" ? -1 : 1));
@@ -227,7 +242,7 @@ export default async function TareasPage({
       <PageHeader
         icon={CircleCheckBig}
         title="Tareas"
-        intro="¿Qué puedes hacer ahora? Empieza por arriba; los filtros aparecen solo cuando los pides."
+        intro="Todas tus tareas en un solo lugar. Cambia de vista, busca, filtra o agrupa por proyecto."
       >
         <NewTaskButton projects={projects} />
       </PageHeader>
@@ -284,15 +299,11 @@ export default async function TareasPage({
       )}
 
       <p className="text-xs text-stone-soft mt-4">
-        ¿Buscas lo ya hecho?{" "}
-        <Link href={tareasUrl({ base: state, v: "terminadas" })} className="underline underline-offset-4 hover:text-forest">
-          Terminadas
-        </Link>
-        {" · "}
+        ¿Buscas algo que guardaste fuera del camino?{" "}
         <Link href={tareasUrl({ base: state, v: "archivadas" })} className="underline underline-offset-4 hover:text-forest">
           Archivadas
         </Link>
-        {" — también viven en «Más vistas»."}
+        {" — también en «Más vistas»."}
       </p>
     </div>
   );

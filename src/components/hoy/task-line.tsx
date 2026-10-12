@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass, MoreHorizontal, PencilLine, Trash2 } from "lucide-react";
+import { Circle, CheckCircle2, Clock, Zap, CalendarClock, Ban, Hourglass, MoreHorizontal, PencilLine, Trash2, Bell } from "lucide-react";
 import Link from "next/link";
 import { completeCardAction, deleteCardAction } from "@/lib/actions/cards";
 import { openTaskUrl } from "@/components/tasks/task-detail";
@@ -108,6 +108,12 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
           {card.dueDate && (
             <span className="chip">
               <CalendarClock size={11} aria-hidden /> {card.dueDate}
+              {card.startTime ? ` · ${card.startTime}` : ""}
+            </span>
+          )}
+          {(card.reminder ?? "").startsWith("gcal") && (
+            <span className="chip" title="Con recordatorio en Google Calendar" data-testid="task-reminder-chip">
+              <Bell size={11} aria-hidden /> Recordatorio
             </span>
           )}
           {/* Textos libres: se recortan con «…» en vez de ensanchar la página
