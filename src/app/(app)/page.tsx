@@ -10,6 +10,7 @@ import { KeepUp } from "@/components/hoy/keep-up";
 import { TaskLine } from "@/components/hoy/task-line";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Sprig } from "@/components/ui/botanical";
+import { EVENT_TYPES } from "@/lib/event-types";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Hoy" };
@@ -30,6 +31,10 @@ function saludo() {
   return "Buenas noches";
 }
 
+function eventTypeLabel(type: string | null): string {
+  return EVENT_TYPES.find((t) => t.value === type)?.label ?? "Evento";
+}
+
 type AgendaEvent = { id: string; title: string; startTime: string | null; type: string | null };
 
 function EventLine({ e }: { e: AgendaEvent }) {
@@ -37,7 +42,7 @@ function EventLine({ e }: { e: AgendaEvent }) {
     <li className="py-2 flex items-center gap-3 text-sm min-w-0">
       <span className="chip chip-sage shrink-0">{e.startTime ?? "Todo el día"}</span>
       <span className="font-medium min-w-0 truncate">{e.title}</span>
-      <span className="text-xs text-stone ml-auto capitalize shrink-0">{e.type}</span>
+      <span className="text-xs text-stone ml-auto shrink-0">{eventTypeLabel(e.type)}</span>
     </li>
   );
 }
@@ -48,7 +53,8 @@ function EventLine({ e }: { e: AgendaEvent }) {
  *  viven en Tareas y Proyectos, a un toque desde aquí.
  *
  *  Orden en el iPhone: los bloques se aplanan con `contents` y se ordenan con
- *  `order-*`; en escritorio vuelven a ser dos columnas. */
+ *  `order-*`; desde 1280 px vuelven a ser dos columnas, con la derecha fija
+ *  para que el Jardín y «Para que nada se caiga» nunca queden apretados. */
 export default async function HoyPage() {
   const data = await getTodayData();
   const focus = await getFocusOverview();
@@ -86,14 +92,14 @@ export default async function HoyPage() {
         </nav>
       </header>
 
-      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-3 lg:items-start">
-        <div className="contents lg:flex lg:flex-col lg:gap-5 lg:col-span-2 lg:min-w-0">
-          <div className="order-1 lg:order-none min-w-0">
+      <div className="flex flex-col gap-5 xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+        <div className="contents xl:flex xl:flex-col xl:gap-5 xl:min-w-0">
+          <div className="order-1 xl:order-none min-w-0">
             <DoNow items={data.doNow} energy={data.energy} />
           </div>
 
           {/* Agenda: compromisos de hoy y un vistazo a mañana */}
-          <section aria-labelledby="agenda-hoy" className="card p-5 order-3 lg:order-none min-w-0" data-testid="agenda">
+          <section aria-labelledby="agenda-hoy" className="card p-5 order-3 xl:order-none min-w-0" data-testid="agenda">
             <div className="flex items-center justify-between mb-2">
               <h2 id="agenda-hoy" className="section-eyebrow flex items-center gap-1.5">
                 <CalendarDays size={13} className="text-sage-deep" aria-hidden /> Agenda de hoy
@@ -111,7 +117,7 @@ export default async function HoyPage() {
                 ))}
                 {data.dueToday.map((c) => (
                   <li key={c.id}>
-                    <TaskLine card={c} />
+                    <TaskLine card={c} compact />
                   </li>
                 ))}
               </ul>
@@ -133,17 +139,17 @@ export default async function HoyPage() {
             )}
           </section>
 
-          <div className="order-4 lg:order-none min-w-0 empty:hidden">
+          <div className="order-4 xl:order-none min-w-0 empty:hidden">
             <Highlights cards={data.priorities} />
           </div>
         </div>
 
-        <div className="contents lg:flex lg:flex-col lg:gap-5 lg:min-w-0">
+        <div className="contents xl:flex xl:flex-col xl:gap-5 xl:min-w-0">
           {/* Jardín de enfoque: el acceso de siempre al Pomodoro */}
-          <div className="order-2 lg:order-none min-w-0">
+          <div className="order-2 xl:order-none min-w-0">
             <FocusModule overview={focus} />
           </div>
-          <div className="order-5 lg:order-none min-w-0">
+          <div className="order-5 xl:order-none min-w-0">
             <KeepUp data={data.keepUp} today={data.date} />
           </div>
         </div>

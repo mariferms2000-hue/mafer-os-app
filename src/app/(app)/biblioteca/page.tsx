@@ -108,25 +108,28 @@ export default async function BibliotecaPage() {
         title="Biblioteca"
         intro="Lo que guardas para pensar, aprender y volver: ideas, escritura, prompts, recursos y tu jardín."
       />
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="biblioteca-spaces">
+      {/* En el iPhone, filas compactas; desde tableta, tarjetas en rejilla. */}
+      <ul className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="biblioteca-spaces">
         {spaces.map(({ href, title, hint, icon: Icon, stat, testid }) => (
           <li key={href}>
             <Link
               href={href}
               data-testid={testid}
-              className="card p-5 h-full flex flex-col gap-3 hover:shadow-lift transition-shadow group"
+              className="card p-4 sm:p-5 h-full flex flex-row sm:flex-col items-center sm:items-stretch gap-3 hover:shadow-lift transition-shadow group"
             >
-              <span className="flex items-center justify-between">
+              <span className="flex items-center justify-between shrink-0">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-sage-soft text-forest">
                   <Icon size={19} aria-hidden />
                 </span>
-                <ArrowRight size={16} className="text-stone-soft group-hover:text-forest transition-colors" aria-hidden />
+                <ArrowRight size={16} className="hidden sm:block text-stone-soft group-hover:text-forest transition-colors" aria-hidden />
               </span>
-              <span>
-                <span className="block font-display text-xl text-forest-deep">{title}</span>
-                <span className="block text-sm text-stone mt-0.5">{hint}</span>
+              <span className="min-w-0 flex-1 sm:flex-none">
+                <span className="block font-display text-lg sm:text-xl text-forest-deep">{title}</span>
+                <span className="hidden sm:block text-sm text-stone mt-0.5">{hint}</span>
+                <span className="block sm:hidden text-xs text-stone-soft mt-0.5">{stat}</span>
               </span>
-              <span className="mt-auto text-xs text-stone-soft">{stat}</span>
+              <span className="hidden sm:block mt-auto text-xs text-stone-soft">{stat}</span>
+              <ArrowRight size={16} className="sm:hidden shrink-0 text-stone-soft" aria-hidden />
             </Link>
           </li>
         ))}

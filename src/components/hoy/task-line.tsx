@@ -13,7 +13,16 @@ import type { CardRow } from "@/lib/queries/today";
  *  El cuerpo abre el detalle editable (reflejado en la URL con ?abrir=<id>);
  *  el círculo solo completa/reabre. Completar nunca borra: mueve a Terminado,
  *  guarda la fecha y ofrece deshacer. */
-export function TaskLine({ card, showProject = true }: { card: CardRow; showProject?: boolean }) {
+/** `compact`: sin chips de duración ni energía (Agenda y Destacadas en Hoy). */
+export function TaskLine({
+  card,
+  showProject = true,
+  compact = false,
+}: {
+  card: CardRow;
+  showProject?: boolean;
+  compact?: boolean;
+}) {
   const [pending, start] = useTransition();
   const [menu, setMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -95,12 +104,12 @@ export function TaskLine({ card, showProject = true }: { card: CardRow; showProj
               {card.projectTitle}
             </Link>
           )}
-          {durationLabel(card.duration) && (
+          {!compact && durationLabel(card.duration) && (
             <span className="chip">
               <Clock size={11} aria-hidden /> {durationLabel(card.duration)}
             </span>
           )}
-          {energyLabel(card.energy) && (
+          {!compact && energyLabel(card.energy) && (
             <span className="chip">
               <Zap size={11} aria-hidden /> Energía {energyLabel(card.energy)?.toLowerCase()}
             </span>

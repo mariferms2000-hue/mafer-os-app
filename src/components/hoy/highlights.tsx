@@ -25,7 +25,7 @@ export function Highlights({ cards }: { cards: CardRow[] }) {
         {cards.map((c) => (
           <li key={c.id} className="flex items-start gap-1">
             <div className="min-w-0 flex-1">
-              <TaskLine card={c} />
+              <TaskLine card={c} compact />
             </div>
             <button
               type="button"

@@ -41,7 +41,7 @@ function Row({ card, detail, tone }: { card: CardRow; detail: string; tone?: "bl
         <span className="block text-sm leading-snug text-charcoal group-hover:text-forest transition-colors line-clamp-2">
           {card.title}
         </span>
-        <span className="block text-xs mt-0.5 min-w-0">
+        <span className="block text-xs mt-0.5 min-w-0 line-clamp-2">
           <span className={color}>{detail}</span>
           {card.projectTitle && <span className="text-stone-soft"> · {card.projectTitle}</span>}
         </span>
@@ -68,8 +68,8 @@ function Group({
   children: React.ReactNode;
 }) {
   return (
-    <div data-testid={testid}>
-      <h3 className="text-xs font-semibold text-stone flex items-center gap-1.5 mt-3 first:mt-0">
+    <div data-testid={testid} className="mt-4 first:mt-0">
+      <h3 className="font-body text-xs font-semibold text-stone flex items-center gap-1.5">
         <Icon size={13} className={iconClass} aria-hidden /> {title}
         <span className="text-stone-soft font-normal">({count})</span>
       </h3>
