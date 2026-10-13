@@ -40,7 +40,7 @@ test("móvil: captura rápida con pocos toques", async ({ page }) => {
 test("móvil: tablero con scroll horizontal por listas", async ({ page }) => {
   await login(page);
   await page.goto("/proyectos");
-  await page.getByText("Proyecto de prueba E2E").click();
+  await page.getByText("Proyecto de prueba E2E").first().click();
   await page.waitForURL(/\/proyectos\/.+/);
   await expect(page.getByTestId("column-backlog")).toBeVisible();
   await shot(page, "12-movil-tablero");

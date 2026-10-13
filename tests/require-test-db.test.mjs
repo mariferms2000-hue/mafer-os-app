@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   databaseNameOf,
+  databaseRoleOf,
   requirePreviewDatabaseUrl,
   requireTestDatabaseUrl,
   supabaseProjectOf,
@@ -13,6 +14,9 @@ import {
 const PROD = "postgresql://postgres.prodref:x@pooler.example.com:6543/postgres";
 const E2E = "postgresql://postgres.testref:x@pooler.example.com:6543/postgres";
 const PREVIEW = "postgresql://postgres.testref:x@pooler.example.com:6543/mafer_preview";
+// Consolidación: E2E y Preview dentro del proyecto de producción, con usuario propio.
+const E2E_CONS = "postgresql://mafer_e2e_app.prodref:x@pooler.example.com:6543/mafer_e2e";
+const PREVIEW_CONS = "postgresql://mafer_preview_app.prodref:x@pooler.example.com:6543/mafer_preview";
 const VARS = [
   "DATABASE_URL", "MIGRATE_DATABASE_URL", "TEST_DATABASE_URL", "TEST_MIGRATE_DATABASE_URL",
   "PREVIEW_DATABASE_URL", "PREVIEW_MIGRATE_DATABASE_URL",
@@ -56,6 +60,25 @@ describe("E2E nunca toca la base de previews", () => {
   });
 });
 
+describe("consolidación: E2E dentro del proyecto de producción", () => {
+  it("acepta mafer_e2e con su usuario propio", () => {
+    process.env.TEST_DATABASE_URL = E2E_CONS;
+    expect(requireTestDatabaseUrl()).toBe(E2E_CONS);
+  });
+  it("rechaza la base real «postgres» aunque use el usuario de E2E (las E2E vacían su base)", () => {
+    process.env.TEST_DATABASE_URL = "postgresql://mafer_e2e_app.prodref:x@pooler.example.com:6543/postgres";
+    expect(() => requireTestDatabaseUrl()).toThrow(/Solo puede usar «mafer_e2e»/);
+  });
+  it("rechaza mafer_e2e con el usuario administrador", () => {
+    process.env.TEST_DATABASE_URL = "postgresql://postgres.prodref:x@pooler.example.com:6543/mafer_e2e";
+    expect(() => requireTestDatabaseUrl()).toThrow(/administrador/);
+  });
+  it("lee el rol de la URL del pooler", () => {
+    expect(databaseRoleOf(E2E_CONS)).toBe("mafer_e2e_app");
+    expect(databaseRoleOf(PROD)).toBe("postgres");
+  });
+});
+
 describe("las previews nunca tocan producción ni E2E", () => {
   it("acepta mafer_preview del proyecto de pruebas", () => {
     process.env.PREVIEW_DATABASE_URL = PREVIEW;
@@ -70,9 +93,13 @@ describe("las previews nunca tocan producción ni E2E", () => {
     process.env.PREVIEW_DATABASE_URL = PROD;
     expect(() => requirePreviewDatabaseUrl()).toThrow(/producción/);
   });
-  it("rechaza una base llamada mafer_preview dentro del proyecto de producción", () => {
+  it("dentro del proyecto de producción rechaza el usuario administrador", () => {
     process.env.PREVIEW_DATABASE_URL = "postgresql://postgres.prodref:x@pooler.example.com:6543/mafer_preview";
-    expect(() => requirePreviewDatabaseUrl()).toThrow(/proyecto Supabase de producción/);
+    expect(() => requirePreviewDatabaseUrl()).toThrow(/administrador/);
+  });
+  it("dentro del proyecto de producción acepta mafer_preview con su usuario propio", () => {
+    process.env.PREVIEW_DATABASE_URL = PREVIEW_CONS;
+    expect(requirePreviewDatabaseUrl()).toBe(PREVIEW_CONS);
   });
   it("exige la variable", () => {
     expect(() => requirePreviewDatabaseUrl()).toThrow(/Falta PREVIEW_DATABASE_URL/);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { X, Trash2, Plane } from "lucide-react";
 import { getTripDetailAction, updateTripAction, deleteTripAction, type Trip } from "@/lib/actions/trips";
 import { useToast } from "@/components/ui/toast";
@@ -67,6 +67,10 @@ function TripDetailEditor({ trip, onClose }: { trip: Trip; onClose: () => void }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [rangeError, setRangeError] = useState(false);
   const toast = useToast();
+  // El detalle vive en el layout (?viaje=), fuera de la página: tras guardar o
+  // borrar se pide explícitamente la versión nueva de la página, porque a veces
+  // el calendario seguía mostrando el título viejo hasta recargar.
+  const router = useRouter();
 
   function submit(fd: FormData) {
     const startDate = String(fd.get("startDate") ?? "");
@@ -81,6 +85,7 @@ function TripDetailEditor({ trip, onClose }: { trip: Trip; onClose: () => void }
         await updateTripAction(fd);
         toast.show({ message: "Viaje actualizado ✓" });
         onClose();
+        router.refresh();
       } catch {
         toast.show({ tone: "warn", message: "No se pudieron guardar los cambios. Inténtalo de nuevo." });
       }
@@ -163,6 +168,7 @@ function TripDetailEditor({ trip, onClose }: { trip: Trip; onClose: () => void }
                     await deleteTripAction(trip.id);
                     toast.show({ tone: "info", message: "Viaje eliminado." });
                     onClose();
+                    router.refresh();
                   })
                 }
               >

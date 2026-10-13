@@ -1,5 +1,6 @@
-// Crea (si falta) la base «mafer_preview» dentro del proyecto Supabase de
-// pruebas y le aplica las migraciones de drizzle/. Es la base de Vercel Preview.
+// Crea (si falta) la base «mafer_preview» y le aplica las migraciones de
+// drizzle/. Es la base de Vercel Preview. Desde la consolidación vive en el
+// proyecto de producción, con su propio usuario (mafer_preview_app).
 // Nunca toca producción ni la base de E2E: usa exclusivamente
 // PREVIEW_MIGRATE_DATABASE_URL, validada por scripts/lib/require-test-db.mjs.
 //
@@ -8,25 +9,11 @@ import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { PREVIEW_DB_NAME, requirePreviewDatabaseUrl } from "./lib/require-test-db.mjs";
+import { ensureDatabase } from "./lib/ensure-database.mjs";
 
 const url = requirePreviewDatabaseUrl({ migrate: true });
 
-// CREATE DATABASE no puede correr dentro de la propia base: se hace desde la
-// base «postgres» del MISMO proyecto de pruebas (mismo usuario, otra ruta).
-const admin = new URL(url);
-admin.pathname = "/postgres";
-const adminSql = postgres(admin.toString(), { max: 1, prepare: false, connect_timeout: 15 });
-try {
-  const [exists] = await adminSql`select 1 from pg_database where datname = ${PREVIEW_DB_NAME}`;
-  if (exists) {
-    console.log(`La base ${PREVIEW_DB_NAME} ya existe ✓`);
-  } else {
-    await adminSql.unsafe(`CREATE DATABASE "${PREVIEW_DB_NAME}"`);
-    console.log(`Base ${PREVIEW_DB_NAME} creada ✓`);
-  }
-} finally {
-  await adminSql.end();
-}
+await ensureDatabase(url);
 
 const sql = postgres(url, { max: 1, prepare: false, connect_timeout: 15 });
 try {

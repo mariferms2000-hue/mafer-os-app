@@ -84,7 +84,7 @@ test("crear proyecto con tablero de 7 listas", async ({ page }) => {
 test("añadir tarjeta, editar detalle y completar", async ({ page }) => {
   await login(page);
   await page.goto("/proyectos");
-  await page.getByText("Proyecto de prueba E2E").click();
+  await page.getByText("Proyecto de prueba E2E").first().click();
   await page.waitForURL(/\/proyectos\/.+/);
 
   await page.getByTestId("quickadd-proximo").click();
@@ -113,7 +113,7 @@ test("añadir tarjeta, editar detalle y completar", async ({ page }) => {
 test("drag & drop de tarjeta entre listas persiste", async ({ page }) => {
   await login(page);
   await page.goto("/proyectos");
-  await page.getByText("Proyecto de prueba E2E").click();
+  await page.getByText("Proyecto de prueba E2E").first().click();
   await page.waitForURL(/\/proyectos\/.+/);
 
   await page.getByTestId("quickadd-backlog").click();

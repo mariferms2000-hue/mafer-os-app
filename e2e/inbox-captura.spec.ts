@@ -68,6 +68,8 @@ test("deshacer desde el toast elimina la captura", async ({ page }, testInfo) =>
   await expect(page.getByText("Guardado en Inbox")).toBeVisible();
   await page.getByRole("button", { name: "Deshacer", exact: true }).click();
   await expect(page.getByTestId("inbox-item").filter({ hasText: texto })).toHaveCount(0, { timeout: 10_000 });
+  // esperar a que la acción llegue al servidor: recargar en el mismo instante la cortaba
+  await page.waitForLoadState("networkidle");
   await page.reload();
   await expect(page.getByTestId("inbox-item").filter({ hasText: texto })).toHaveCount(0);
 });

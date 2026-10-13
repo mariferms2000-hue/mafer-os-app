@@ -34,7 +34,7 @@ const url = requireTestDatabaseUrl();
 const sql = postgres(url, { max: 1, prepare: false, connect_timeout: 10 });
 try {
   await sql.unsafe(`TRUNCATE TABLE ${TABLES.map((t) => `"${t}"`).join(", ")} RESTART IDENTITY CASCADE;`);
-  console.log("Base de pruebas (mafer-os-testing) vaciada ✓");
+  console.log("Base de pruebas (E2E) vaciada ✓");
 } finally {
   await sql.end();
 }

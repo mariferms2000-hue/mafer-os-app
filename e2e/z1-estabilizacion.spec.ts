@@ -115,7 +115,7 @@ test("tema oscuro, claro y automático", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await shot(page, "26-hoy-oscuro");
   await page.goto("/proyectos");
-  await page.getByText("Proyecto de prueba E2E").click();
+  await page.getByText("Proyecto de prueba E2E").first().click();
   await page.waitForURL(/\/proyectos\/.+/);
   await shot(page, "27-tablero-oscuro");
   // persistencia tras recarga
