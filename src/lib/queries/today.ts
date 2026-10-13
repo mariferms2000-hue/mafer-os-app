@@ -1,11 +1,12 @@
 import "server-only";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
 import { db, today, schema } from "@/lib/db";
 import { addDays } from "@/lib/tz";
 import { getSetting } from "@/lib/auth";
 import { QUICK_DURATIONS } from "@/lib/estimates";
 import { recommendNow, buildForgetAlerts, type ForgetAlert } from "@/lib/recommend";
 import { buildKeepUp } from "@/lib/keep-up";
+import { buildWeekAgenda, currentWeekTaskIds, weekStartOf } from "@/lib/week-agenda";
 import { getProjectsOverview } from "@/lib/queries/projects";
 
 export type CardRow = typeof schema.cards.$inferSelect & {
@@ -28,7 +29,8 @@ async function openCards(): Promise<CardRow[]> {
   return rows.map((r) => ({ ...r.card, projectTitle: r.projectTitle, columnKind: r.columnKind }));
 }
 
-export async function getTodayData() {
+/** `weekStart`: lunes de la semana que muestra la Agenda (por omisión, la actual). */
+export async function getTodayData(weekStart?: string) {
   const d = today();
   const open = await openCards();
 
@@ -50,20 +52,14 @@ export async function getTodayData() {
     .map((p) => allCardsById.get(p.cardId))
     .filter((c): c is CardRow => Boolean(c));
 
-  const eventsToday = await db
+  // Agenda semanal (lunes a domingo): eventos de la semana + tareas con fecha
+  const ws = weekStart ?? weekStartOf(d);
+  const weekEvents = await db
     .select()
     .from(schema.events)
-    .where(eq(schema.events.date, d))
-    .orderBy(asc(schema.events.startTime));
-
-  const dueToday = open.filter((c) => c.dueDate === d);
-  const tomorrow = addDays(d, 1);
-  const dueTomorrow = open.filter((c) => c.dueDate === tomorrow);
-  const eventsTomorrow = await db
-    .select()
-    .from(schema.events)
-    .where(eq(schema.events.date, tomorrow))
-    .orderBy(asc(schema.events.startTime));
+    .where(and(gte(schema.events.date, ws), lte(schema.events.date, addDays(ws, 6))))
+    .orderBy(asc(schema.events.date), asc(schema.events.startTime));
+  const agenda = buildWeekAgenda({ today: d, weekStart: ws, events: weekEvents, open });
   const overdue = open.filter((c) => c.dueDate && c.dueDate < d);
   const d7 = addDays(d, 7);
   const approaching = open.filter((c) => c.dueDate && c.dueDate > d && c.dueDate <= d7);
@@ -135,21 +131,19 @@ export async function getTodayData() {
       hasNextAction: o.hasNextAction,
       lastActivity: o.lastActivity,
     })),
+    inAgenda: currentWeekTaskIds(d, open),
   });
 
   return {
     date: d,
     keepUp,
-    dueTomorrow,
-    eventsTomorrow,
+    agenda,
     userName,
     energy,
     doNow,
     alerts,
     priorities,
     priorityIds,
-    eventsToday,
-    dueToday,
     overdue,
     approaching,
     quick,
