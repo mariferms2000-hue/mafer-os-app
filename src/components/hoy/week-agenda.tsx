@@ -55,10 +55,10 @@ function DayGroup({ day, index, cap }: { day: AgendaDay; index: number; cap?: nu
   const shown = cap ? day.items.slice(0, cap) : day.items;
   const rest = day.items.length - shown.length;
   return (
-    <div data-testid={day.isToday ? "agenda-today" : "agenda-day"} data-date={day.date} className="mt-3 first:mt-0">
-      <h3 className={`font-body text-xs font-semibold flex items-baseline gap-1.5 ${day.isToday ? "text-forest-deep" : "text-stone"}`}>
+    <div data-testid={day.isToday ? "agenda-today" : "agenda-day"} data-date={day.date} className="mt-5 first:mt-0">
+      <h3 className={`font-display flex items-baseline gap-2 text-forest-deep leading-tight ${day.isToday ? "text-xl" : "text-lg"}`}>
         {day.isToday ? "Hoy" : DIAS_LARGOS[index]}
-        <span className="font-normal text-stone-soft">
+        <span className="font-body text-sm font-normal text-stone">
           {day.isToday ? `${DIAS_LARGOS[index].toLowerCase()} ${num(day.date)}` : `${num(day.date)} ${mes(day.date)}`}
         </span>
       </h3>
@@ -122,7 +122,7 @@ export function WeekAgenda({ agenda }: { agenda: WeekAgendaData }) {
         </nav>
       </div>
 
-      {/* Tira de la semana: cuántas cosas hay cada día; un toque abre ese día en Calendario */}
+      {/* Tira de la semana: inicial y fecha, hoy resaltado; un toque abre ese día en Calendario */}
       <ol className="grid grid-cols-7 gap-1 mb-4" data-testid="agenda-strip">
         {days.map((d, i) => {
           const n = d.items.length;
@@ -138,9 +138,6 @@ export function WeekAgenda({ agenda }: { agenda: WeekAgendaData }) {
               >
                 <span className="text-[10px] font-semibold uppercase leading-none">{INICIALES[i]}</span>
                 <span className="text-sm tabular-nums leading-tight mt-0.5">{num(d.date)}</span>
-                <span className={`text-[10px] tabular-nums leading-none h-3 ${d.isToday ? "" : "text-sage-deep"}`}>
-                  {n > 0 ? n : ""}
-                </span>
               </Link>
             </li>
           );
