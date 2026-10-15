@@ -83,7 +83,7 @@ function Group({
   );
 }
 
-/** «Para que nada se caiga»: vencidas, bloqueadas, esperando y próximas, cada
+/** «Para que nada se caiga»: vencidas, bloqueadas, esperando y la semana que viene, cada
  *  tarea una sola vez; abajo, los proyectos que se están quedando quietos.
  *  Un toque abre la tarea. Sin estimaciones ni regaños. */
 export function KeepUp({ data, today }: { data: KeepUpData; today: string }) {
@@ -126,7 +126,7 @@ export function KeepUp({ data, today }: { data: KeepUpData; today: string }) {
             </Group>
           )}
           {upcoming.length > 0 && (
-            <Group title="Próximos 7 días" icon={CalendarClock} iconClass="text-sage-deep" count={upcoming.length} href="/tareas?v=proximas" testid="keepup-upcoming">
+            <Group title="La semana que viene" icon={CalendarClock} iconClass="text-sage-deep" count={upcoming.length} href="/tareas?v=proximas" testid="keepup-upcoming">
               {upcoming.slice(0, MAX).map((c) => (
                 <Row key={c.id} card={c} detail={fechaCorta(c.dueDate!, today)} />
               ))}

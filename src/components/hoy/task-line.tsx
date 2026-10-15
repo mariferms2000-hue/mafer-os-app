@@ -13,15 +13,18 @@ import type { CardRow } from "@/lib/queries/today";
  *  El cuerpo abre el detalle editable (reflejado en la URL con ?abrir=<id>);
  *  el círculo solo completa/reabre. Completar nunca borra: mueve a Terminado,
  *  guarda la fecha y ofrece deshacer. */
-/** `compact`: sin chips de duración ni energía (Agenda y Destacadas en Hoy). */
+/** `compact`: sin chips de duración ni energía (Agenda y Destacadas en Hoy).
+ *  `inAgenda`: el día ya lo dice el grupo de la Agenda; solo se muestra la hora. */
 export function TaskLine({
   card,
   showProject = true,
   compact = false,
+  inAgenda = false,
 }: {
   card: CardRow;
   showProject?: boolean;
   compact?: boolean;
+  inAgenda?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [menu, setMenu] = useState(false);
@@ -114,7 +117,12 @@ export function TaskLine({
               <Zap size={11} aria-hidden /> Energía {energyLabel(card.energy)?.toLowerCase()}
             </span>
           )}
-          {card.dueDate && (
+          {inAgenda && card.startTime && (
+            <span className="chip tabular-nums" data-testid="agenda-task-time">
+              <Clock size={11} aria-hidden /> {card.startTime}
+            </span>
+          )}
+          {!inAgenda && card.dueDate && (
             <span className="chip">
               <CalendarClock size={11} aria-hidden /> {card.dueDate}
               {card.startTime ? ` · ${card.startTime}` : ""}

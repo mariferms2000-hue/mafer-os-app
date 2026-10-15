@@ -20,9 +20,11 @@ export function buildKeepUp(input: {
   today: string;
   open: CardRow[];
   projects: { id: string; title: string; hasNextAction: boolean; lastActivity: string }[];
+  /** Tareas que la Agenda semanal ya muestra (de hoy al domingo): no se repiten aquí. */
+  inAgenda?: Set<string>;
 }): KeepUp {
   const { today: d, open, projects } = input;
-  const seen = new Set<string>();
+  const seen = new Set<string>(input.inAgenda);
   const take = (list: CardRow[]) => list.filter((c) => !seen.has(c.id) && (seen.add(c.id), true));
   const d7 = addDays(d, 7);
   const isBlocked = (c: CardRow) => c.columnKind === "bloqueado" || Boolean(c.blockedReason);
@@ -34,7 +36,8 @@ export function buildKeepUp(input: {
   const waiting = take(open.filter(isWaiting))
     .map((c) => ({ ...c, waitingDays: diasEntre(c.updatedAt, d) }))
     .sort((a, b) => b.waitingDays - a.waitingDays);
-  // Las que vencen HOY ya están en la Agenda: aquí, de mañana a 7 días.
+  // Lo de esta semana ya está en la Agenda: aquí, lo que vence en los próximos
+  // 7 días pero cae en la semana siguiente.
   const upcoming = take(open.filter((c) => c.dueDate && c.dueDate > d && c.dueDate <= d7).sort(byDue));
 
   const projectAlerts = projects

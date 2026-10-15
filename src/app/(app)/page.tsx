@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, CircleCheckBig, Inbox, Sparkles, ArrowRight } from "lucide-react";
+import { CircleCheckBig, Inbox, Sparkles, ArrowRight } from "lucide-react";
 import { getTodayData } from "@/lib/queries/today";
 import { currentHour, dayOfWeek } from "@/lib/tz";
 import { getFocusOverview } from "@/lib/queries/focus";
@@ -7,10 +7,11 @@ import { FocusModule } from "@/components/hoy/focus-module";
 import { DoNow } from "@/components/hoy/do-now";
 import { Highlights } from "@/components/hoy/highlights";
 import { KeepUp } from "@/components/hoy/keep-up";
-import { TaskLine } from "@/components/hoy/task-line";
+import { WeekAgenda } from "@/components/hoy/week-agenda";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Sprig } from "@/components/ui/botanical";
-import { EVENT_TYPES } from "@/lib/event-types";
+import { parseWeekParam } from "@/lib/week-agenda";
+import { today } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Hoy" };
@@ -31,22 +32,6 @@ function saludo() {
   return "Buenas noches";
 }
 
-function eventTypeLabel(type: string | null): string {
-  return EVENT_TYPES.find((t) => t.value === type)?.label ?? "Evento";
-}
-
-type AgendaEvent = { id: string; title: string; startTime: string | null; type: string | null };
-
-function EventLine({ e }: { e: AgendaEvent }) {
-  return (
-    <li className="py-2 flex items-center gap-3 text-sm min-w-0">
-      <span className="chip chip-sage shrink-0">{e.startTime ?? "Todo el día"}</span>
-      <span className="font-medium min-w-0 truncate">{e.title}</span>
-      <span className="text-xs text-stone ml-auto shrink-0">{eventTypeLabel(e.type)}</span>
-    </li>
-  );
-}
-
 /** Hoy (Bloque 2): un tablero personal, no una lista interminable.
  *  Arriba lo que haces ahora y tu enfoque; en medio tus compromisos; a la
  *  derecha (abajo en el iPhone) lo que no debe caerse. Las listas completas
@@ -55,19 +40,20 @@ function EventLine({ e }: { e: AgendaEvent }) {
  *  Orden en el iPhone: los bloques se aplanan con `contents` y se ordenan con
  *  `order-*`; desde 1280 px vuelven a ser dos columnas, con la derecha fija
  *  para que el Jardín y «Para que nada se caiga» nunca queden apretados. */
-export default async function HoyPage() {
-  const data = await getTodayData();
+export default async function HoyPage({ searchParams }: { searchParams: Promise<{ semana?: string }> }) {
+  const { semana } = await searchParams;
+  const data = await getTodayData(parseWeekParam(semana, today()));
   const focus = await getFocusOverview();
 
   const resumen: string[] = [];
-  const eventos = data.eventsToday.length;
+  const deHoy = data.agenda.days.find((d) => d.isToday)?.items ?? [];
+  const eventos = deHoy.filter((i) => i.kind === "evento").length;
+  const conFecha = deHoy.length - eventos;
   if (eventos) resumen.push(`${eventos} evento${eventos > 1 ? "s" : ""}`);
-  if (data.dueToday.length) resumen.push(`${data.dueToday.length} con fecha de hoy`);
+  if (conFecha) resumen.push(`${conFecha} con fecha de hoy`);
   if (data.keepUp.overdue.length) resumen.push(`${data.keepUp.overdue.length} vencida${data.keepUp.overdue.length > 1 ? "s" : ""}`);
 
-  const agendaVacia = eventos === 0 && data.dueToday.length === 0;
-  const mananaN = data.eventsTomorrow.length + data.dueTomorrow.length;
-  const sinNada = data.doNow.length === 0 && data.priorities.length === 0 && agendaVacia && data.inboxCount === 0;
+  const sinNada = data.doNow.length === 0 && data.priorities.length === 0 && deHoy.length === 0 && data.inboxCount === 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -98,46 +84,10 @@ export default async function HoyPage() {
             <DoNow items={data.doNow} energy={data.energy} />
           </div>
 
-          {/* Agenda: compromisos de hoy y un vistazo a mañana */}
-          <section aria-labelledby="agenda-hoy" className="card p-5 order-3 xl:order-none min-w-0" data-testid="agenda">
-            <div className="flex items-center justify-between mb-2">
-              <h2 id="agenda-hoy" className="section-eyebrow flex items-center gap-1.5">
-                <CalendarDays size={13} className="text-sage-deep" aria-hidden /> Agenda de hoy
-              </h2>
-              <Link href="/calendario?vista=dia" className="text-xs text-stone hover:text-forest underline-offset-4 hover:underline">
-                Ver calendario
-              </Link>
-            </div>
-            {agendaVacia ? (
-              <p className="text-sm text-stone">Sin reuniones ni fechas límite hoy. Espacio para trabajo con calma.</p>
-            ) : (
-              <ul className="divide-y divide-beige">
-                {data.eventsToday.map((e) => (
-                  <EventLine key={e.id} e={e} />
-                ))}
-                {data.dueToday.map((c) => (
-                  <li key={c.id}>
-                    <TaskLine card={c} compact />
-                  </li>
-                ))}
-              </ul>
-            )}
-            {mananaN > 0 && (
-              <div className="mt-3 pt-3 border-t border-beige" data-testid="agenda-tomorrow">
-                <p className="text-xs font-semibold text-stone mb-0.5">Mañana</p>
-                <ul className="divide-y divide-beige">
-                  {data.eventsTomorrow.map((e) => (
-                    <EventLine key={e.id} e={e} />
-                  ))}
-                  {data.dueTomorrow.map((c) => (
-                    <li key={c.id}>
-                      <TaskLine card={c} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </section>
+          {/* Agenda: la semana de lunes a domingo, con hoy al frente */}
+          <div className="order-3 xl:order-none min-w-0">
+            <WeekAgenda agenda={data.agenda} />
+          </div>
 
           <div className="order-4 xl:order-none min-w-0 empty:hidden">
             <Highlights cards={data.priorities} />

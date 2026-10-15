@@ -356,3 +356,28 @@ test("móvil: con el teclado abierto el formulario cabe y el campo activo se ve"
   await expect(page.locator("#ne-type")).toHaveValue("evento");
   await expect(page.locator("#ne-type option")).toHaveText(["Cita", "Reunión", "Evento", "Recordatorio", "Deadline"]);
 });
+
+test("móvil: la agenda semanal cabe en el iPhone, compacta y sin scroll horizontal", async ({ page }) => {
+  await login(page);
+  const agenda = page.getByTestId("agenda");
+  await agenda.scrollIntoViewIfNeeded();
+  await expect(agenda).toContainText("Agenda de la semana");
+  // la tira de 7 días cabe completa dentro de la tarjeta
+  const strip = page.getByTestId("agenda-strip");
+  const [s, a] = await Promise.all([strip.boundingBox(), agenda.boundingBox()]);
+  if (!s || !a) throw new Error("No se pudo medir la agenda");
+  expect(s.x).toBeGreaterThanOrEqual(a.x);
+  expect(s.x + s.width).toBeLessThanOrEqual(a.x + a.width + 0.5);
+  // los días siguientes enseñan como mucho 3 cosas cada uno
+  for (const dia of await page.getByTestId("agenda-day").all()) {
+    expect(await dia.locator(":scope > ul > li").count()).toBeLessThanOrEqual(3);
+  }
+  // cambiar de semana no desborda la página
+  await page.getByTestId("agenda-next").click();
+  await expect(page.getByTestId("agenda-this-week")).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+  await shot(page, "14-movil-agenda-semanal");
+});
