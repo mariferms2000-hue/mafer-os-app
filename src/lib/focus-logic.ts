@@ -281,3 +281,20 @@ export function recover(s: FocusState, nowIso: string): TransitionResult {
   }
   return { state: s };
 }
+
+/** Lo que hace el servidor con cada acción: primero la recuperación honesta y
+ *  después la acción pedida. Si la recuperación YA avanzó la fase (el bloque
+ *  terminó justo antes de que llegara la acción — el caso normal del
+ *  «completar-enfoque» que la pantalla manda al llegar a 0:00), la acción
+ *  que ya no aplica no es un error: vale el estado recuperado. Una acción
+ *  inválida sin que la fase haya cambiado sigue lanzando. */
+export function recoverThenTransition(s: FocusState, action: FocusAction, nowIso: string): TransitionResult {
+  const recovered = recover(s, nowIso);
+  if (recovered.finished) return recovered;
+  try {
+    return transition(recovered.state, action, nowIso);
+  } catch (e) {
+    if (recovered.state.phase !== s.phase) return recovered;
+    throw e;
+  }
+}

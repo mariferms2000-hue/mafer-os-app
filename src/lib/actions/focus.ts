@@ -9,8 +9,8 @@ import {
   CUSTOM_BREAK_MIN,
   clampCustomFocus,
   initialState,
-  transition,
   recover,
+  recoverThenTransition,
   splitCreditedMinutes,
   type FocusAction,
   type FocusState,
@@ -185,13 +185,9 @@ export async function focusTransitionAction(
   if (row.finishedAt) return { phase: row.phase, finished: true, outcome: row.outcome ?? undefined };
 
   const nowIso = now();
-  // 1) recuperación honesta; si la recuperación misma cierra la sesión, se persiste ese cierre
-  const recovered = recover(toState(row), nowIso);
-  let result = recovered;
-  // 2) la acción pedida, sobre el estado recuperado (si la sesión sigue viva)
-  if (!recovered.finished) {
-    result = transition(recovered.state, action, nowIso);
-  }
+  // recuperación honesta y luego la acción (ver recoverThenTransition: si el
+  // bloque ya había terminado, la acción que no aplica no rompe la pantalla)
+  const result = recoverThenTransition(toState(row), action, nowIso);
 
   const s = result.state;
   let plantCompleted = false;

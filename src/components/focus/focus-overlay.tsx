@@ -141,6 +141,7 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
   const [pending, start] = useTransition();
   const [, forceTick] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
   const completingRef = useRef(false);
   const [soundMuted, setSoundMuted] = useState(false);
 
@@ -209,9 +210,12 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
         completingRef.current = true;
         notifyFocusDue(session.id, session.phase as "enfoque" | "descanso", session.phaseStartedAt, session.cardTitle ?? "");
         const action: FocusAction = session.phase === "enfoque" ? "completar-enfoque" : "terminar-descanso";
-        void applyAction(action).finally(() => {
-          completingRef.current = false;
-        });
+        void applyAction(action)
+          // si falla (p. ej. sin conexión), se relee la sesión y el siguiente tick reintenta
+          .catch(() => refresh().catch(() => {}))
+          .finally(() => {
+            completingRef.current = false;
+          });
       }
     }, 500);
     return () => clearInterval(idInterval);
@@ -291,7 +295,15 @@ export function FocusOverlay({ onClose, preselectCardId }: { onClose: () => void
 
   function act(action: FocusAction) {
     primeFocusAudio();
-    start(() => applyAction(action));
+    start(async () => {
+      try {
+        await applyAction(action);
+      } catch {
+        // Nunca la pantalla de «Algo salió mal»: se avisa y se muestra el estado real.
+        toast.show({ tone: "error", message: "No se pudo aplicar el cambio. Te muestro cómo quedó tu sesión." });
+        await refresh().catch(() => {});
+      }
+    });
   }
 
   function begin() {
