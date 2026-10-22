@@ -7,6 +7,12 @@ import { requireAuth, setSetting } from "@/lib/auth";
 import { createCardInColumnKind, getOrCreateBoard } from "@/lib/db/helpers";
 import { normalizeDuration, normalizeEnergy } from "@/lib/estimates";
 import { syncCardToGoogle } from "@/lib/google/calendar";
+import { afterCardChange, avisosActive, avisoStateFor, removeAvisoBeforeDelete, setAviso, type AvisoState } from "@/lib/avisos/sync";
+import { DEFAULT_AVISO_TIME } from "@/lib/avisos/logic";
+
+/** Resultado común de las acciones que pueden tocar un aviso de Google: si
+ *  Google falló, el cambio de la tarea SÍ se guardó y `avisoError` lo explica. */
+export type AvisoFeedback = { avisoError?: string };
 
 function revalidateCardViews(projectId?: string | null) {
   revalidatePath("/");
@@ -15,7 +21,7 @@ function revalidateCardViews(projectId?: string | null) {
   if (projectId) revalidatePath(`/proyectos/${projectId}`);
 }
 
-export async function createCardAction(formData: FormData): Promise<{ id: string } | undefined> {
+export async function createCardAction(formData: FormData): Promise<({ id: string } & AvisoFeedback) | undefined> {
   await requireAuth();
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return undefined;
@@ -37,6 +43,9 @@ export async function createCardAction(formData: FormData): Promise<{ id: string
   const waitingFor = String(formData.get("waitingFor") ?? "").trim();
   const startTime = String(formData.get("startTime") ?? "").trim();
   const reminder = String(formData.get("reminder") ?? "").trim();
+  const wantsAviso = formData.get("aviso") === "1" && (await avisosActive());
+  // «Avisarme» necesita hora: si la tarea no la trae, se usa la propuesta (9:00)
+  if (wantsAviso && formData.get("dueDate") && !startTime) extras.startTime = DEFAULT_AVISO_TIME;
   const tags = String(formData.get("tags") ?? "").split(",").map((t) => t.trim()).filter(Boolean);
   if (blockedReason) extras.blockedReason = blockedReason;
   if (waitingFor) extras.waitingFor = waitingFor;
@@ -46,8 +55,13 @@ export async function createCardAction(formData: FormData): Promise<{ id: string
   if (Object.keys(extras).length) {
     await db.update(schema.cards).set(extras).where(eq(schema.cards.id, cardId));
   }
+  let avisoError: string | undefined;
+  if (wantsAviso) {
+    const r = await setAviso(cardId, true, formData.get("avisoLead"));
+    if (!r.ok) avisoError = r.error;
+  }
   revalidateCardViews(projectId);
-  return { id: cardId };
+  return { id: cardId, avisoError };
 }
 
 /** Guarda duración estimada y energía requerida (paso de clasificación).
@@ -68,6 +82,9 @@ export async function setTaskEstimatesAction(id: string, duration: string | null
 
 export type TaskDetailData = {
   card: typeof schema.cards.$inferSelect & { projectTitle: string | null; columnKind: string | null };
+  /** «Avisarme» nuevo encendido en esta instalación (si no, se ve el selector anterior). */
+  avisosOn: boolean;
+  aviso: AvisoState;
   projects: { id: string; title: string }[];
   columns: { id: string; title: string; kind: string }[];
 };
@@ -90,8 +107,11 @@ export async function getTaskDetailAction(cardId: string): Promise<TaskDetailDat
     .where(eq(schema.projects.archived, false))
     .orderBy(asc(schema.projects.title));
   const columns = row.card.projectId ? await getProjectColumnsAction(row.card.projectId) : [];
+  const avisosOn = await avisosActive();
   return {
     card: { ...row.card, projectTitle: row.projectTitle, columnKind: row.columnKind },
+    avisosOn,
+    aviso: avisosOn ? await avisoStateFor(cardId) : null,
     projects,
     columns,
   };
@@ -115,11 +135,14 @@ export async function getProjectColumnsAction(projectId: string) {
  *  - a «Sin proyecto» → se limpian tablero y lista, el resto de datos se conserva;
  *  - cambio de lista dentro del mismo proyecto → al final de la lista destino;
  *  - solo se toca completedAt si la tarjeta cambió a/desde una lista Terminado. */
-export async function saveTaskAction(formData: FormData) {
+export async function saveTaskAction(formData: FormData): Promise<AvisoFeedback> {
   await requireAuth();
   const id = String(formData.get("id"));
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
-  if (!card) return;
+  if (!card) return {};
+  const avisosOn = await avisosActive();
+  // «Avisarme» solo cambia si el formulario lo envía; poner fecha u hora no lo enciende
+  const avisoField = avisosOn && formData.has("aviso") ? formData.get("aviso") === "1" : undefined;
 
   const str = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "") : undefined);
   const nul = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "") || null : undefined);
@@ -227,12 +250,23 @@ export async function saveTaskAction(formData: FormData) {
     })
     .where(eq(schema.cards.id, id));
 
-  await syncCardToGoogle(id).catch(() => {});
+  let avisoError: string | undefined;
+  if (avisosOn) {
+    // Sistema nuevo: solo el calendario «Mafer OS · Avisos». Los recordatorios
+    // anteriores no se tocan aquí: se revisan y aprueban en Ajustes → Avisos.
+    const r =
+      avisoField === undefined ? { ok: true as const } : await setAviso(id, avisoField, formData.get("avisoLead"));
+    avisoError = r.ok ? await afterCardChange(id) : r.error;
+  } else {
+    // comportamiento anterior, sin cambios mientras los avisos no se activen
+    await syncCardToGoogle(id).catch(() => {});
+  }
   revalidateCardViews(card.projectId);
   if (projectId !== card.projectId) {
     if (projectId) revalidatePath(`/proyectos/${projectId}`);
     revalidatePath("/proyectos");
   }
+  return { avisoError };
 }
 
 export async function setChecklistAction(id: string, checklist: { id: string; text: string; done: boolean }[]) {
@@ -249,13 +283,13 @@ export async function moveCardAction(input: {
   toColumnId: string;
   orderedIds: string[]; // ids en la columna destino, en orden final
   fromOrderedIds?: string[]; // ids restantes en la columna origen (si cambió de columna)
-}) {
+}): Promise<AvisoFeedback> {
   await requireAuth();
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, input.cardId)).limit(1);
-  if (!card) return;
+  if (!card) return {};
 
   const [col] = await db.select().from(schema.columns).where(eq(schema.columns.id, input.toColumnId)).limit(1);
-  if (!col) return;
+  if (!col) return {};
 
   const done = col.kind === "terminado";
   await db
@@ -275,7 +309,9 @@ export async function moveCardAction(input: {
       await db.update(schema.cards).set({ position: i }).where(eq(schema.cards.id, input.fromOrderedIds[i]));
     }
   }
+  const avisoError = Boolean(card.completedAt) !== done ? await afterCardChange(card.id) : undefined;
   revalidateCardViews(card.projectId);
+  return { avisoError };
 }
 
 /** Completa o reabre una tarea.
@@ -286,7 +322,7 @@ export async function completeCardAction(
   id: string,
   complete: boolean,
   restorePriorityAt?: number | null
-): Promise<{ freedPriorityAt: number | null }> {
+): Promise<{ freedPriorityAt: number | null } & AvisoFeedback> {
   await requireAuth();
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return { freedPriorityAt: null };
@@ -333,17 +369,21 @@ export async function completeCardAction(
     .update(schema.cards)
     .set({ completedAt: complete ? now() : null, columnId, position, updatedAt: now() })
     .where(eq(schema.cards.id, id));
+  // completar quita el aviso de Google; deshacer/reabrir lo vuelve a crear
+  const avisoError = await afterCardChange(id);
   revalidateCardViews(card.projectId);
-  return { freedPriorityAt };
+  return { freedPriorityAt, avisoError };
 }
 
 /** Reprograma la fecha límite (o la quita con null). */
-export async function rescheduleCardAction(id: string, dueDate: string | null) {
+export async function rescheduleCardAction(id: string, dueDate: string | null): Promise<AvisoFeedback> {
   await requireAuth();
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
-  if (!card) return;
+  if (!card) return {};
   await db.update(schema.cards).set({ dueDate, updatedAt: now() }).where(eq(schema.cards.id, id));
+  const avisoError = await afterCardChange(id);
   revalidateCardViews(card.projectId);
+  return { avisoError };
 }
 
 /** Mueve la tarjeta a la lista de su tablero con ese kind (p. ej. «despues»). */
@@ -365,20 +405,25 @@ export async function moveCardToKindAction(id: string, kind: string) {
   revalidateCardViews(card.projectId);
 }
 
-export async function archiveCardAction(id: string, archived: boolean) {
+export async function archiveCardAction(id: string, archived: boolean): Promise<AvisoFeedback> {
   await requireAuth();
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
-  if (!card) return;
+  if (!card) return {};
   await db.update(schema.cards).set({ archived, updatedAt: now() }).where(eq(schema.cards.id, id));
+  // archivar quita el aviso; restaurar lo vuelve a crear
+  const avisoError = await afterCardChange(id);
   revalidateCardViews(card.projectId);
+  return { avisoError };
 }
 
-export async function deleteCardAction(id: string) {
+export async function deleteCardAction(id: string): Promise<AvisoFeedback> {
   await requireAuth();
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
-  if (!card) return;
+  if (!card) return {};
+  const r = await removeAvisoBeforeDelete([id]);
   await db.delete(schema.cards).where(eq(schema.cards.id, id));
   revalidateCardViews(card.projectId);
+  return { avisoError: r.ok ? undefined : r.error };
 }
 
 /* ── Prioridades del día ─────────────────────────────── */

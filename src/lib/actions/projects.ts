@@ -6,6 +6,7 @@ import { asc, eq } from "drizzle-orm";
 import { db, now, uid, schema } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { createDefaultBoard, createCardInColumnKind } from "@/lib/db/helpers";
+import { removeAvisoBeforeDelete } from "@/lib/avisos/sync";
 
 function revalidateProject(id: string) {
   revalidatePath("/proyectos");
@@ -144,6 +145,9 @@ export async function archiveProjectAction(id: string, archived: boolean) {
 
 export async function deleteProjectAction(id: string) {
   await requireAuth();
+  // sus tareas se borran en cascada: antes, sus avisos de Google
+  const cards = await db.select({ id: schema.cards.id }).from(schema.cards).where(eq(schema.cards.projectId, id));
+  await removeAvisoBeforeDelete(cards.map((c) => c.id));
   await db.delete(schema.projects).where(eq(schema.projects.id, id));
   revalidatePath("/proyectos");
   redirect("/proyectos");

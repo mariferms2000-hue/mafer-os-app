@@ -20,6 +20,9 @@ import type { ChecklistItem } from "@/lib/db/schema";
 import { suggestEstimates, normalizeDuration, normalizeEnergy, DURATION_LABEL, ENERGY_LABEL } from "@/lib/estimates";
 import { DurationChips, EnergyChips } from "./estimate-chips";
 import { useToast } from "@/components/ui/toast";
+import { warnAviso } from "@/components/tasks/aviso-toast";
+import { AvisoFields, avisoFormProblem } from "./aviso-fields";
+import { DEFAULT_LEAD, isLegacyReminder } from "@/lib/avisos/logic";
 
 type ColumnOption = { id: string; title: string; kind: string };
 
@@ -152,6 +155,9 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
 
   const [dueDate, setDueDate] = useState(card.dueDate ?? "");
   const [startTime, setStartTime] = useState(card.startTime ?? "");
+  const [avisoOn, setAvisoOn] = useState(Boolean(data.aviso));
+  const [avisoLead, setAvisoLead] = useState(data.aviso?.leadMinutes ?? DEFAULT_LEAD);
+  const [avisoProposed, setAvisoProposed] = useState(false);
   const [duration, setDuration] = useState<string | null>(normalizeDuration(card.duration));
   const [energy, setEnergy] = useState<string | null>(normalizeEnergy(card.energy));
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
@@ -203,6 +209,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
       try {
         const res = await completeCardAction(card.id, !done);
         freedAt = res.freedPriorityAt;
+        warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
         return;
@@ -214,7 +221,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
             label: "Deshacer",
             onClick: async () => {
               try {
-                await completeCardAction(card.id, false, freedAt);
+                warnAviso(toast, await completeCardAction(card.id, false, freedAt));
               } catch {
                 toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
               }
@@ -243,9 +250,14 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
   }
 
   function submit(fd: FormData) {
+    const problem = data.avisosOn ? avisoFormProblem(fd) : null;
+    if (problem) {
+      toast.show({ tone: "warn", message: problem });
+      return;
+    }
     start(async () => {
       try {
-        await saveTaskAction(fd);
+        warnAviso(toast, await saveTaskAction(fd));
         toast.show({ message: "Tarea actualizada ✓" });
         onClose();
       } catch {
@@ -635,14 +647,42 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                 </div>
               </div>
 
-              <div>
-                <label className="label" htmlFor="cd-reminder">Recordatorio</label>
-                <select id="cd-reminder" name="reminder" className="select" defaultValue={card.reminder ?? ""}>
-                  <option value="">Sin recordatorio</option>
-                  <option value="gcal-timed">Google Calendar (con hora)</option>
-                  <option value="gcal-allday">Google Calendar (todo el día)</option>
-                </select>
-              </div>
+              {data.avisosOn ? (
+                <div>
+                  <span className="label">Aviso</span>
+                  <AvisoFields
+                    on={avisoOn}
+                    onToggle={(v) => {
+                      setDirty(true);
+                      setAvisoOn(v);
+                    }}
+                    lead={avisoLead}
+                    onLead={(m) => {
+                      setDirty(true);
+                      setAvisoLead(m);
+                    }}
+                    dueDate={dueDate}
+                    startTime={startTime}
+                    onProposeTime={(t) => {
+                      setStartTime(t);
+                      setAvisoProposed(true);
+                    }}
+                    proposedTime={avisoProposed}
+                    state={data.aviso}
+                    legacy={!data.aviso && isLegacyReminder(card.reminder)}
+                    done={done}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="label" htmlFor="cd-reminder">Recordatorio</label>
+                  <select id="cd-reminder" name="reminder" className="select" defaultValue={card.reminder ?? ""}>
+                    <option value="">Sin recordatorio</option>
+                    <option value="gcal-timed">Google Calendar (con hora)</option>
+                    <option value="gcal-allday">Google Calendar (todo el día)</option>
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="label" htmlFor="cd-blocked">Bloqueada por…</label>
@@ -677,7 +717,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
             data-testid="card-archive"
             onClick={() =>
               start(async () => {
-                await archiveCardAction(card.id, true);
+                warnAviso(toast, await archiveCardAction(card.id, true));
                 toast.show({ tone: "info", message: "Tarea archivada." });
                 onClose();
               })
@@ -695,7 +735,7 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
                 data-testid="card-delete-confirm"
                 onClick={() =>
                   start(async () => {
-                    await deleteCardAction(card.id);
+                    warnAviso(toast, await deleteCardAction(card.id));
                     toast.show({ tone: "info", message: "Tarea eliminada." });
                     onClose();
                   })

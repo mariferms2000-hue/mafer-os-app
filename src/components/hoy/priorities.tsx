@@ -12,6 +12,7 @@ import {
 import { openTaskUrl } from "@/components/tasks/task-detail";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
+import { warnAviso } from "@/components/tasks/aviso-toast";
 
 export function Priorities({
   priorities,
@@ -28,6 +29,7 @@ export function Priorities({
   function toggleComplete(card: CardRow, done: boolean) {
     start(async () => {
       const res = await completeCardAction(card.id, !done);
+      warnAviso(toast, res);
       if (!done) {
         // el espacio queda libre; nunca se elige otra automáticamente
         toast.show({
@@ -35,7 +37,7 @@ export function Priorities({
           action: {
             label: "Deshacer",
             onClick: async () => {
-              await completeCardAction(card.id, false, res.freedPriorityAt);
+              warnAviso(toast, await completeCardAction(card.id, false, res.freedPriorityAt));
             },
           },
           secondAction: { label: "Elegir reemplazo", onClick: () => setPicking(true) },
@@ -206,7 +208,7 @@ function PriorityCardMenu({ cardId, title }: { cardId: string; title: string }) 
                 data-testid={`priority-menu-delete-confirm-${cardId}`}
                 onClick={() =>
                   start(async () => {
-                    await deleteCardAction(cardId);
+                    warnAviso(toast, await deleteCardAction(cardId));
                     setMenu(false);
                     toast.show({ tone: "info", message: "Tarea eliminada." });
                   })

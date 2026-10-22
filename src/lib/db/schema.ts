@@ -338,3 +338,25 @@ export const recentViews = pgTable("recent_views", {
   href: text("href").notNull(),
   viewedAt: text("viewed_at").notNull(),
 });
+
+/** Avisos de tareas en Google Calendar (Bloque 3, oct 2026). Una fila = la tarea
+ *  pidió «🔔 Avisarme». Es aditiva: no cambia `cards` y los recordatorios
+ *  anteriores (`cards.reminder` = gcal-*, `cards.gcal_event_id` en el calendario
+ *  «Mafer OS») siguen intactos hasta que Mafer aprueba moverlos.
+ *  - El aviso usa la fecha y la hora de la tarea; sin fecha u hora, o con la
+ *    tarea completada/archivada, no hay evento en Google pero la fila se conserva
+ *    (al reabrir o poner fecha el aviso vuelve).
+ *  - `calendar_id`/`gcal_event_id`: dónde vive hoy el evento (calendario
+ *    «Mafer OS · Avisos»). `last_error`: último fallo visible, null si quedó bien.
+ *  Referencia blanda a cards (sin FK): al eliminar una tarea se borra primero su
+ *  evento; si Google falla, la fila no estorba y el evento queda identificable. */
+export const cardReminders = pgTable("card_reminders", {
+  cardId: text("card_id").primaryKey(),
+  leadMinutes: integer("lead_minutes").notNull().default(0),
+  calendarId: text("calendar_id"),
+  gcalEventId: text("gcal_event_id"),
+  lastError: text("last_error"),
+  lastSyncedAt: text("last_synced_at"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});

@@ -28,6 +28,8 @@ export async function exportAllJson() {
     db.select().from(schema.todayPriorities),
     db.select().from(schema.reviews),
   ]);
+  // avisos de tareas (Bloque 3); si la tabla aún no existe, el respaldo sigue igual
+  const cardReminders = await db.select().from(schema.cardReminders).catch(() => []);
   return {
     app: "Mafer OS",
     schemaVersion: SCHEMA_VERSION,
@@ -40,7 +42,7 @@ export async function exportAllJson() {
     },
     data: {
       projects, boards, columns, cards, inbox, journal, learning, ideas,
-      prompts, aiTools, agentsSkills, decisions, resources, events, priorities, reviews,
+      prompts, aiTools, agentsSkills, decisions, resources, events, priorities, reviews, cardReminders,
     },
   };
 }

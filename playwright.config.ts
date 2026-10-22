@@ -41,6 +41,7 @@ export default defineConfig({
       NODE_ENV: "production",
       SIRI_TOKEN: process.env.E2E_SIRI_TOKEN, // rutas /api/siri/*
       DB_POOL_MAX: "10", // ver src/lib/db/index.ts
+      GOOGLE_SIMULATED: "1", // avisos contra el simulador: E2E nunca habla con Google
       MAFER_QA_TOOLS: "1", // habilita el panel QA de alertas en el entorno de pruebas (nunca en el lanzador real)
     },
   },

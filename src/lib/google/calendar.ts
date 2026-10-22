@@ -22,6 +22,13 @@ import { isPreviewDeployment } from "@/lib/data-environment";
 
 const SCOPE = "https://www.googleapis.com/auth/calendar.app.created";
 
+/** Solo para la prueba local con la cuenta real de Mafer: con
+ *  GOOGLE_CALENDAR_SUFFIX=" (PRUEBA)" los calendarios que la app crea llevan esa
+ *  marca y se reconocen y borran sin confundirlos con los de verdad. */
+export function calendarSuffix(): string {
+  return process.env.GOOGLE_CALENDAR_SUFFIX ?? "";
+}
+
 export function isGoogleConfigured(): boolean {
   if (isPreviewDeployment()) return false;
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -69,7 +76,7 @@ export async function isGoogleConnected(): Promise<boolean> {
   return Boolean(raw && raw !== "");
 }
 
-async function getAuthedClient() {
+export async function getAuthedClient() {
   const raw = await getSetting("google_tokens");
   if (!raw || !isGoogleConfigured()) return null;
   const client = oauthClient();
@@ -97,7 +104,7 @@ export async function ensureMaferCalendar(): Promise<string | null> {
     }
   }
   const created = await cal.calendars.insert({
-    requestBody: { summary: "Mafer OS", timeZone: TZ },
+    requestBody: { summary: `Mafer OS${calendarSuffix()}`, timeZone: TZ },
   });
   const id = created.data.id!;
   await setSetting("google_calendar_id", id);

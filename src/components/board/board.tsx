@@ -29,6 +29,7 @@ import { useToast } from "@/components/ui/toast";
 import { openTaskUrl } from "@/components/tasks/task-detail";
 import { durationShort } from "@/lib/estimates";
 import type { ChecklistItem } from "@/lib/db/schema";
+import { warnAviso } from "@/components/tasks/aviso-toast";
 
 export type BoardColumn = { id: string; title: string; kind: string };
 
@@ -173,7 +174,7 @@ export function Board({
     setItems(next);
     startTransition(async () => {
       try {
-        await moveCardAction({ cardId, toColumnId: toCol, orderedIds, fromOrderedIds });
+        warnAviso(toast, await moveCardAction({ cardId, toColumnId: toCol, orderedIds, fromOrderedIds }));
       } catch (err) {
         if (process.env.NODE_ENV === "development") console.error("[board] moveCardAction falló:", err);
         setItems(snapshot); // rollback visual
@@ -405,6 +406,7 @@ function CardMenu({ cardId, title, completed }: { cardId: string; title: string;
       try {
         const res = await completeCardAction(cardId, !completed);
         freedAt = res.freedPriorityAt;
+        warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
         return;
@@ -417,7 +419,7 @@ function CardMenu({ cardId, title, completed }: { cardId: string; title: string;
             label: "Deshacer",
             onClick: async () => {
               try {
-                await completeCardAction(cardId, false, freedAt);
+                warnAviso(toast, await completeCardAction(cardId, false, freedAt));
               } catch {
                 toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
               }
@@ -468,7 +470,7 @@ function CardMenu({ cardId, title, completed }: { cardId: string; title: string;
                 data-testid={`card-menu-delete-confirm-${cardId}`}
                 onClick={() =>
                   start(async () => {
-                    await deleteCardAction(cardId);
+                    warnAviso(toast, await deleteCardAction(cardId));
                     setMenu(false);
                     toast.show({ tone: "info", message: "Tarea eliminada." });
                   })

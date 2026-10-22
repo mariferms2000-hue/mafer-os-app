@@ -18,6 +18,7 @@ import { TaskLine } from "@/components/hoy/task-line";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 import { addDays, today } from "@/lib/tz";
+import { warnAviso } from "@/components/tasks/aviso-toast";
 
 /* ── Iniciar / continuar / reiniciar ─────────────────────────────── */
 
@@ -213,7 +214,7 @@ export function ReviewTaskRow({
   function accion(fn: () => Promise<unknown>, mensaje: string) {
     start(async () => {
       try {
-        await fn();
+        warnAviso(toast, await fn());
         await bumpReviewProcessedAction(sessionId);
         toast.show({ message: mensaje });
         setHidden(true);
@@ -281,7 +282,7 @@ export function ReviewProjectRow({
   function accion(fn: () => Promise<unknown>, mensaje: string) {
     start(async () => {
       try {
-        await fn();
+        warnAviso(toast, await fn());
         await bumpReviewProcessedAction(sessionId);
         toast.show({ message: mensaje });
         setHidden(true);
@@ -328,7 +329,7 @@ export function ReviewIdeaRow({ id, title, sessionId }: { id: string; title: str
   function accion(fn: () => Promise<unknown>, mensaje: string) {
     start(async () => {
       try {
-        await fn();
+        warnAviso(toast, await fn());
         await bumpReviewProcessedAction(sessionId);
         toast.show({ message: mensaje });
         setHidden(true);
@@ -390,7 +391,7 @@ export function ReviewLearnRow({
   function accion(fn: () => Promise<unknown>, mensaje: string) {
     start(async () => {
       try {
-        await fn();
+        warnAviso(toast, await fn());
         await bumpReviewProcessedAction(sessionId);
         toast.show({ message: mensaje });
         setHidden(true);
@@ -447,7 +448,7 @@ export function ReviewResourceRow({
   function accion(fn: () => Promise<unknown>, mensaje: string) {
     start(async () => {
       try {
-        await fn();
+        warnAviso(toast, await fn());
         await bumpReviewProcessedAction(sessionId);
         toast.show({ message: mensaje });
         setHidden(true);

@@ -9,6 +9,7 @@ import { EnergySelector } from "@/components/hoy/priorities";
 import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
+import { warnAviso } from "@/components/tasks/aviso-toast";
 
 /** «Haz esto ahora»: UNA sola recomendación clara y explicada, para saber qué
  *  hacer en menos de diez segundos. «Otra sugerencia» rota entre las 3 mejores
@@ -43,6 +44,7 @@ export function DoNow({ items, energy }: { items: { card: CardRow; reasons: stri
       try {
         const res = await completeCardAction(card.id, true);
         freedAt = res.freedPriorityAt;
+        warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo completar. Inténtalo de nuevo." });
         return;
@@ -53,7 +55,7 @@ export function DoNow({ items, energy }: { items: { card: CardRow; reasons: stri
           label: "Deshacer",
           onClick: async () => {
             try {
-              await completeCardAction(card.id, false, freedAt);
+              warnAviso(toast, await completeCardAction(card.id, false, freedAt));
             } catch {
               toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
             }

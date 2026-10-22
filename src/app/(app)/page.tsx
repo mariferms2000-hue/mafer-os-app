@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CircleCheckBig, Inbox, Sparkles, ArrowRight } from "lucide-react";
+import { CircleCheckBig, Inbox, Sparkles, ArrowRight, AlertTriangle } from "lucide-react";
 import { getTodayData } from "@/lib/queries/today";
 import { currentHour, dayOfWeek } from "@/lib/tz";
 import { getFocusOverview } from "@/lib/queries/focus";
@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Sprig } from "@/components/ui/botanical";
 import { parseWeekParam } from "@/lib/week-agenda";
 import { today } from "@/lib/db";
+import { avisoErrorCount } from "@/lib/avisos/sync";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Hoy" };
@@ -44,6 +45,7 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
   const { semana } = await searchParams;
   const data = await getTodayData(parseWeekParam(semana, today()));
   const focus = await getFocusOverview();
+  const avisosConFallo = await avisoErrorCount();
 
   const resumen: string[] = [];
   const deHoy = data.agenda.days.find((d) => d.isToday)?.items ?? [];
@@ -76,6 +78,17 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
             {data.inboxCount > 0 && <span className="chip chip-sage !py-0 tabular-nums">{data.inboxCount}</span>}
           </Link>
         </nav>
+        {avisosConFallo > 0 && (
+          <Link
+            href="/ajustes#avisos"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-beige px-3 py-2 text-sm text-blocked hover:bg-sand/50"
+            data-testid="hoy-avisos-fallo"
+          >
+            <AlertTriangle size={15} aria-hidden />
+            {avisosConFallo === 1 ? "1 aviso no se pudo sincronizar con Google" : `${avisosConFallo} avisos no se pudieron sincronizar con Google`}
+            <span className="underline underline-offset-4">Reparar</span>
+          </Link>
+        )}
       </header>
 
       <div className="flex flex-col gap-5 xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
