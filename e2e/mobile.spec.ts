@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { PASSWORD } from "./lib/credentials";
+import { run } from "./lib/test-db";
 
 const QA_DIR = path.join(__dirname, "..", "..", "project-management", "qa", "stabilization-round");
 
@@ -380,4 +381,35 @@ test("móvil: la agenda semanal cabe en el iPhone, compacta y sin scroll horizon
   );
   expect(overflow).toBeLessThanOrEqual(1);
   await shot(page, "14-movil-agenda-semanal");
+});
+
+test("móvil: «Avisarme» y Ajustes → Avisos caben en el iPhone, también en modo oscuro", async ({ page }) => {
+  // simulador (GOOGLE_SIMULATED=1): nada llega a Google
+  await run(
+    "INSERT INTO settings (key, value, updated_at) VALUES ('avisos_activos', '1', now()::text) ON CONFLICT (key) DO UPDATE SET value = '1'"
+  );
+  try {
+    await page.addInitScript(() => localStorage.setItem("mafer-theme", "dark"));
+    await login(page);
+    const overflow = () =>
+      page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
+    await page.goto("/tareas");
+    await page.getByTestId("new-task").click();
+    await page.getByTestId("new-task-title").fill("Aviso en el iPhone");
+    await page.getByTestId("new-task-more").click();
+    await page.getByTestId("aviso-switch").click();
+    await expect(page.getByRole("radio", { name: "A la hora" })).toHaveAttribute("aria-checked", "true");
+    await page.getByTestId("aviso-switch").scrollIntoViewIfNeeded();
+    expect(await overflow()).toBeLessThanOrEqual(1);
+    await shot(page, "15-movil-avisarme-oscuro");
+    await page.getByRole("button", { name: "Cerrar" }).first().click();
+
+    await page.goto("/ajustes#avisos");
+    await expect(page.getByTestId("avisos-panel")).toBeVisible();
+    expect(await overflow()).toBeLessThanOrEqual(1);
+    await shot(page, "16-movil-ajustes-avisos-oscuro");
+  } finally {
+    await run("DELETE FROM settings WHERE key = 'avisos_activos'");
+  }
 });
