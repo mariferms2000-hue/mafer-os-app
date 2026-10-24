@@ -145,6 +145,16 @@ test("Pomodoro: «La terminé» quita el aviso", async ({ page }) => {
 });
 
 test("Revisiones: reprogramar una vencida para mañana estrena su aviso", async ({ page }) => {
+  // la revisión que abre esta prueba se borra al final: otras pruebas esperan empezar una nueva
+  const previas = (await q<{ id: string }>("SELECT id FROM reviews")).map((r) => `'${r.id}'`);
+  try {
+    await revisarYReprogramar(page);
+  } finally {
+    await run(`DELETE FROM reviews${previas.length ? ` WHERE id NOT IN (${previas.join(", ")})` : ""}`);
+  }
+});
+
+async function revisarYReprogramar(page: Page) {
   await login(page);
   await page.goto("/revisiones");
   await page.getByTestId("center-diaria").getByTestId("start-diaria").click();
@@ -156,7 +166,7 @@ test("Revisiones: reprogramar una vencida para mañana estrena su aviso", async 
   const evs = await avisosDe("avv-rev");
   expect(evs).toHaveLength(1);
   expect(evs[0].start).toBe(`${MANANA}T10:00:00`);
-});
+}
 
 test("eliminar un proyecto borra los avisos de sus tareas", async ({ page }) => {
   await login(page);
