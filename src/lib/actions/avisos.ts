@@ -45,12 +45,14 @@ export async function deleteTestAvisoAction(): Promise<SyncResult> {
   return r;
 }
 
-/** Activar exige que Mafer confirme las dos comprobaciones reales. */
-export async function activateAvisosAction(checks: { iphone: boolean; alexa: boolean }): Promise<SyncResult> {
+/** Activar exige que Mafer confirme que la notificación llegó al iPhone. Que
+ *  Alexa lea o no los avisos es una preferencia suya (se ajusta en la app de
+ *  Alexa), no una condición. */
+export async function activateAvisosAction(checks: { iphone: boolean }): Promise<SyncResult> {
   await requireAuth();
   if (!(await avisosTableReady())) return { ok: false, error: "La base aún no tiene la tabla de avisos." };
-  if (!checks.iphone || !checks.alexa) {
-    return { ok: false, error: "Antes de activar, confirma la notificación en el iPhone y que Alexa no lee los avisos." };
+  if (!checks.iphone) {
+    return { ok: false, error: "Antes de activar, confirma que la notificación llegó a tu iPhone." };
   }
   await setSetting(ACTIVE_KEY, "1");
   refresh();

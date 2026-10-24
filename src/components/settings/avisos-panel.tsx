@@ -34,7 +34,7 @@ export function AvisosPanel({ o, simEvents }: { o: AvisosOverview; simEvents: Si
   const router = useRouter();
   const toast = useToast();
   const [iphone, setIphone] = useState(false);
-  const [alexa, setAlexa] = useState(false);
+  const [alexa, setAlexa] = useState<"lee" | "no-lee" | null>(null);
   const [confirmOff, setConfirmOff] = useState(false);
   const [review, setReview] = useState<ReviewResult | null>(null);
   const [moves, setMoves] = useState<Set<string>>(new Set());
@@ -101,7 +101,7 @@ export function AvisosPanel({ o, simEvents }: { o: AvisosOverview; simEvents: Si
         <h3 className="font-semibold text-ink-green">1. Aviso de prueba</h3>
         <p className="text-stone">
           Crea un evento en «Mafer OS · Avisos» dentro de 5 minutos, con alerta a la hora. Sirve para comprobar que la
-          notificación llega al iPhone y que Alexa no lo lee.
+          notificación llega al iPhone y qué hace Alexa con los avisos.
         </p>
         <div className="flex flex-wrap gap-2 items-center">
           <button
@@ -144,7 +144,7 @@ export function AvisosPanel({ o, simEvents }: { o: AvisosOverview; simEvents: Si
             <li><strong>Calendario de Apple:</strong> en Safari abre <code className="bg-beige px-1 rounded">calendar.google.com/calendar/syncselect</code>, marca «Mafer OS · Avisos» y guarda. Luego, en la app Calendario → Calendarios, comprueba que esté visible.</li>
             <li><strong>App de Google Calendar</strong> (si la usas): Ajustes → «Mafer OS · Avisos» → notificaciones activadas.</li>
             <li>Espera la hora del aviso de prueba con el iPhone bloqueado y sin modo Concentración.</li>
-            <li><strong>Alexa:</strong> pregúntale «¿Qué tengo hoy?». No debe mencionar «Prueba de avisos». Si la menciona, en la app de Alexa → Calendario → Google, desmarca «Mafer OS · Avisos».</li>
+            <li><strong>Alexa:</strong> pregúntale «¿Qué tengo hoy?». Si quieres que lea tus avisos, «Mafer OS · Avisos» debe estar marcado en la app de Alexa → Calendario → Google; si no, desmárcalo ahí.</li>
           </ol>
         </details>
       </div>
@@ -177,18 +177,33 @@ export function AvisosPanel({ o, simEvents }: { o: AvisosOverview; simEvents: Si
               <input type="checkbox" className="h-4 w-4 mt-0.5" checked={iphone} onChange={(e) => setIphone(e.target.checked)} data-testid="avisos-check-iphone" />
               Recibí la notificación del aviso de prueba en mi iPhone.
             </label>
-            <label className="flex items-start gap-2 text-stone">
-              <input type="checkbox" className="h-4 w-4 mt-0.5" checked={alexa} onChange={(e) => setAlexa(e.target.checked)} data-testid="avisos-check-alexa" />
-              Alexa no leyó el aviso de prueba.
-            </label>
+            {/* Alexa es una preferencia, no un requisito para activar */}
+            <div className="flex flex-col gap-1.5 text-stone" data-testid="avisos-alexa">
+              <span>¿Quieres que Alexa lea tus avisos? (opcional)</span>
+              <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Alexa y los avisos">
+                {([["lee", "Sí, que los lea"], ["no-lee", "No, solo mis compromisos"]] as const).map(([v, label]) => (
+                  <button key={v} type="button" role="radio" aria-checked={alexa === v}
+                    className={`chip !min-h-8 transition-colors ${alexa === v ? "chip-on-alt" : "hover:bg-sand"}`}
+                    onClick={() => setAlexa(v)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {alexa === "lee" && (
+                <p className="text-xs" data-testid="avisos-alexa-lee">Deja «Mafer OS · Avisos» marcado en la app de Alexa → Calendario → Google.</p>
+              )}
+              {alexa === "no-lee" && (
+                <p className="text-xs" data-testid="avisos-alexa-no-lee">En la app de Alexa → Calendario → Google, desmarca «Mafer OS · Avisos». Tus compromisos de «Mafer OS» siguen igual.</p>
+              )}
+            </div>
             <button
               type="button"
               className="btn btn-primary self-start"
-              disabled={pending || !iphone || !alexa}
+              disabled={pending || !iphone}
               data-testid="avisos-activate"
               onClick={() =>
                 run(async () => {
-                  const r = await activateAvisosAction({ iphone, alexa });
+                  const r = await activateAvisosAction({ iphone });
                   toast.show(r.ok ? { message: "Avisos activados ✓ Ya puedes usar «🔔 Avisarme» en tus tareas." } : { tone: "warn", message: r.error });
                 })
               }

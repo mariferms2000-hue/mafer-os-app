@@ -88,12 +88,16 @@ test("sin activar, todo sigue como antes; el aviso de prueba y las dos comprobac
   expect(prueba).toHaveLength(1);
   expect(prueba[0]).toMatchObject({ calendarId: "sim-avisos", lead: 0 });
 
-  // activar exige confirmar el iPhone y Alexa
+  // activar exige confirmar el iPhone; Alexa es una preferencia opcional
   const activar = panel.getByTestId("avisos-activate");
   await expect(activar).toBeDisabled();
-  await panel.getByTestId("avisos-check-iphone").check();
+  await panel.getByRole("radio", { name: "Sí, que los lea" }).click();
+  await expect(panel.getByTestId("avisos-alexa-lee")).toBeVisible();
   await expect(activar).toBeDisabled();
-  await panel.getByTestId("avisos-check-alexa").check();
+  await panel.getByRole("radio", { name: "No, solo mis compromisos" }).click();
+  await expect(panel.getByTestId("avisos-alexa-no-lee")).toBeVisible();
+  await panel.getByTestId("avisos-check-iphone").check();
+  await expect(activar).toBeEnabled();
   await activar.click();
   await expect(panel.getByTestId("avisos-active")).toBeVisible({ timeout: 15_000 });
 

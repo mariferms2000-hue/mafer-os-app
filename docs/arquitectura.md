@@ -86,7 +86,8 @@ sincronización en `sync.ts`; acciones en `src/lib/actions/avisos.ts`):
   muestra en la tarea, en Hoy y en Ajustes, y se arregla con «Reparar avisos».
 - Interruptor general `settings.avisos_activos`: apagado, la app se comporta como
   antes (selector «Recordatorio» y calendario «Mafer OS»). Se enciende en Ajustes →
-  Avisos tras un aviso de prueba y la confirmación del iPhone y de Alexa.
+  Avisos tras un aviso de prueba y la confirmación del iPhone. Que Alexa lea los avisos
+  es una preferencia (se ajusta en la app de Alexa), no una condición.
 - Los recordatorios anteriores (`cards.reminder = gcal-*`) y los eventos fantasma solo
   se tocan desde la revisión de Ajustes → Avisos: muestra los eventos concretos y
   aplica únicamente lo que Mafer marca y confirma, recomprobando cada uno.
