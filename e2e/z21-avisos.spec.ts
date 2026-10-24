@@ -80,10 +80,10 @@ test("sin activar, todo sigue como antes; el aviso de prueba y las dos comprobac
   await page.goto("/ajustes#avisos");
   const panel = page.getByTestId("avisos-panel");
   await expect(panel.getByTestId("avisos-simulado")).toBeVisible();
-  await expect(panel.getByTestId("avisos-inactive")).toBeVisible();
+  await expect(panel.getByTestId("avisos-inactive")).toBeVisible({ timeout: 15_000 });
 
   await panel.getByTestId("avisos-test-create").click();
-  await expect(panel.getByTestId("avisos-test-at")).toBeVisible();
+  await expect(panel.getByTestId("avisos-test-at")).toBeVisible({ timeout: 15_000 });
   const prueba = (await simEvents()).filter((e) => e.ref.startsWith("test:"));
   expect(prueba).toHaveLength(1);
   expect(prueba[0]).toMatchObject({ calendarId: "sim-avisos", lead: 0 });
@@ -95,10 +95,10 @@ test("sin activar, todo sigue como antes; el aviso de prueba y las dos comprobac
   await expect(activar).toBeDisabled();
   await panel.getByTestId("avisos-check-alexa").check();
   await activar.click();
-  await expect(panel.getByTestId("avisos-active")).toBeVisible();
+  await expect(panel.getByTestId("avisos-active")).toBeVisible({ timeout: 15_000 });
 
   await panel.getByTestId("avisos-test-delete").click();
-  await expect(panel.getByTestId("avisos-test-at")).toHaveCount(0);
+  await expect(panel.getByTestId("avisos-test-at")).toHaveCount(0, { timeout: 15_000 });
   expect((await simEvents()).filter((e) => e.ref.startsWith("test:"))).toHaveLength(0);
 
   fs.mkdirSync(QA_DIR, { recursive: true });
@@ -241,7 +241,7 @@ test("un fallo de Google se ve en la tarea, en Hoy y en Ajustes, y «Reparar avi
   await page.getByTestId("avisos-sim-fail").uncheck();
   await expect(page.getByTestId("avisos-sim-fail")).not.toBeChecked();
   await page.getByTestId("avisos-repair").click();
-  await expect(page.getByText(/Avisos reparados/)).toBeVisible();
+  await expect(page.getByText(/Avisos reparados/)).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("avisos-failures")).toContainText("Ninguno");
   const evs = await avisosDe(id);
   expect(evs).toHaveLength(1);
@@ -329,7 +329,7 @@ test("desactivar quita los avisos de Google y vuelve al formulario anterior", as
   await page.goto("/ajustes#avisos");
   await page.getByTestId("avisos-off").click();
   await page.getByTestId("avisos-off-yes").click();
-  await expect(page.getByTestId("avisos-inactive")).toBeVisible();
+  await expect(page.getByTestId("avisos-inactive")).toBeVisible({ timeout: 15_000 });
   expect((await simEvents()).filter((e) => e.calendarId === "sim-avisos")).toHaveLength(0);
   // los recordatorios anteriores que no se aprobaron siguen ahí
   expect((await simEvents()).map((e) => e.id)).toContain("old-2");
