@@ -1,8 +1,12 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 import { createCardAction } from "@/lib/actions/cards";
+import { avisosEnabledAction } from "@/lib/actions/avisos";
+import { DEFAULT_LEAD } from "@/lib/avisos/logic";
+import { AvisoFields, avisoFormProblem } from "./aviso-fields";
+import { warnAviso } from "./aviso-toast";
 import { ClassifyStep } from "./classify-step";
 import { useToast } from "@/components/ui/toast";
 
@@ -45,6 +49,22 @@ export function NewTaskModal({
   const [pending, start] = useTransition();
   const busy = useRef(false);
   const toast = useToast();
+  const [avisosOn, setAvisosOn] = useState(false);
+  const [dueDate, setDueDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [aviso, setAviso] = useState(false);
+  const [lead, setLead] = useState(DEFAULT_LEAD);
+  const [proposed, setProposed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    avisosEnabledAction()
+      .then((v) => alive && setAvisosOn(v))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <div
@@ -72,12 +92,18 @@ export function NewTaskModal({
             action={(fd) => {
               const title = String(fd.get("title") ?? "").trim();
               if (!title || busy.current) return;
+              const problem = avisosOn ? avisoFormProblem(fd) : null;
+              if (problem) {
+                toast.show({ tone: "warn", message: problem });
+                return;
+              }
               busy.current = true;
               start(async () => {
                 try {
                   const res = await createCardAction(fd);
                   if (res) {
                     toast.show({ message: "Tarea creada ✓", link: { label: "Ver tareas", href: "/tareas" } });
+                    warnAviso(toast, res);
                     setCreated({ id: res.id, title });
                   } else {
                     onClose();
@@ -139,7 +165,7 @@ export function NewTaskModal({
                   </div>
                   <div>
                     <label className="label" htmlFor="nt-date">Fecha (opcional)</label>
-                    <input id="nt-date" name="dueDate" type="date" className="input" />
+                    <input id="nt-date" name="dueDate" type="date" className="input" value={dueDate} onChange={(e) => setDueDate(e.target.value)} data-testid="new-task-date" />
                   </div>
                   <div>
                     <label className="label" htmlFor="nt-priority">Prioridad</label>
@@ -157,16 +183,35 @@ export function NewTaskModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="label" htmlFor="nt-time">Hora</label>
-                    <input id="nt-time" name="startTime" type="time" className="input" />
+                    <input id="nt-time" name="startTime" type="time" className="input" value={startTime} onChange={(e) => setStartTime(e.target.value)} data-testid="new-task-time" />
                   </div>
-                  <div>
-                    <label className="label" htmlFor="nt-reminder">Recordatorio</label>
-                    <select id="nt-reminder" name="reminder" className="select" defaultValue="">
-                      <option value="">Sin recordatorio</option>
-                      <option value="gcal-timed">Google Calendar (con hora)</option>
-                      <option value="gcal-allday">Google Calendar (todo el día)</option>
-                    </select>
-                  </div>
+                  {avisosOn ? (
+                    <div>
+                      <span className="label">Aviso</span>
+                      <AvisoFields
+                        on={aviso}
+                        onToggle={setAviso}
+                        lead={lead}
+                        onLead={setLead}
+                        dueDate={dueDate}
+                        startTime={startTime}
+                        onProposeTime={(t) => {
+                          setStartTime(t);
+                          setProposed(true);
+                        }}
+                        proposedTime={proposed}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="label" htmlFor="nt-reminder">Recordatorio</label>
+                      <select id="nt-reminder" name="reminder" className="select" defaultValue="">
+                        <option value="">Sin recordatorio</option>
+                        <option value="gcal-timed">Google Calendar (con hora)</option>
+                        <option value="gcal-allday">Google Calendar (todo el día)</option>
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="label" htmlFor="nt-blocked">Bloqueada por…</label>
                     <input id="nt-blocked" name="blockedReason" className="input" />

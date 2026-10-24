@@ -70,6 +70,31 @@ Navegador ──(HTTP + cookie mafer_session)──▶ Next.js (proxy.ts verific
   `reminder` es `gcal-timed`/`gcal-allday` (al guardar el detalle).
 - Errores de sync no rompen la operación local (catch + registro).
 
+### Avisos de tareas (Bloque 3, oct 2026)
+
+`src/lib/avisos/` (reglas puras en `logic.ts`, Google/simulador en `gcal.ts`,
+sincronización en `sync.ts`; acciones en `src/lib/actions/avisos.ts`):
+- «🔔 Avisarme» es opcional por tarea: una fila en `card_reminders` (migración aditiva
+  0002) con la anticipación (a la hora, 10, 30, 60 min o 1 día). Poner fecha u hora
+  nunca lo enciende. Sin hora, el formulario propone 9:00.
+- Cada aviso es un evento de 15 min en el calendario aparte «Mafer OS · Avisos», con
+  `reminders.overrides` explícito (no las alertas predeterminadas) y las marcas
+  `maferOsRef = card:<id>` + `maferOsAviso = 1`. Antes de insertar se busca por marca:
+  no hay duplicados.
+- Crear, editar, completar/deshacer, archivar/restaurar, eliminar, reprogramar y mover
+  a Terminado actualizan Google. Un fallo NO se calla: queda en `last_error`, se
+  muestra en la tarea, en Hoy y en Ajustes, y se arregla con «Reparar avisos».
+- Interruptor general `settings.avisos_activos`: apagado, la app se comporta como
+  antes (selector «Recordatorio» y calendario «Mafer OS»). Se enciende en Ajustes →
+  Avisos tras un aviso de prueba y la confirmación del iPhone y de Alexa.
+- Los recordatorios anteriores (`cards.reminder = gcal-*`) y los eventos fantasma solo
+  se tocan desde la revisión de Ajustes → Avisos: muestra los eventos concretos y
+  aplica únicamente lo que Mafer marca y confirma, recomprobando cada uno.
+- Previews y E2E usan SIEMPRE el simulador (`VERCEL_ENV=preview` o
+  `GOOGLE_SIMULATED=1`): los «eventos» viven en `settings` (`sim_gcal_ev:*`).
+- Prueba local con la cuenta real: `GOOGLE_CALENDAR_SUFFIX=" (PRUEBA)"` marca los
+  calendarios que la app crea, para reconocerlos y borrarlos al terminar.
+
 ## Exportación y respaldo
 
 - Servidor: `src/lib/export/exporters.ts` + rutas `/api/export/{json,markdown}`.

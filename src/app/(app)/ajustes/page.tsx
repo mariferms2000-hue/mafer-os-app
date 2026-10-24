@@ -11,6 +11,7 @@ import {
   Volume2,
   RotateCcw,
   LogOut,
+  Bell,
 } from "lucide-react";
 import Link from "next/link";
 import { getUserName, getSetting } from "@/lib/auth";
@@ -28,6 +29,9 @@ import { FocusSoundSettings } from "@/components/settings/focus-sound-settings";
 import { AlertQaPanel } from "@/components/settings/alert-qa";
 import { getDemoCounts, qaToolsEnabled, alertQaCount } from "@/lib/actions/maintenance";
 import { TIMEZONE } from "@/lib/tz";
+import { avisosOverview } from "@/lib/avisos/sync";
+import { simulatedEvents } from "@/lib/avisos/gcal";
+import { AvisosPanel } from "@/components/settings/avisos-panel";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ajustes" };
@@ -55,6 +59,8 @@ export default async function AjustesPage() {
   const weeklyDay = (await getSetting("review:weekly-day")) || "";
   const lastBackup = (await getSetting("last_backup_at")) || null;
   const lastSync = (await getSetting("last_obsidian_sync_at")) || null;
+  const avisos = await avisosOverview();
+  const simEvents = await simulatedEvents();
 
   return (
     <div className="max-w-2xl">
@@ -149,6 +155,14 @@ export default async function AjustesPage() {
             </form>
           </div>
         )}
+      </section>
+
+      {/* Avisos de tareas (Bloque 3) */}
+      <section className="card p-5 mb-5 scroll-mt-20" id="avisos">
+        <h2 className="section-eyebrow mb-3 flex items-center gap-2">
+          <Bell size={13} className="text-sage-deep" aria-hidden /> Avisos de tareas
+        </h2>
+        <AvisosPanel o={avisos} simEvents={simEvents} />
       </section>
 
       {/* Respaldos y exportación */}

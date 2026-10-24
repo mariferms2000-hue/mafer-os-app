@@ -15,6 +15,13 @@
       "when": 1785281461812,
       "tag": "0001_curious_tattoo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792633173034,
+      "tag": "0002_avisos",
+      "breakpoints": true
     }
   ]
 }

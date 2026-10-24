@@ -5,6 +5,7 @@ import { ArchiveRestore, Trash2 } from "lucide-react";
 import { archiveCardAction, deleteCardAction } from "@/lib/actions/cards";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
+import { warnAviso } from "@/components/tasks/aviso-toast";
 
 export function ArchivedLine({ card }: { card: CardRow }) {
   const [pending, start] = useTransition();
@@ -21,7 +22,7 @@ export function ArchivedLine({ card }: { card: CardRow }) {
         disabled={pending}
         onClick={() =>
           start(async () => {
-            await archiveCardAction(card.id, false);
+            warnAviso(toast, await archiveCardAction(card.id, false));
             toast.show({ message: "Tarea restaurada del archivo." });
           })
         }
@@ -35,7 +36,7 @@ export function ArchivedLine({ card }: { card: CardRow }) {
             type="button"
             className="btn btn-danger !py-1 !px-2 text-xs"
             disabled={pending}
-            onClick={() => start(() => deleteCardAction(card.id))}
+            onClick={() => start(async () => warnAviso(toast, await deleteCardAction(card.id)))}
           >
             Sí, eliminar
           </button>

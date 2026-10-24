@@ -36,6 +36,7 @@ import { primeFocusAudio, isFocusSoundMuted, setFocusSoundMuted } from "@/lib/fo
 import { notifyFocusDue, requestFocusNotifyPermission } from "@/lib/focus-notify";
 import { PlantArt } from "./plant-art";
 import { isKnownSpeciesV2, type PlantSpeciesV2 } from "@/lib/plant-render-v2";
+import { warnAviso } from "@/components/tasks/aviso-toast";
 
 /* «Jardín de enfoque» — Fase 7C.1: la habitación de enfoque de Mafer OS.
    Overlay amplio e inmersivo con el Marco vivo en el contenedor principal,
@@ -867,6 +868,7 @@ function ClosedView({
       try {
         const res = await completeCardAction(info.cardId!, true);
         freedAt = res.freedPriorityAt;
+        warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo completar. Inténtalo desde la tarea." });
         return;
@@ -878,7 +880,7 @@ function ClosedView({
           label: "Deshacer",
           onClick: async () => {
             try {
-              await completeCardAction(info.cardId!, false, freedAt);
+              warnAviso(toast, await completeCardAction(info.cardId!, false, freedAt));
               setTaskDecision("pendiente");
             } catch {
               toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });

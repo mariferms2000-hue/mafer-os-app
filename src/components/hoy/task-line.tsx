@@ -8,6 +8,7 @@ import { openTaskUrl } from "@/components/tasks/task-detail";
 import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
+import { warnAviso } from "@/components/tasks/aviso-toast";
 
 /** Línea de tarea reutilizable: check + título + chips de contexto.
  *  El cuerpo abre el detalle editable (reflejado en la URL con ?abrir=<id>);
@@ -43,6 +44,7 @@ export function TaskLine({
       try {
         const res = await completeCardAction(card.id, !done);
         freedAt = res.freedPriorityAt;
+        warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
         return;
@@ -54,7 +56,7 @@ export function TaskLine({
             label: "Deshacer",
             onClick: async () => {
               try {
-                await completeCardAction(card.id, false, freedAt);
+                warnAviso(toast, await completeCardAction(card.id, false, freedAt));
               } catch {
                 toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
               }
@@ -185,7 +187,7 @@ export function TaskLine({
                   data-testid="task-menu-delete-confirm"
                   onClick={() =>
                     start(async () => {
-                      await deleteCardAction(card.id);
+                      warnAviso(toast, await deleteCardAction(card.id));
                       setMenu(false);
                       toast.show({ tone: "info", message: "Tarea eliminada." });
                     })

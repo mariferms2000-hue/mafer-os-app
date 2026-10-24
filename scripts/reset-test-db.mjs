@@ -28,6 +28,7 @@ const TABLES = [
   "focus_plants",
   "focus_session_plant_allocations",
   "recent_views",
+  "card_reminders",
 ];
 
 const url = requireTestDatabaseUrl();

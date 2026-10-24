@@ -27,7 +27,7 @@ const TABLES = [
   "settings", "projects", "boards", "columns", "cards", "today_priorities", "inbox_items",
   "journal_entries", "learning_topics", "ideas", "prompts", "ai_tools", "agents_skills",
   "decisions", "resources", "events", "trips", "reviews", "focus_sessions", "focus_plants",
-  "focus_session_plant_allocations", "recent_views",
+  "focus_session_plant_allocations", "recent_views", "card_reminders",
 ];
 
 // ── Fechas relativas a HOY en hora de México (igual que la app) ──
@@ -126,7 +126,7 @@ async function seed(tx, hash) {
       id: cardId, title, description: extra.description ?? "", project_id: where.projectId, board_id: where.boardId,
       column_id: where.columnId, position: pos[k], type: "tarea", priority: extra.priority ?? "media",
       duration: extra.duration ?? null, energy: extra.energy ?? null, due_date: extra.due ?? null,
-      start_time: extra.time ?? null, reminder: extra.reminder ?? null, blocked_reason: extra.blocked ?? "",
+      start_time: extra.time ?? null, reminder: extra.reminder ?? null, gcal_event_id: extra.gcal ?? null, blocked_reason: extra.blocked ?? "",
       waiting_for: extra.waiting ?? "", tags: tx.json(extra.tags ?? []), checklist: tx.json(extra.checklist ?? []),
       links: tx.json([]), archived: extra.archived ?? false, completed_at: extra.completedAt ?? null,
       created_at: hace(extra.age ?? 10), updated_at: hace(extra.touched ?? 1),
@@ -134,15 +134,15 @@ async function seed(tx, hash) {
     return cardId;
   };
 
-  const sigEstudio = await tarea("estudio", "proximo", "Escribir el texto de la página Servicios", { due: dia(0), time: "11:00", reminder: "gcal-timed", priority: "alta", duration: "thirty_to_60", energy: "high" });
+  const sigEstudio = await tarea("estudio", "proximo", "Escribir el texto de la página Servicios", { due: dia(0), time: "11:00", reminder: "gcal-timed", gcal: "simold1", priority: "alta", duration: "thirty_to_60", energy: "high" });
   await tarea("estudio", "proceso", "Elegir paleta de color con Laura", { due: dia(1), duration: "ten_to_30", energy: "medium" });
   await tarea("estudio", "bloqueado", "Publicar el sitio nuevo", { blocked: "Falta que el proveedor del dominio confirme la transferencia — no publicar hasta tener el correo de confirmación por escrito", priority: "alta" });
   await tarea("estudio", "esperando", "Fotos del equipo", { waiting: "Fotógrafa (entrega de la sesión del sábado)", age: 20, touched: 12 });
   await tarea("estudio", "backlog", "Revisar tipografías alternativas");
-  await tarea("estudio", "terminado", "Brief con el cliente", { completedAt: hace(3) });
+  const brief = await tarea("estudio", "terminado", "Brief con el cliente", { completedAt: hace(3), due: dia(-3), time: "12:00", reminder: "gcal-timed", gcal: "simold4" });
   await tarea("mudanza", "proximo", "Cotizar mudanza con tres empresas", { due: dia(-2), priority: "alta", duration: "thirty_to_60" });
-  await tarea("mudanza", "proximo", "Dar de baja internet del departamento", { due: dia(4), time: "09:30", reminder: "gcal-timed", duration: "under_10", energy: "low" });
-  await tarea("mudanza", "proximo", "Comprar cajas y cinta", { due: dia(2), reminder: "gcal-allday", duration: "ten_to_30", energy: "low" });
+  const internet = await tarea("mudanza", "proximo", "Dar de baja internet del departamento", { due: dia(4), time: "09:30", reminder: "gcal-timed", gcal: "simold2", duration: "under_10", energy: "low" });
+  const cajas = await tarea("mudanza", "proximo", "Comprar cajas y cinta", { due: dia(2), reminder: "gcal-allday", gcal: "simold3", duration: "ten_to_30", energy: "low" });
   await tarea("mudanza", "esperando", "Firma del contrato nuevo", { waiting: "Inmobiliaria", due: dia(6) });
   await tarea("mudanza", "despues", "Pintar el cuarto de visitas");
   await tarea("ceramica", "proceso", "Practicar centrado en el torno", { checklist: [
@@ -157,6 +157,23 @@ async function seed(tx, hash) {
   await tarea(null, null, "Llamar al banco por el cargo duplicado", { duration: "under_10", energy: "low" });
   await tarea(null, null, "Leer el contrato del seguro", { archived: true });
   await tx`update projects set next_action_card_id = ${sigEstudio} where id = ${col.estudio.projectId}`;
+
+  // ── Avisos (Bloque 3): el calendario «Mafer OS» SIMULADO, como lo dejó el
+  // sistema anterior: recordatorios vigentes, uno de una tarea completada, uno
+  // huérfano, uno repetido y un compromiso (que la revisión nunca debe tocar).
+  // Formato del simulador de src/lib/avisos/gcal.ts; nada de esto llega a Google.
+  await setSetting(tx, "google_calendar_id", "sim-mafer-os");
+  const simOld = (eventId, summary, start, end, ref) =>
+    setSetting(tx, `sim_gcal_ev:sim-mafer-os:${eventId}`, JSON.stringify({
+      id: eventId, calendarId: "sim-mafer-os", summary, start, end, lead: null, ref, aviso: false,
+    }));
+  await simOld("simold1", "Escribir el texto de la página Servicios", `${dia(0)}T11:00:00`, `${dia(0)}T12:00:00`, `card:${sigEstudio}`);
+  await simOld("simold2", "Dar de baja internet del departamento", `${dia(4)}T09:30:00`, `${dia(4)}T10:30:00`, `card:${internet}`);
+  await simOld("simold3", "Comprar cajas y cinta", dia(2), dia(3), `card:${cajas}`);
+  await simOld("simold4", "Brief con el cliente", `${dia(-3)}T12:00:00`, `${dia(-3)}T13:00:00`, `card:${brief}`);
+  await simOld("simold5", "Recoger el pedido de barro", `${dia(1)}T16:00:00`, `${dia(1)}T17:00:00`, `card:${id()}`);
+  await simOld("simold7", "Dar de baja internet del departamento", `${dia(3)}T09:30:00`, `${dia(3)}T10:30:00`, `card:${internet}`);
+  await simOld("simold6", "Llamada con el cliente del estudio", `${dia(0)}T10:00:00`, `${dia(0)}T10:45:00`, `event:${id()}`);
 
   // ── Inbox: capturas tal como llegan por Siri o a mano ──
   const capturas = [
