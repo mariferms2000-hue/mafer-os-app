@@ -81,8 +81,9 @@ desactivados).
    «Mafer OS · Avisos» → Guardar. App Calendario → Calendarios → comprobar que
    esté marcado. Con la app de Google Calendar: notificaciones activadas para ese
    calendario. Bloquear el iPhone, sin modo Concentración.
-3. Alexa: «¿Qué tengo hoy?» → no debe mencionar la prueba. Si la menciona: app de
-   Alexa → Calendario → Google → desmarcar «Mafer OS · Avisos».
+3. Alexa: es una preferencia. Mafer eligió (23 oct 2026) que Alexa SÍ lea sus avisos:
+   «Mafer OS · Avisos» queda marcado en la app de Alexa → Calendario → Google. Para
+   que no los lea, basta desmarcarlo ahí.
 4. Ajustes → Avisos → **«Borrar aviso de prueba»**.
 
 Activar los avisos de tareas es una decisión aparte, posterior a esta prueba.
