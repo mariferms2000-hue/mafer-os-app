@@ -169,6 +169,17 @@ test("Tarea, Archivar y Eliminar siguen como antes y no suman", async ({ page })
   expect((await credits()).length).toBe(antes);
 });
 
+test("Procesar abre el cuadro de procesar sin ningún tipo elegido", async ({ page }) => {
+  await captura("hecho-procesar", "Algo por decidir");
+  await login(page);
+  await page.goto("/inbox");
+  await tarjeta(page, "Algo por decidir").getByTestId("inbox-procesar").click();
+  const panel = page.getByTestId("process-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("radio", { checked: true })).toHaveCount(0);
+  await expect(panel.getByTestId("type-evento")).toHaveAttribute("aria-checked", "false");
+});
+
 test("Deshacer no revierte nada si la tarea cambió después", async ({ page }) => {
   await captura("hecho-4", "Revisar contrato");
   await login(page);
@@ -258,7 +269,7 @@ test("iPhone: ✓ Hecho cabe junto a las demás salidas, claro y oscuro", async 
   await expect(card.getByTestId("inbox-done")).toBeVisible();
   // las cuatro salidas caben dentro de la tarjeta, sin desbordarla
   const box = (await card.boundingBox())!;
-  for (const id of ["inbox-done", "inbox-to-task", "inbox-to-event", "inbox-process"]) {
+  for (const id of ["inbox-done", "inbox-to-task", "inbox-procesar", "inbox-process"]) {
     const b = (await card.getByTestId(id).boundingBox())!;
     expect(b.x).toBeGreaterThanOrEqual(box.x);
     expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width);
