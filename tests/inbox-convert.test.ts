@@ -67,6 +67,11 @@ vi.mock("@/lib/google/calendar", () => ({
     return h.state.syncFails ? Promise.reject(new Error("google caído")) : Promise.resolve(null);
   },
 }));
+// La conversión no toca el progreso («✓ Hecho» se prueba en tests-db y E2E z24).
+vi.mock("@/lib/progress/credit", () => ({
+  progressAfterChange: () => Promise.resolve({}),
+  revokeCompletion: () => Promise.resolve(null),
+}));
 vi.mock("@/lib/db/helpers", () => ({
   createCardInColumnKind: (input: Record<string, unknown>) => {
     h.created.push(input);

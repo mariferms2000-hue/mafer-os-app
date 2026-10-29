@@ -29,7 +29,8 @@ import {
    encuentra los puntos ya asignados (o la bolsa ya cambiada) y no hace nada.
 
    Un fallo aquí NUNCA deshace la tarea: progressAfterChange lo atrapa, lo
-   registra y la tarea queda completada (o reabierta) igual, sin progreso. */
+   registra y devuelve `progressFailed` — la tarea queda completada (o
+   reabierta) igual y la interfaz avisa que el progreso no se actualizó. */
 
 const BAG_KEY = "progress_reward_bag";
 const ATTEMPTS = 3;
@@ -46,7 +47,11 @@ export type ProgressUpdate = {
   rewardRevoked: boolean;
 };
 
-export type ProgressFeedback = { progress?: ProgressUpdate };
+/** `progress` = el progreso cambió (o se confirmó sin cambio) · `progressFailed`
+ *  = la tarea SÍ se guardó pero el progreso no pudo actualizarse: la interfaz
+ *  debe decirlo, nunca fingir que el punto se guardó. Ninguno de los dos = no
+ *  había progreso que tocar (sin cambio de estado, o tarea que no cuenta). */
+export type ProgressFeedback = { progress?: ProgressUpdate; progressFailed?: true };
 
 /** Azar del servidor para barajar la bolsa (las pruebas inyectan el suyo). */
 function secureRandom(): number {
@@ -227,19 +232,20 @@ export async function revokeCompletion(cardId: string, undoRewardId?: string | n
 
 /** Punto único que usan las acciones de tareas: decide según el antes y el
  *  después de `completedAt`. Sin cambio de estado, no toca nada. Nunca lanza:
- *  el progreso no puede romper completar ni reabrir una tarea. */
+ *  el progreso no puede romper completar ni reabrir una tarea — un fallo
+ *  vuelve como `progressFailed` para que la interfaz lo diga. */
 export async function progressAfterChange(
   cardId: string,
   wasCompleted: boolean,
   isCompleted: boolean,
   undoRewardId?: string | null
-): Promise<ProgressUpdate | undefined> {
-  if (wasCompleted === isCompleted) return undefined;
+): Promise<ProgressFeedback> {
+  if (wasCompleted === isCompleted) return {};
   try {
     const res = isCompleted ? await creditCompletion(cardId) : await revokeCompletion(cardId, undoRewardId);
-    return res ?? undefined;
+    return res ? { progress: res } : {};
   } catch (err) {
     console.error("[progreso] no se pudo actualizar el progreso:", err);
-    return undefined;
+    return { progressFailed: true };
   }
 }

@@ -1,4 +1,4 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { Inbox as InboxIcon, Sparkles } from "lucide-react";
 import { db, schema, today } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
@@ -22,6 +22,19 @@ export default async function InboxPage() {
     .where(eq(schema.inboxItems.processed, true))
     .orderBy(desc(schema.inboxItems.createdAt))
     .limit(15);
+  // «✓ Hecho» deja la captura como «tarea:<id>», igual que «Tarea»: lo que la
+  // distingue es que esa tarea está completada.
+  const taskIds = processed.flatMap((i) => (i.convertedTo?.startsWith("tarea:") ? [i.convertedTo.slice(6)] : []));
+  const doneIds = new Set(
+    taskIds.length
+      ? (
+          await db
+            .select({ id: schema.cards.id })
+            .from(schema.cards)
+            .where(and(inArray(schema.cards.id, taskIds), isNotNull(schema.cards.completedAt)))
+        ).map((c) => c.id)
+      : []
+  );
   const projects = await db
     .select({ id: schema.projects.id, title: schema.projects.title })
     .from(schema.projects)
@@ -59,10 +72,16 @@ export default async function InboxPage() {
             {processed.map((i) => (
               <li key={i.id} className="text-sm text-stone-soft flex items-center gap-2 py-1">
                 <span className="line-through truncate">{i.content}</span>
-                {i.convertedTo && (
-                  <span className="chip shrink-0">
-                    {i.convertedTo === "archivado" ? "archivada" : `→ ${i.convertedTo.split(":")[0]}`}
+                {i.convertedTo?.startsWith("tarea:") && doneIds.has(i.convertedTo.slice(6)) ? (
+                  <span className="chip chip-sage shrink-0" data-testid="inbox-processed-done">
+                    hecha ✓
                   </span>
+                ) : (
+                  i.convertedTo && (
+                    <span className="chip shrink-0">
+                      {i.convertedTo === "archivado" ? "archivada" : `→ ${i.convertedTo.split(":")[0]}`}
+                    </span>
+                  )
                 )}
               </li>
             ))}

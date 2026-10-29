@@ -116,10 +116,10 @@ describe("lo que nunca cuenta", () => {
 
   it("sin cambio de estado, progressAfterChange no toca nada", async () => {
     const a = await tarea();
-    expect(await progressAfterChange(a, true, true)).toBeUndefined();
-    expect(await progressAfterChange(a, false, false)).toBeUndefined();
+    expect(await progressAfterChange(a, true, true)).toEqual({});
+    expect(await progressAfterChange(a, false, false)).toEqual({});
     expect(await db.select().from(schema.progressCredits)).toHaveLength(0);
-    expect(await progressAfterChange(a, false, true)).toMatchObject({ delta: 1, count: 1 });
+    expect(await progressAfterChange(a, false, true)).toMatchObject({ progress: { delta: 1, count: 1 } });
   });
 });
 

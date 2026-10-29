@@ -269,7 +269,7 @@ export async function saveTaskAction(formData: FormData): Promise<AvisoFeedback 
     if (projectId) revalidatePath(`/proyectos/${projectId}`);
     revalidatePath("/proyectos");
   }
-  return { avisoError, progress };
+  return { avisoError, ...progress };
 }
 
 export async function setChecklistAction(id: string, checklist: { id: string; text: string; done: boolean }[]) {
@@ -315,7 +315,7 @@ export async function moveCardAction(input: {
   const avisoError = Boolean(card.completedAt) !== done ? await afterCardChange(card.id) : undefined;
   const progress = await progressAfterChange(card.id, Boolean(card.completedAt), done);
   revalidateCardViews(card.projectId);
-  return { avisoError, progress };
+  return { avisoError, ...progress };
 }
 
 /** Completa o reabre una tarea.
@@ -380,7 +380,7 @@ export async function completeCardAction(
   const avisoError = await afterCardChange(id);
   const progress = await progressAfterChange(id, Boolean(card.completedAt), complete, undoRewardId);
   revalidateCardViews(card.projectId);
-  return { freedPriorityAt, avisoError, progress };
+  return { freedPriorityAt, avisoError, ...progress };
 }
 
 /** Reprograma la fecha límite (o la quita con null). */
