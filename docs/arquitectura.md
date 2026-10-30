@@ -109,6 +109,12 @@ sincronización en `sync.ts`; acciones en `src/lib/actions/avisos.ts`):
 - **Sin transacciones:** con `max_pipeline: 0` postgres-js no reserva la conexión
   de `sql.begin`, así que `db.transaction` no funciona en esta app. Lo atómico es
   una sola sentencia SQL (FOR UPDATE + compare-and-swap de la bolsa).
+- Interfaz (F3): `getProgressOverview` (`src/lib/queries/progress.ts`) alimenta la
+  barra (`ProgressMeter`) en Mi jardín → «Recompensas» (con el inventario) y en el
+  módulo del Jardín de enfoque de Hoy. Los toasts de completar pasan por
+  `withProgress` (`src/components/progress/progress-toast.ts`): conservan su mensaje
+  y añaden «●●○ 2 de 3», «Ganaste Agua 💧» o el aviso de progreso fallido; Deshacer
+  pasa la recompensa ganada para revocarla. Las recompensas todavía no se usan.
 - Pruebas de integración contra `mafer_e2e`: `npm run test:db`.
 - Producción: SQL manual antes del merge, ver `docs/produccion-progreso.md`.
 

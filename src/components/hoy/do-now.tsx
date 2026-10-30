@@ -10,6 +10,7 @@ import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 import { warnAviso } from "@/components/tasks/aviso-toast";
+import { afterUndo, rewardIdOf, withProgress, TERMINADAS_LINK, type ProgressToast } from "@/components/progress/progress-toast";
 
 /** «Haz esto ahora»: UNA sola recomendación clara y explicada, para saber qué
  *  hacer en menos de diez segundos. «Otra sugerencia» rota entre las 3 mejores
@@ -41,27 +42,30 @@ export function DoNow({ items, energy }: { items: { card: CardRow; reasons: stri
   function complete() {
     start(async () => {
       let freedAt: number | null = null;
+      let rewardId: string | null = null;
+      let shown: ProgressToast = { message: "Tarea completada ✓", link: TERMINADAS_LINK };
       try {
         const res = await completeCardAction(card.id, true);
         freedAt = res.freedPriorityAt;
+        rewardId = rewardIdOf(res);
+        shown = withProgress("Tarea completada ✓", res, TERMINADAS_LINK);
         warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo completar. Inténtalo de nuevo." });
         return;
       }
       toast.show({
-        message: "Tarea completada ✓",
+        ...shown,
         action: {
           label: "Deshacer",
           onClick: async () => {
             try {
-              warnAviso(toast, await completeCardAction(card.id, false, freedAt));
+              afterUndo(toast, await completeCardAction(card.id, false, freedAt, rewardId));
             } catch {
               toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
             }
           },
         },
-        link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
         duration: 8000,
       });
       setIndex(0); // el servidor recalcula; volvemos a la mejor candidata

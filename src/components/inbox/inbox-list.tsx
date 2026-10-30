@@ -31,6 +31,7 @@ import { captureAge, quickDueDates } from "@/lib/inbox-dates";
 import { useToast } from "@/components/ui/toast";
 import type { schema } from "@/lib/db";
 import { EVENT_TYPES } from "@/lib/event-types";
+import { rewardIdOf, undoneRewardMessage, withProgress, TERMINADAS_LINK } from "@/components/progress/progress-toast";
 
 type Item = typeof schema.inboxItems.$inferSelect;
 type Project = { id: string; title: string };
@@ -142,10 +143,9 @@ function InboxCard({
       }
       if (!res) return;
       // si este completado ganó la recompensa, Deshacer la revoca (sin volver a tirar)
-      const rewardId = res.progress?.reward?.id ?? null;
+      const rewardId = rewardIdOf(res);
       toast.show({
-        tone: res.progressFailed ? "warn" : "ok",
-        message: res.progressFailed ? "✓ Hecho. No se pudo actualizar el progreso." : "Hecho ✓",
+        ...withProgress("Hecho ✓", res, TERMINADAS_LINK, "✓ Hecho. No se pudo actualizar el progreso."),
         action: {
           label: "Deshacer",
           onClick: async () => {
@@ -153,12 +153,13 @@ function InboxCard({
               const undo = await undoInboxDoneAction(item.id, rewardId);
               if (undo.status === "changed") toast.show({ tone: "warn", message: "Ya no se puede deshacer: la tarea cambió." });
               if (undo.status === "failed") toast.show({ tone: "error", message: "No se pudo deshacer. La tarea sigue en Terminadas." });
+              const undone = undo.status === "ok" ? undoneRewardMessage(undo) : null;
+              if (undone) toast.show({ tone: "info", message: undone });
             } catch {
               toast.show({ tone: "error", message: "No se pudo deshacer. La tarea sigue en Terminadas." });
             }
           },
         },
-        link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
         duration: 8000,
       });
     });

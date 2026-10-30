@@ -20,6 +20,7 @@ export type RewardItem = (typeof REWARD_ITEMS)[number];
 export const REWARD_BAG: Record<RewardItem, number> = { agua: 6, fertilizante: 2 };
 
 export const REWARD_LABEL: Record<RewardItem, string> = { agua: "Agua", fertilizante: "Fertilizante" };
+export const REWARD_EMOJI: Record<RewardItem, string> = { agua: "💧", fertilizante: "🌱" };
 
 export function isRewardItem(value: unknown): value is RewardItem {
   return typeof value === "string" && (REWARD_ITEMS as readonly string[]).includes(value);
@@ -68,6 +69,12 @@ export function parseBag(raw: string | null | undefined): RewardItem[] {
 /** ¿Con estos puntos en la barra toca recompensa? */
 export function reachesGoal(openPoints: number, goal = PROGRESS_GOAL): boolean {
   return goal > 0 && openPoints >= goal;
+}
+
+/** La barra en texto, para los toasts: ●●○ */
+export function progressDots(count: number, goal = PROGRESS_GOAL): string {
+  const filled = Math.max(0, Math.min(count, goal));
+  return "●".repeat(filled) + "○".repeat(Math.max(0, goal - filled));
 }
 
 /** Lo que se muestra de la barra: nunca más puntos que la meta. */

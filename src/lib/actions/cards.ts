@@ -18,6 +18,7 @@ export type AvisoFeedback = { avisoError?: string };
 function revalidateCardViews(projectId?: string | null) {
   revalidatePath("/");
   revalidatePath("/tareas");
+  revalidatePath("/biblioteca/jardin"); // recompensas del progreso
   revalidatePath("/calendario");
   if (projectId) revalidatePath(`/proyectos/${projectId}`);
 }

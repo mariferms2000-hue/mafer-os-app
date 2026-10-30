@@ -75,6 +75,7 @@ async function restoreCapture(itemId: string, cardId: string, projectId: string 
   revalidatePath("/inbox");
   revalidatePath("/");
   revalidatePath("/tareas");
+  revalidatePath("/biblioteca/jardin");
   if (projectId) revalidatePath(`/proyectos/${projectId}`);
 }
 
@@ -134,6 +135,7 @@ export async function completeInboxItemAction(
   revalidatePath("/inbox");
   revalidatePath("/");
   revalidatePath("/tareas");
+  revalidatePath("/biblioteca/jardin");
   if (item.projectId) revalidatePath(`/proyectos/${item.projectId}`);
   return { cardId, ...progress };
 }

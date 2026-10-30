@@ -9,6 +9,7 @@ import { durationLabel, energyLabel } from "@/lib/estimates";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 import { warnAviso } from "@/components/tasks/aviso-toast";
+import { afterUndo, rewardIdOf, withProgress, TERMINADAS_LINK, type ProgressToast } from "@/components/progress/progress-toast";
 
 /** Línea de tarea reutilizable: check + título + chips de contexto.
  *  El cuerpo abre el detalle editable (reflejado en la URL con ?abrir=<id>);
@@ -41,9 +42,13 @@ export function TaskLine({
   function toggle() {
     start(async () => {
       let freedAt: number | null = null;
+      let rewardId: string | null = null;
+      let shown: ProgressToast = { message: "Tarea completada ✓", link: TERMINADAS_LINK };
       try {
         const res = await completeCardAction(card.id, !done);
         freedAt = res.freedPriorityAt;
+        rewardId = rewardIdOf(res);
+        shown = withProgress("Tarea completada ✓", res, TERMINADAS_LINK);
         warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
@@ -51,18 +56,17 @@ export function TaskLine({
       }
       if (!done) {
         toast.show({
-          message: "Tarea completada ✓",
+          ...shown,
           action: {
             label: "Deshacer",
             onClick: async () => {
               try {
-                warnAviso(toast, await completeCardAction(card.id, false, freedAt));
+                afterUndo(toast, await completeCardAction(card.id, false, freedAt, rewardId));
               } catch {
                 toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
               }
             },
           },
-          link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
           duration: 8000,
         });
       } else {

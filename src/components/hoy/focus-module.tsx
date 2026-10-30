@@ -15,6 +15,8 @@ import {
 } from "@/lib/focus-logic";
 import { FocusPlant } from "@/components/focus/plant";
 import type { FocusOverview } from "@/lib/queries/focus";
+import type { ProgressOverview } from "@/lib/queries/progress";
+import { ProgressMeter } from "@/components/progress/progress-meter";
 
 /* Módulo compacto del Jardín de enfoque en Hoy — Fase 7D.
    Sin sesión: planta pequeña + progreso transparente + «Enfocarme».
@@ -42,7 +44,17 @@ function GardenLink({ count }: { count: number }) {
   );
 }
 
-export function FocusModule({ overview }: { overview: FocusOverview }) {
+/** F3: la barra hacia la próxima recompensa, compacta, dentro del módulo. */
+function ProgressLine({ progress }: { progress: ProgressOverview | null }) {
+  if (!progress) return null;
+  return (
+    <div className="mt-2">
+      <ProgressMeter count={progress.count} goal={progress.goal} compact testid="focus-module-rewards" />
+    </div>
+  );
+}
+
+export function FocusModule({ overview, progress = null }: { overview: FocusOverview; progress?: ProgressOverview | null }) {
   const s = overview.openSession;
   const [, tick] = useState(0);
 
@@ -96,6 +108,7 @@ export function FocusModule({ overview }: { overview: FocusOverview }) {
             Volver
           </button>
         </div>
+        <ProgressLine progress={progress} />
         <GardenLink count={overview.garden.length} />
       </section>
     );
@@ -133,6 +146,7 @@ export function FocusModule({ overview }: { overview: FocusOverview }) {
           <Play size={14} aria-hidden /> Enfocarme
         </button>
       </div>
+      <ProgressLine progress={progress} />
       <GardenLink count={overview.garden.length} />
     </section>
   );

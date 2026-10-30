@@ -30,6 +30,7 @@ import { openTaskUrl } from "@/components/tasks/task-detail";
 import { durationShort } from "@/lib/estimates";
 import type { ChecklistItem } from "@/lib/db/schema";
 import { warnAviso } from "@/components/tasks/aviso-toast";
+import { afterUndo, rewardIdOf, withProgress, TERMINADAS_LINK, type ProgressToast } from "@/components/progress/progress-toast";
 
 export type BoardColumn = { id: string; title: string; kind: string };
 
@@ -174,7 +175,11 @@ export function Board({
     setItems(next);
     startTransition(async () => {
       try {
-        warnAviso(toast, await moveCardAction({ cardId, toColumnId: toCol, orderedIds, fromOrderedIds }));
+        const res = await moveCardAction({ cardId, toColumnId: toCol, orderedIds, fromOrderedIds });
+        warnAviso(toast, res);
+        // soltar en Terminado completa: el progreso se ve como en cualquier completado
+        // (deshacer = arrastrarla de vuelta)
+        if (res.progress?.delta === 1 || res.progressFailed) toast.show(withProgress("Tarea completada ✓", res));
       } catch (err) {
         if (process.env.NODE_ENV === "development") console.error("[board] moveCardAction falló:", err);
         setItems(snapshot); // rollback visual
@@ -403,9 +408,13 @@ function CardMenu({ cardId, title, completed }: { cardId: string; title: string;
   function toggleComplete() {
     start(async () => {
       let freedAt: number | null = null;
+      let rewardId: string | null = null;
+      let shown: ProgressToast = { message: "Tarea completada ✓", link: TERMINADAS_LINK };
       try {
         const res = await completeCardAction(cardId, !completed);
         freedAt = res.freedPriorityAt;
+        rewardId = rewardIdOf(res);
+        shown = withProgress("Tarea completada ✓", res, TERMINADAS_LINK);
         warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
@@ -414,18 +423,17 @@ function CardMenu({ cardId, title, completed }: { cardId: string; title: string;
       setMenu(false);
       if (!completed) {
         toast.show({
-          message: "Tarea completada ✓",
+          ...shown,
           action: {
             label: "Deshacer",
             onClick: async () => {
               try {
-                warnAviso(toast, await completeCardAction(cardId, false, freedAt));
+                afterUndo(toast, await completeCardAction(cardId, false, freedAt, rewardId));
               } catch {
                 toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
               }
             },
           },
-          link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
           duration: 8000,
         });
       } else {

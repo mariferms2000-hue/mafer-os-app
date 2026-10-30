@@ -90,7 +90,7 @@ test("✓ Hecho: crea la tarea completada, suma 1 punto, sale del Inbox y queda 
   await shot(page, "01-inbox-escritorio");
 
   await tarjeta(page, "Llamar al dentista").getByTestId("inbox-done").click();
-  await expect(page.getByText("Hecho ✓", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Hecho ✓/)).toBeVisible();
   await expect(tarjeta(page, "Llamar al dentista")).toHaveCount(0);
   await shot(page, "02-hecho-toast-escritorio");
 
@@ -117,7 +117,7 @@ test("Deshacer ✓ Hecho: la captura vuelve, la tarea se borra y el punto se qui
   await login(page);
   await page.goto("/inbox");
   await tarjeta(page, "Pagar la luz").getByTestId("inbox-done").click();
-  await expect(page.getByText("Hecho ✓", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Hecho ✓/)).toBeVisible();
   await expect.poll(() => cardIdOf("hecho-2")).not.toBeNull();
   const cardId = (await cardIdOf("hecho-2"))!;
   expect((await credits()).map((c) => c.card_id)).toContain(cardId);
@@ -244,7 +244,7 @@ test("una captura de ejemplo crea una tarea de ejemplo, que no suma", async ({ p
   await login(page);
   await page.goto("/inbox");
   await tarjeta(page, "Ejemplo de captura").getByTestId("inbox-done").click();
-  await expect(page.getByText("Hecho ✓", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Hecho ✓/)).toBeVisible();
   const cardId = (await cardIdOf("hecho-starter"))!;
   expect(await cardRow(cardId)).toMatchObject({ is_starter: true });
   expect((await credits()).length).toBe(antes);

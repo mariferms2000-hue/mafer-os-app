@@ -3,6 +3,7 @@ import { CircleCheckBig, Inbox, Sparkles, ArrowRight, AlertTriangle } from "luci
 import { getTodayData } from "@/lib/queries/today";
 import { currentHour, dayOfWeek } from "@/lib/tz";
 import { getFocusOverview } from "@/lib/queries/focus";
+import { getProgressOverview } from "@/lib/queries/progress";
 import { FocusModule } from "@/components/hoy/focus-module";
 import { DoNow } from "@/components/hoy/do-now";
 import { Highlights } from "@/components/hoy/highlights";
@@ -45,6 +46,7 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
   const { semana } = await searchParams;
   const data = await getTodayData(parseWeekParam(semana, today()));
   const focus = await getFocusOverview();
+  const progress = await getProgressOverview();
   const avisosConFallo = await avisoErrorCount();
 
   const resumen: string[] = [];
@@ -110,7 +112,7 @@ export default async function HoyPage({ searchParams }: { searchParams: Promise<
         <div className="contents xl:flex xl:flex-col xl:gap-5 xl:min-w-0">
           {/* Jardín de enfoque: el acceso de siempre al Pomodoro */}
           <div className="order-2 xl:order-none min-w-0">
-            <FocusModule overview={focus} />
+            <FocusModule overview={focus} progress={progress} />
           </div>
           <div className="order-5 xl:order-none min-w-0">
             <KeepUp data={data.keepUp} today={data.date} />
