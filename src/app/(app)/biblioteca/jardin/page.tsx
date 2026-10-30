@@ -52,8 +52,12 @@ function fecha(iso: string | null): string {
   return new Date(iso).toLocaleDateString("es-MX", { timeZone: TIMEZONE, day: "numeric", month: "long", year: "numeric" });
 }
 
-export default async function JardinPage({ searchParams }: { searchParams: Promise<{ mostrar?: string }> }) {
-  const { mostrar } = await searchParams;
+export default async function JardinPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mostrar?: string; recompensa?: string }>;
+}) {
+  const { mostrar, recompensa } = await searchParams;
   const requested = Number.parseInt(mostrar ?? "", 10);
   const shown = Number.isFinite(requested) ? Math.min(Math.max(PAGE_SIZE, requested), 600) : PAGE_SIZE;
 
@@ -121,11 +125,11 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
               <GardenFocusButton testid="garden-focus" />
             </div>
           </div>
-
-          {/* Recompensas de las tareas completadas (solo se ven; usarlas llega después) */}
-          {progress && <GardenRewards progress={progress} />}
         </div>
       </section>
+
+      {/* Recompensas de las tareas completadas (solo se ven; usarlas llega después) */}
+      {progress && <GardenRewards progress={progress} highlight={recompensa} />}
 
       {/* El invernadero: la colección completa, con su cuadrícula y paginación */}
       <section aria-labelledby="tu-jardin">

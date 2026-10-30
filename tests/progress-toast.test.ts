@@ -1,39 +1,58 @@
 import { describe, expect, it } from "vitest";
-import { progressDots } from "../src/lib/progress/logic";
-import { rewardIdOf, undoneRewardMessage, withProgress, GARDEN_LINK, TERMINADAS_LINK } from "../src/components/progress/progress-toast";
+import { pathHint, pathTitle } from "../src/components/progress/progress-copy";
+import {
+  gardenLink,
+  rewardIdOf,
+  undoneRewardToast,
+  withProgress,
+  TERMINADAS_LINK,
+} from "../src/components/progress/progress-toast";
 
-/* F3: lo que dice el toast al completar, según lo que pasó con el progreso. */
+/* F3: qué muestra el toast al completar según lo que pasó con el progreso, y
+ * los textos del camino hacia la próxima recompensa. */
 
 const update = (extra: Record<string, unknown>) => ({
   progress: { delta: 1, count: 2, goal: 3, reward: null, rewardRevoked: false, ...extra },
 });
 
-describe("progressDots", () => {
-  it("pinta un punto por tarea, nunca más que la meta", () => {
-    expect(progressDots(0, 3)).toBe("○○○");
-    expect(progressDots(2, 3)).toBe("●●○");
-    expect(progressDots(3, 3)).toBe("●●●");
-    expect(progressDots(5, 3)).toBe("●●●");
-    expect(progressDots(-1, 3)).toBe("○○○");
+describe("textos del camino", () => {
+  it("título: «2 de 3 tareas»", () => {
+    expect(pathTitle(0, 3)).toBe("0 de 3 tareas");
+    expect(pathTitle(2, 3)).toBe("2 de 3 tareas");
+    expect(pathTitle(1, 1)).toBe("1 de 1 tarea");
+  });
+
+  it("la frase dice cuánto falta, en palabras", () => {
+    expect(pathHint(0, 3)).toBe("Tres tareas para tu próxima recompensa.");
+    expect(pathHint(1, 3)).toBe("Dos más para tu próxima recompensa.");
+    expect(pathHint(2, 3)).toBe("Una más para tu próxima recompensa.");
+    expect(pathHint(0, 1)).toBe("Una tarea para tu próxima recompensa.");
+    expect(pathHint(3, 3)).toBe("Tu recompensa ya está en tu inventario.");
+    expect(pathHint(0, 12)).toBe("12 tareas para tu próxima recompensa.");
   });
 });
 
 describe("withProgress", () => {
-  it("un punto nuevo añade la barra al mensaje de siempre", () => {
+  it("un punto nuevo deja el mensaje de siempre y añade el camino con la hoja nueva brotando", () => {
     expect(withProgress("Hecho ✓", update({}), TERMINADAS_LINK)).toEqual({
-      message: "Hecho ✓ · ●●○ 2 de 3",
+      message: "Hecho ✓",
       link: TERMINADAS_LINK,
+      progress: { count: 2, goal: 3, grow: 1 },
     });
   });
 
-  it("la recompensa cambia el mensaje y lleva al Jardín", () => {
+  it("la recompensa pide la tarjeta especial y «Ver jardín» hacia la ficha ganada", () => {
     expect(withProgress("Hecho ✓", update({ count: 0, reward: { id: "r1", item: "agua" } }), TERMINADAS_LINK)).toEqual({
-      message: "Hecho ✓ · Ganaste Agua 💧",
-      link: GARDEN_LINK,
+      message: "Hecho ✓",
+      link: { label: "Ver jardín", href: "/biblioteca/jardin?recompensa=agua#recompensas-del-jardin" },
+      reward: { item: "agua", label: "Agua", goal: 3 },
     });
-    expect(withProgress("Hecho ✓", update({ count: 0, reward: { id: "r2", item: "fertilizante" } })).message).toBe(
-      "Hecho ✓ · Ganaste Fertilizante 🌱"
-    );
+    expect(withProgress("Hecho ✓", update({ count: 0, reward: { id: "r2", item: "fertilizante" } })).reward).toEqual({
+      item: "fertilizante",
+      label: "Fertilizante",
+      goal: 3,
+    });
+    expect(gardenLink("fertilizante").href).toBe("/biblioteca/jardin?recompensa=fertilizante#recompensas-del-jardin");
   });
 
   it("si el progreso falló lo dice, con aviso y el texto propio si lo hay", () => {
@@ -47,10 +66,10 @@ describe("withProgress", () => {
     );
   });
 
-  it("sin punto nuevo (ya lo había dado, o no cuenta) queda el mensaje de siempre", () => {
-    expect(withProgress("Hecho ✓", update({ delta: 0 })).message).toBe("Hecho ✓");
-    expect(withProgress("Hecho ✓", {}).message).toBe("Hecho ✓");
-    expect(withProgress("Hecho ✓", undefined).message).toBe("Hecho ✓");
+  it("sin punto nuevo (ya lo había dado, o no cuenta) queda el mensaje de siempre, sin camino", () => {
+    expect(withProgress("Hecho ✓", update({ delta: 0 }))).toEqual({ message: "Hecho ✓", link: undefined });
+    expect(withProgress("Hecho ✓", {})).toEqual({ message: "Hecho ✓", link: undefined });
+    expect(withProgress("Hecho ✓", undefined)).toEqual({ message: "Hecho ✓", link: undefined });
   });
 });
 
@@ -61,9 +80,13 @@ describe("Deshacer", () => {
     expect(rewardIdOf(null)).toBeNull();
   });
 
-  it("solo hay aviso cuando se revocó la recompensa", () => {
-    expect(undoneRewardMessage(update({ delta: -1, rewardRevoked: true }))).toBe("Recompensa deshecha · ●●○ 2 de 3");
-    expect(undoneRewardMessage(update({ delta: -1 }))).toBeNull();
-    expect(undoneRewardMessage({})).toBeNull();
+  it("solo hay aviso cuando se revocó la recompensa, con el camino como quedó", () => {
+    expect(undoneRewardToast(update({ delta: -1, rewardRevoked: true }))).toEqual({
+      tone: "info",
+      message: "Recompensa deshecha",
+      progress: { count: 2, goal: 3 },
+    });
+    expect(undoneRewardToast(update({ delta: -1 }))).toBeNull();
+    expect(undoneRewardToast({})).toBeNull();
   });
 });

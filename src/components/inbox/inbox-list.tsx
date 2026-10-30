@@ -31,7 +31,7 @@ import { captureAge, quickDueDates } from "@/lib/inbox-dates";
 import { useToast } from "@/components/ui/toast";
 import type { schema } from "@/lib/db";
 import { EVENT_TYPES } from "@/lib/event-types";
-import { rewardIdOf, undoneRewardMessage, withProgress, TERMINADAS_LINK } from "@/components/progress/progress-toast";
+import { rewardIdOf, undoneRewardToast, withProgress, TERMINADAS_LINK } from "@/components/progress/progress-toast";
 
 type Item = typeof schema.inboxItems.$inferSelect;
 type Project = { id: string; title: string };
@@ -153,8 +153,8 @@ function InboxCard({
               const undo = await undoInboxDoneAction(item.id, rewardId);
               if (undo.status === "changed") toast.show({ tone: "warn", message: "Ya no se puede deshacer: la tarea cambió." });
               if (undo.status === "failed") toast.show({ tone: "error", message: "No se pudo deshacer. La tarea sigue en Terminadas." });
-              const undone = undo.status === "ok" ? undoneRewardMessage(undo) : null;
-              if (undone) toast.show({ tone: "info", message: undone });
+              const undone = undo.status === "ok" ? undoneRewardToast(undo) : null;
+              if (undone) toast.show(undone);
             } catch {
               toast.show({ tone: "error", message: "No se pudo deshacer. La tarea sigue en Terminadas." });
             }
