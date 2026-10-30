@@ -17,7 +17,6 @@ import {
   CalendarDays,
   MoreHorizontal,
   PencilLine,
-  FolderInput,
 } from "lucide-react";
 import {
   convertInboxItem,
@@ -280,10 +279,10 @@ function InboxCard({
           type="button"
           className="btn btn-secondary !py-1.5 !px-3 text-sm"
           disabled={pending}
-          onClick={() => onProcess(null)}
-          data-testid="inbox-procesar"
+          onClick={() => onProcess("evento")}
+          data-testid="inbox-to-event"
         >
-          <FolderInput size={14} aria-hidden /> Procesar
+          <CalendarDays size={14} aria-hidden /> Evento
         </button>
         <button
           type="button"
@@ -292,7 +291,7 @@ function InboxCard({
           onClick={() => onProcess(item.typeHint || null)}
           data-testid="inbox-process"
         >
-          <Sparkles size={14} aria-hidden /> Más…
+          <Sparkles size={14} aria-hidden /> Procesar
         </button>
       </div>
       {dates && (

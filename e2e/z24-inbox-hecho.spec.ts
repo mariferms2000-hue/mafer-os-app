@@ -169,15 +169,24 @@ test("Tarea, Archivar y Eliminar siguen como antes y no suman", async ({ page })
   expect((await credits()).length).toBe(antes);
 });
 
-test("Procesar abre el cuadro de procesar sin ningún tipo elegido", async ({ page }) => {
-  await captura("hecho-procesar", "Algo por decidir");
+test("Evento abre el cuadro con Evento ya elegido; Procesar usa la sugerencia de la captura", async ({ page }) => {
+  await captura("hecho-evento", "Cena con Ana");
+  await run(`INSERT INTO inbox_items (id, content, note, type_hint, created_at) VALUES ('hecho-sugerida', '${P} Leer sobre fermentos', '', 'idea', '${now}')`);
   await login(page);
   await page.goto("/inbox");
-  await tarjeta(page, "Algo por decidir").getByTestId("inbox-procesar").click();
   const panel = page.getByTestId("process-panel");
+
+  await tarjeta(page, "Cena con Ana").getByTestId("inbox-to-event").click();
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole("radio", { checked: true })).toHaveCount(0);
-  await expect(panel.getByTestId("type-evento")).toHaveAttribute("aria-checked", "false");
+  await expect(panel.getByTestId("type-evento")).toHaveAttribute("aria-checked", "true");
+  await panel.getByRole("button", { name: "Cerrar" }).click();
+  await expect(panel).toHaveCount(0);
+
+  const sugerida = tarjeta(page, "Leer sobre fermentos");
+  await expect(sugerida.getByTestId("inbox-process")).toHaveText("Procesar");
+  await sugerida.getByTestId("inbox-process").click();
+  await expect(panel).toBeVisible();
+  await expect(panel.getByTestId("type-idea")).toHaveAttribute("aria-checked", "true");
 });
 
 test("Deshacer no revierte nada si la tarea cambió después", async ({ page }) => {
@@ -269,7 +278,7 @@ test("iPhone: ✓ Hecho cabe junto a las demás salidas, claro y oscuro", async 
   await expect(card.getByTestId("inbox-done")).toBeVisible();
   // las cuatro salidas caben dentro de la tarjeta, sin desbordarla
   const box = (await card.boundingBox())!;
-  for (const id of ["inbox-done", "inbox-to-task", "inbox-procesar", "inbox-process"]) {
+  for (const id of ["inbox-done", "inbox-to-task", "inbox-to-event", "inbox-process"]) {
     const b = (await card.getByTestId(id).boundingBox())!;
     expect(b.x).toBeGreaterThanOrEqual(box.x);
     expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width);
