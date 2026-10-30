@@ -41,8 +41,17 @@ SELECT count(*) AS tareas_completadas FROM cards WHERE completed_at IS NOT NULL;
 
 ## Migración 0003
 
+Fuente de verdad: `drizzle/0003_progreso.sql`. Este bloque contiene exactamente
+sus mismas sentencias, envueltas en una transacción de PostgreSQL: si alguna
+falla, no queda nada a medias. (El archivo de Drizzle no lleva `BEGIN`/`COMMIT`
+porque su migrador ya ejecuta cada migración dentro de una transacción.)
+
+En el SQL Editor se pega y se ejecuta el bloque completo, de `BEGIN;` a `COMMIT;`.
+
 ```sql
 -- Mafer OS · progreso por tareas completadas · migración 0003
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS "garden_rewards" (
 	"id" text PRIMARY KEY NOT NULL,
 	"item" text NOT NULL,
@@ -57,15 +66,21 @@ CREATE TABLE IF NOT EXISTS "progress_credits" (
 	"credited_at" text NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS "idx_progress_credits_reward" ON "progress_credits" USING btree ("reward_id");
+CREATE INDEX IF NOT EXISTS "idx_progress_credits_reward"
+	ON "progress_credits" USING btree ("reward_id");
 
 -- Las tareas ya completadas quedan como 'previa': nunca cuentan.
-INSERT INTO "progress_credits" ("card_id", "kind", "reward_id", "credited_at")
-SELECT "id", 'previa', NULL, "completed_at" FROM "cards" WHERE "completed_at" IS NOT NULL
+INSERT INTO "progress_credits"
+	("card_id", "kind", "reward_id", "credited_at")
+SELECT "id", 'previa', NULL, "completed_at"
+FROM "cards"
+WHERE "completed_at" IS NOT NULL
 ON CONFLICT ("card_id") DO NOTHING;
+
+COMMIT;
 ```
 
-## Verificación (solo lectura)
+## Después: verificación (solo lectura)
 
 ```sql
 -- Debe mostrar: garden_rewards 4 columnas, progress_credits 4 columnas
@@ -81,18 +96,28 @@ SELECT (SELECT count(*) FROM cards WHERE completed_at IS NOT NULL)       AS tare
 
 ## Reversión
 
-**Antes del merge** (nadie usa las tablas todavía), se quitan sin afectar nada más:
+Se puede repetir sin error (`IF EXISTS`) y va en una transacción. El índice
+desaparece junto con `progress_credits`.
 
 ```sql
-DROP TABLE progress_credits;
-DROP TABLE garden_rewards;
-DELETE FROM settings WHERE key = 'progress_reward_bag';
+-- Mafer OS · reversión de la migración 0003
+BEGIN;
+
+DELETE FROM settings
+WHERE key = 'progress_reward_bag';
+
+DROP TABLE IF EXISTS progress_credits;
+DROP TABLE IF EXISTS garden_rewards;
+
+COMMIT;
 ```
 
-**Después del merge**, primero se revierte el código (rollback del despliegue en
-Vercel o revert del PR) y solo después se borran las tablas: con el código nuevo
-en producción y sin tablas, cada completado mostraría el aviso de progreso. Borrar
-las tablas pierde los puntos y recompensas ganados; las tareas no se tocan.
+- **Antes del merge** (nadie usa las tablas todavía): se ejecuta tal cual, sin
+  afectar nada más.
+- **Después del merge**: primero se revierte el código (rollback del despliegue en
+  Vercel o revert del PR) y solo después este SQL. Con el código nuevo en
+  producción y sin tablas, cada completado mostraría el aviso de progreso. Borrar
+  las tablas pierde los puntos y recompensas ganados; las tareas no se tocan.
 
 ## Si el código llega antes que la migración
 
