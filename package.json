@@ -16,6 +16,7 @@
     "backup": "node scripts/backup.mjs",
     "setup": "node scripts/setup.mjs",
     "test:unit": "TZ=UTC vitest run",
+    "test:db": "TZ=UTC vitest run --config vitest.db.config.ts",
     "test:e2e": "node scripts/reset-test-db.mjs && playwright test",
     "inventory": "node scripts/inventory-agents.mjs"
   },

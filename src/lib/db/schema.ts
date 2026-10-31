@@ -360,3 +360,31 @@ export const cardReminders = pgTable("card_reminders", {
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
+
+/** Progreso por tareas completadas (oct 2026). Una fila = esa tarea ya dio su
+ *  punto, para siempre: `card_id` es la llave, así que completar → reabrir →
+ *  completar nunca suma dos veces.
+ *  - Referencia LÓGICA a cards, sin FK (como card_reminders): eliminar la tarea
+ *    no borra su crédito (un CASCADE lo borraría, un RESTRICT impediría
+ *    eliminarla) y los ids son UUID que nunca se reutilizan, así que tampoco
+ *    puede volver a ganarse. Solo el código de Deshacer/reabrir quita créditos.
+ *  - kind: 'tarea' cuenta · 'previa' = ya estaba completada al lanzar la
+ *    función (relleno de la migración 0003): ocupa la llave y nunca cuenta.
+ *  - reward_id: la recompensa que consumió el punto; null = está en la barra.
+ *    Referencia lógica a garden_rewards, también sin FK. */
+export const progressCredits = pgTable("progress_credits", {
+  cardId: text("card_id").primaryKey(),
+  kind: text("kind").notNull().default("tarea"), // tarea | previa
+  rewardId: text("reward_id"),
+  creditedAt: text("credited_at").notNull(),
+}, (table) => [index("idx_progress_credits_reward").on(table.rewardId)]);
+
+/** Recompensas del Jardín: inventario (used_at null) e historial en una tabla.
+ *  item: agua | fertilizante (después, cosmetico:<clave>). used_at queda
+ *  siempre null hasta que exista «usar» (fase posterior). */
+export const gardenRewards = pgTable("garden_rewards", {
+  id: text("id").primaryKey(),
+  item: text("item").notNull(),
+  earnedAt: text("earned_at").notNull(),
+  usedAt: text("used_at"),
+});

@@ -13,6 +13,7 @@ import { openTaskUrl } from "@/components/tasks/task-detail";
 import { useToast } from "@/components/ui/toast";
 import type { CardRow } from "@/lib/queries/today";
 import { warnAviso } from "@/components/tasks/aviso-toast";
+import { afterUndo, rewardIdOf, withProgress } from "@/components/progress/progress-toast";
 
 export function Priorities({
   priorities,
@@ -33,11 +34,11 @@ export function Priorities({
       if (!done) {
         // el espacio queda libre; nunca se elige otra automáticamente
         toast.show({
-          message: "Prioridad completada ✓ — su espacio quedó libre",
+          ...withProgress("Prioridad completada ✓ — su espacio quedó libre", res),
           action: {
             label: "Deshacer",
             onClick: async () => {
-              warnAviso(toast, await completeCardAction(card.id, false, res.freedPriorityAt));
+              afterUndo(toast, await completeCardAction(card.id, false, res.freedPriorityAt, rewardIdOf(res)));
             },
           },
           secondAction: { label: "Elegir reemplazo", onClick: () => setPicking(true) },

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import {
   X,
+  Check,
   Trash2,
   Archive,
   Sparkles,
@@ -23,11 +24,14 @@ import {
   archiveInboxItem,
   deleteInboxItem,
   undoInboxToTaskAction,
+  completeInboxItemAction,
+  undoInboxDoneAction,
 } from "@/lib/actions/inbox";
 import { captureAge, quickDueDates } from "@/lib/inbox-dates";
 import { useToast } from "@/components/ui/toast";
 import type { schema } from "@/lib/db";
 import { EVENT_TYPES } from "@/lib/event-types";
+import { rewardIdOf, undoneRewardToast, withProgress, TERMINADAS_LINK } from "@/components/progress/progress-toast";
 
 type Item = typeof schema.inboxItems.$inferSelect;
 type Project = { id: string; title: string };
@@ -126,6 +130,41 @@ function InboxCard({
     });
   }
 
+  /** «✓ Hecho»: sí lo hice → una tarea ya completada que cuenta como progreso.
+   *  Si el progreso falló, la tarea quedó hecha igual y el toast lo dice. */
+  function markDone() {
+    start(async () => {
+      let res: Awaited<ReturnType<typeof completeInboxItemAction>>;
+      try {
+        res = await completeInboxItemAction(item.id);
+      } catch {
+        toast.show({ tone: "error", message: "No se pudo marcar como hecha. La captura sigue en el Inbox." });
+        return;
+      }
+      if (!res) return;
+      // si este completado ganó la recompensa, Deshacer la revoca (sin volver a tirar)
+      const rewardId = rewardIdOf(res);
+      toast.show({
+        ...withProgress("Hecho ✓", res, TERMINADAS_LINK, "✓ Hecho. No se pudo actualizar el progreso."),
+        action: {
+          label: "Deshacer",
+          onClick: async () => {
+            try {
+              const undo = await undoInboxDoneAction(item.id, rewardId);
+              if (undo.status === "changed") toast.show({ tone: "warn", message: "Ya no se puede deshacer: la tarea cambió." });
+              if (undo.status === "failed") toast.show({ tone: "error", message: "No se pudo deshacer. La tarea sigue en Terminadas." });
+              const undone = undo.status === "ok" ? undoneRewardToast(undo) : null;
+              if (undone) toast.show(undone);
+            } catch {
+              toast.show({ tone: "error", message: "No se pudo deshacer. La tarea sigue en Terminadas." });
+            }
+          },
+        },
+        duration: 8000,
+      });
+    });
+  }
+
   return (
     <li className="card p-4" data-testid="inbox-item">
       <div className="flex items-start gap-3">
@@ -220,6 +259,15 @@ function InboxCard({
       <div className="flex flex-wrap items-center gap-1.5 mt-3" role="group" aria-label={`Convertir «${item.content}»`}>
         <button
           type="button"
+          className="btn btn-secondary !py-1.5 !px-3 text-sm"
+          disabled={pending}
+          onClick={markDone}
+          data-testid="inbox-done"
+        >
+          <Check size={14} aria-hidden /> Hecho
+        </button>
+        <button
+          type="button"
           className={`btn !py-1.5 !px-3 text-sm ${dates ? "btn-primary" : "btn-secondary"}`}
           aria-expanded={dates}
           disabled={pending}
@@ -244,7 +292,7 @@ function InboxCard({
           onClick={() => onProcess(item.typeHint || null)}
           data-testid="inbox-process"
         >
-          <Sparkles size={14} aria-hidden /> Más…
+          <Sparkles size={14} aria-hidden /> Procesar
         </button>
       </div>
       {dates && (

@@ -9,6 +9,7 @@ import { normalizeDuration, normalizeEnergy } from "@/lib/estimates";
 import { syncCardToGoogle } from "@/lib/google/calendar";
 import { afterCardChange, avisosActive, avisoStateFor, removeAvisoBeforeDelete, setAviso, type AvisoState } from "@/lib/avisos/sync";
 import { DEFAULT_AVISO_TIME } from "@/lib/avisos/logic";
+import { progressAfterChange, type ProgressFeedback } from "@/lib/progress/credit";
 
 /** Resultado común de las acciones que pueden tocar un aviso de Google: si
  *  Google falló, el cambio de la tarea SÍ se guardó y `avisoError` lo explica. */
@@ -17,6 +18,7 @@ export type AvisoFeedback = { avisoError?: string };
 function revalidateCardViews(projectId?: string | null) {
   revalidatePath("/");
   revalidatePath("/tareas");
+  revalidatePath("/biblioteca/jardin"); // recompensas del progreso
   revalidatePath("/calendario");
   if (projectId) revalidatePath(`/proyectos/${projectId}`);
 }
@@ -135,7 +137,7 @@ export async function getProjectColumnsAction(projectId: string) {
  *  - a «Sin proyecto» → se limpian tablero y lista, el resto de datos se conserva;
  *  - cambio de lista dentro del mismo proyecto → al final de la lista destino;
  *  - solo se toca completedAt si la tarjeta cambió a/desde una lista Terminado. */
-export async function saveTaskAction(formData: FormData): Promise<AvisoFeedback> {
+export async function saveTaskAction(formData: FormData): Promise<AvisoFeedback & ProgressFeedback> {
   await requireAuth();
   const id = String(formData.get("id"));
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
@@ -261,12 +263,14 @@ export async function saveTaskAction(formData: FormData): Promise<AvisoFeedback>
     // comportamiento anterior, sin cambios mientras los avisos no se activen
     await syncCardToGoogle(id).catch(() => {});
   }
+  // mover el detalle a/desde Terminado también completa/reabre: mismo progreso
+  const progress = await progressAfterChange(id, Boolean(card.completedAt), Boolean(completedAt));
   revalidateCardViews(card.projectId);
   if (projectId !== card.projectId) {
     if (projectId) revalidatePath(`/proyectos/${projectId}`);
     revalidatePath("/proyectos");
   }
-  return { avisoError };
+  return { avisoError, ...progress };
 }
 
 export async function setChecklistAction(id: string, checklist: { id: string; text: string; done: boolean }[]) {
@@ -283,7 +287,7 @@ export async function moveCardAction(input: {
   toColumnId: string;
   orderedIds: string[]; // ids en la columna destino, en orden final
   fromOrderedIds?: string[]; // ids restantes en la columna origen (si cambió de columna)
-}): Promise<AvisoFeedback> {
+}): Promise<AvisoFeedback & ProgressFeedback> {
   await requireAuth();
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, input.cardId)).limit(1);
   if (!card) return {};
@@ -310,19 +314,23 @@ export async function moveCardAction(input: {
     }
   }
   const avisoError = Boolean(card.completedAt) !== done ? await afterCardChange(card.id) : undefined;
+  const progress = await progressAfterChange(card.id, Boolean(card.completedAt), done);
   revalidateCardViews(card.projectId);
-  return { avisoError };
+  return { avisoError, ...progress };
 }
 
 /** Completa o reabre una tarea.
  *  Al completar, si era prioridad de HOY libera su espacio (nunca se elige otra
  *  automáticamente) y devuelve la posición liberada para poder deshacer.
- *  Al reabrir, `restorePriorityAt` re-coloca la prioridad en ese espacio. */
+ *  Al reabrir, `restorePriorityAt` re-coloca la prioridad en ese espacio, y
+ *  `undoRewardId` (solo desde el Deshacer del toast) revoca la recompensa que
+ *  ganó ese mismo completado — ver revokeCompletion. */
 export async function completeCardAction(
   id: string,
   complete: boolean,
-  restorePriorityAt?: number | null
-): Promise<{ freedPriorityAt: number | null } & AvisoFeedback> {
+  restorePriorityAt?: number | null,
+  undoRewardId?: string | null
+): Promise<{ freedPriorityAt: number | null } & AvisoFeedback & ProgressFeedback> {
   await requireAuth();
   const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, id)).limit(1);
   if (!card) return { freedPriorityAt: null };
@@ -371,8 +379,9 @@ export async function completeCardAction(
     .where(eq(schema.cards.id, id));
   // completar quita el aviso de Google; deshacer/reabrir lo vuelve a crear
   const avisoError = await afterCardChange(id);
+  const progress = await progressAfterChange(id, Boolean(card.completedAt), complete, undoRewardId);
   revalidateCardViews(card.projectId);
-  return { freedPriorityAt, avisoError };
+  return { freedPriorityAt, avisoError, ...progress };
 }
 
 /** Reprograma la fecha límite (o la quita con null). */

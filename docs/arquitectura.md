@@ -96,6 +96,28 @@ sincronización en `sync.ts`; acciones en `src/lib/actions/avisos.ts`):
 - Prueba local con la cuenta real: `GOOGLE_CALENDAR_SUFFIX=" (PRUEBA)"` marca los
   calendarios que la app crea, para reconocerlos y borrarlos al terminar.
 
+## Progreso por tareas (oct 2026)
+
+`src/lib/progress/` (reglas puras en `logic.ts`, persistencia en `credit.ts`):
+- Cada tarea completada da 1 punto, una sola vez: `progress_credits` usa `card_id`
+  como llave, sin FK (borrar la tarea conserva el crédito y no permite volver a
+  ganarlo). Las tareas ya completadas al lanzar quedan como `kind = 'previa'`.
+- Los tres caminos que completan (`completeCardAction`, `moveCardAction`,
+  `saveTaskAction`) llaman a `progressAfterChange`; un fallo nunca deshace la tarea.
+- Cada `PROGRESS_GOAL` puntos se gana una recompensa (`garden_rewards`) sacada de
+  una bolsa barajada (`settings.progress_reward_bag`, 6 agua + 2 fertilizante).
+- **Sin transacciones:** con `max_pipeline: 0` postgres-js no reserva la conexión
+  de `sql.begin`, así que `db.transaction` no funciona en esta app. Lo atómico es
+  una sola sentencia SQL (FOR UPDATE + compare-and-swap de la bolsa).
+- Interfaz (F3): `getProgressOverview` (`src/lib/queries/progress.ts`) alimenta la
+  barra (`ProgressMeter`) en Mi jardín → «Recompensas» (con el inventario) y en el
+  módulo del Jardín de enfoque de Hoy. Los toasts de completar pasan por
+  `withProgress` (`src/components/progress/progress-toast.ts`): conservan su mensaje
+  y añaden «●●○ 2 de 3», «Ganaste Agua 💧» o el aviso de progreso fallido; Deshacer
+  pasa la recompensa ganada para revocarla. Las recompensas todavía no se usan.
+- Pruebas de integración contra `mafer_e2e`: `npm run test:db`.
+- Producción: SQL manual antes del merge, ver `docs/produccion-progreso.md`.
+
 ## Exportación y respaldo
 
 - Servidor: `src/lib/export/exporters.ts` + rutas `/api/export/{json,markdown}`.

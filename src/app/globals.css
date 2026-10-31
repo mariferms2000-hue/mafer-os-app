@@ -803,3 +803,52 @@ html[data-theme="dark"] .garden-pot-dark { display: block; }
 html[data-theme="dark"] .garden-scene [data-illustrated="true"] {
   filter: var(--gfx-oscuro, none);
 }
+
+/* ─── Recompensas del jardín (F3) ──────────────────────────────────
+   Animaciones cortas y una sola vez: la hoja recién lograda brota del tallo,
+   la tarjeta de recompensa entra, su ícono pulsa dos veces y la ficha ganada
+   brilla al llegar desde «Ver jardín». Todas terminan en su estado final
+   (fill-mode both), así que con prefers-reduced-motion —que el guard global
+   deja en ~0 ms— todo aparece directamente, sin perder información. */
+@keyframes gp-grow {
+  from { transform: scale(0.35); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.gp-grow {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: gp-grow 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@keyframes gp-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.gp-draw {
+  stroke-dasharray: 1;
+  animation: gp-draw 380ms ease-out both;
+}
+
+@keyframes reward-card-in {
+  from { transform: translateY(12px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+.reward-card-enter { animation: reward-card-in 260ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+@keyframes reward-icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+.reward-icon-pulse { animation: reward-icon-pulse 600ms ease-in-out 180ms 2 both; }
+
+@keyframes reward-halo {
+  from { transform: scale(0.9); opacity: 0.55; }
+  to { transform: scale(1.45); opacity: 0; }
+}
+.reward-halo { animation: reward-halo 1100ms ease-out 180ms both; }
+
+@keyframes garden-tile-glow {
+  0% { box-shadow: 0 0 0 0 rgb(0 0 0 / 0); }
+  35% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-sage-deep) 35%, transparent); }
+  100% { box-shadow: 0 0 0 0 rgb(0 0 0 / 0); }
+}
+.garden-tile-glow { animation: garden-tile-glow 1400ms ease-out 250ms both; }

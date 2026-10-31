@@ -21,6 +21,7 @@ import { suggestEstimates, normalizeDuration, normalizeEnergy, DURATION_LABEL, E
 import { DurationChips, EnergyChips } from "./estimate-chips";
 import { useToast } from "@/components/ui/toast";
 import { warnAviso } from "@/components/tasks/aviso-toast";
+import { afterUndo, rewardIdOf, withProgress, TERMINADAS_LINK, type ProgressToast } from "@/components/progress/progress-toast";
 import { AvisoFields, avisoFormProblem } from "./aviso-fields";
 import { DEFAULT_LEAD, isLegacyReminder } from "@/lib/avisos/logic";
 
@@ -206,9 +207,13 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
   function toggleComplete() {
     start(async () => {
       let freedAt: number | null = null;
+      let rewardId: string | null = null;
+      let shown: ProgressToast = { message: "Tarea completada ✓", link: TERMINADAS_LINK };
       try {
         const res = await completeCardAction(card.id, !done);
         freedAt = res.freedPriorityAt;
+        rewardId = rewardIdOf(res);
+        shown = withProgress("Tarea completada ✓", res, TERMINADAS_LINK);
         warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo guardar el cambio. La tarea quedó como estaba." });
@@ -216,18 +221,17 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
       }
       if (!done) {
         toast.show({
-          message: "Tarea completada ✓",
+          ...shown,
           action: {
             label: "Deshacer",
             onClick: async () => {
               try {
-                warnAviso(toast, await completeCardAction(card.id, false, freedAt));
+                afterUndo(toast, await completeCardAction(card.id, false, freedAt, rewardId));
               } catch {
                 toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
               }
             },
           },
-          link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
           duration: 8000,
         });
         onClose();
@@ -257,8 +261,10 @@ function TaskDetailEditor({ data, onClose }: { data: TaskDetailData; onClose: ()
     }
     start(async () => {
       try {
-        warnAviso(toast, await saveTaskAction(fd));
-        toast.show({ message: "Tarea actualizada ✓" });
+        const res = await saveTaskAction(fd);
+        warnAviso(toast, res);
+        // guardar en la lista Terminado también completa: se ve el progreso
+        toast.show(withProgress("Tarea actualizada ✓", res));
         onClose();
       } catch {
         toast.show({ tone: "warn", message: "No se pudieron guardar los cambios. Inténtalo de nuevo." });

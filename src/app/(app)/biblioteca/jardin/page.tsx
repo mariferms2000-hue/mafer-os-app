@@ -8,6 +8,8 @@ import { GardenRoom } from "@/components/explore/garden-room";
 import { PlantCardTrigger } from "@/components/explore/plant-card-trigger";
 import { PlantArt } from "@/components/focus/plant-art";
 import { getGarden } from "@/lib/queries/focus";
+import { getProgressOverview } from "@/lib/queries/progress";
+import { GardenRewards } from "@/components/explore/garden-rewards";
 import { MAX_ROOM_PLANTS } from "@/lib/garden-layout";
 import { STAGES, type StageKey } from "@/lib/focus-logic";
 import { SPECIES_LABEL } from "@/lib/plant-svg-v2";
@@ -50,13 +52,18 @@ function fecha(iso: string | null): string {
   return new Date(iso).toLocaleDateString("es-MX", { timeZone: TIMEZONE, day: "numeric", month: "long", year: "numeric" });
 }
 
-export default async function JardinPage({ searchParams }: { searchParams: Promise<{ mostrar?: string }> }) {
-  const { mostrar } = await searchParams;
+export default async function JardinPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mostrar?: string; recompensa?: string }>;
+}) {
+  const { mostrar, recompensa } = await searchParams;
   const requested = Number.parseInt(mostrar ?? "", 10);
   const shown = Number.isFinite(requested) ? Math.min(Math.max(PAGE_SIZE, requested), 600) : PAGE_SIZE;
 
   // El cuarto puede necesitar más plantas que la primera página del invernadero.
   const garden = await getGarden(Math.max(shown, MAX_ROOM_PLANTS));
+  const progress = await getProgressOverview();
   const greenhouse = garden.completed.slice(0, shown);
   const c = garden.current;
 
@@ -120,6 +127,9 @@ export default async function JardinPage({ searchParams }: { searchParams: Promi
           </div>
         </div>
       </section>
+
+      {/* Recompensas de las tareas completadas (solo se ven; usarlas llega después) */}
+      {progress && <GardenRewards progress={progress} highlight={recompensa} />}
 
       {/* El invernadero: la colección completa, con su cuadrícula y paginación */}
       <section aria-labelledby="tu-jardin">

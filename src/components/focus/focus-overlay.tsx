@@ -37,6 +37,7 @@ import { notifyFocusDue, requestFocusNotifyPermission } from "@/lib/focus-notify
 import { PlantArt } from "./plant-art";
 import { isKnownSpeciesV2, type PlantSpeciesV2 } from "@/lib/plant-render-v2";
 import { warnAviso } from "@/components/tasks/aviso-toast";
+import { afterUndo, rewardIdOf, withProgress, TERMINADAS_LINK, type ProgressToast } from "@/components/progress/progress-toast";
 
 /* «Jardín de enfoque» — Fase 7C.1: la habitación de enfoque de Mafer OS.
    Overlay amplio e inmersivo con el Marco vivo en el contenedor principal,
@@ -865,9 +866,13 @@ function ClosedView({
     if (!info.cardId) return;
     startTask(async () => {
       let freedAt: number | null = null;
+      let rewardId: string | null = null;
+      let shown: ProgressToast = { message: "Tarea completada ✓", link: TERMINADAS_LINK };
       try {
         const res = await completeCardAction(info.cardId!, true);
         freedAt = res.freedPriorityAt;
+        rewardId = rewardIdOf(res);
+        shown = withProgress("Tarea completada ✓", res, TERMINADAS_LINK);
         warnAviso(toast, res);
       } catch {
         toast.show({ tone: "error", message: "No se pudo completar. Inténtalo desde la tarea." });
@@ -875,19 +880,18 @@ function ClosedView({
       }
       setTaskDecision("terminada");
       toast.show({
-        message: "Tarea completada ✓",
+        ...shown,
         action: {
           label: "Deshacer",
           onClick: async () => {
             try {
-              warnAviso(toast, await completeCardAction(info.cardId!, false, freedAt));
+              afterUndo(toast, await completeCardAction(info.cardId!, false, freedAt, rewardId));
               setTaskDecision("pendiente");
             } catch {
               toast.show({ tone: "error", message: "No se pudo deshacer. Puedes reabrirla desde Terminadas." });
             }
           },
         },
-        link: { label: "Ver en terminadas", href: "/tareas?v=terminadas" },
         duration: 8000,
       });
     });

@@ -29,6 +29,8 @@ const TABLES = [
   "focus_session_plant_allocations",
   "recent_views",
   "card_reminders",
+  "progress_credits",
+  "garden_rewards",
 ];
 
 const url = requireTestDatabaseUrl();

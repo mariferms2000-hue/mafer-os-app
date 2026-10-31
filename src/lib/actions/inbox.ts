@@ -7,6 +7,7 @@ import { requireAuth } from "@/lib/auth";
 import { createCardInColumnKind, createDefaultBoard, insertInboxItem } from "@/lib/db/helpers";
 import { normalizeDuration } from "@/lib/estimates";
 import { syncEventToGoogle } from "@/lib/google/calendar";
+import { progressAfterChange, revokeCompletion, type ProgressFeedback } from "@/lib/progress/credit";
 
 export async function captureAction(formData: FormData): Promise<{ id: string } | undefined> {
   await requireAuth();
@@ -57,24 +58,122 @@ export async function deleteInboxItem(id: string) {
   revalidatePath("/");
 }
 
+/** La captura y la tarea a la que apunta («tarea:<id>»), si la tiene. */
+async function captureWithCard(itemId: string) {
+  const [item] = await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, itemId)).limit(1);
+  const [tipo, cardId] = (item?.convertedTo ?? "").split(":");
+  if (!item || tipo !== "tarea" || !cardId) return null;
+  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, cardId)).limit(1);
+  return { item, cardId, card: card ?? null };
+}
+
+/** Borra la tarea creada desde la captura y devuelve la captura al Inbox tal
+ *  como estaba. Común a los dos Deshacer («Tarea» y «✓ Hecho»). */
+async function restoreCapture(itemId: string, cardId: string, projectId: string | null | undefined) {
+  await db.delete(schema.cards).where(eq(schema.cards.id, cardId));
+  await db.update(schema.inboxItems).set({ processed: false, convertedTo: null }).where(eq(schema.inboxItems.id, itemId));
+  revalidatePath("/inbox");
+  revalidatePath("/");
+  revalidatePath("/tareas");
+  revalidatePath("/biblioteca/jardin");
+  if (projectId) revalidatePath(`/proyectos/${projectId}`);
+}
+
 /** Deshace «captura → tarea» desde el toast: borra la tarea recién creada y la
  *  captura vuelve al Inbox tal como estaba. Solo actúa si la captura sigue
  *  apuntando a esa tarea y la tarea no se ha completado ni archivado, para no
  *  borrar trabajo hecho después. */
 export async function undoInboxToTaskAction(itemId: string): Promise<boolean> {
   await requireAuth();
-  const [item] = await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, itemId)).limit(1);
-  const [tipo, cardId] = (item?.convertedTo ?? "").split(":");
-  if (!item || tipo !== "tarea" || !cardId) return false;
-  const [card] = await db.select().from(schema.cards).where(eq(schema.cards.id, cardId)).limit(1);
+  const found = await captureWithCard(itemId);
+  if (!found) return false;
+  const { cardId, card } = found;
   if (card && (card.completedAt || card.archived)) return false;
-  if (card) await db.delete(schema.cards).where(eq(schema.cards.id, cardId));
-  await db.update(schema.inboxItems).set({ processed: false, convertedTo: null }).where(eq(schema.inboxItems.id, itemId));
+  if (card) {
+    await restoreCapture(itemId, cardId, card.projectId);
+  } else {
+    await db.update(schema.inboxItems).set({ processed: false, convertedTo: null }).where(eq(schema.inboxItems.id, itemId));
+    revalidatePath("/inbox");
+    revalidatePath("/");
+  }
+  return true;
+}
+
+/** «✓ Hecho»: sí lo hice. Crea la tarea YA completada (sin fecha; si la captura
+ *  tenía proyecto, en su lista Terminado), marca la captura como procesada con
+ *  el mismo «tarea:<id>» de siempre — Inbox no tiene un estado de completado
+ *  propio — y acredita el punto con la infraestructura de progreso.
+ *  Si el progreso falla, la tarea queda completada igual y vuelve
+ *  `progressFailed` para que la interfaz lo diga. Una captura de ejemplo crea
+ *  una tarea de ejemplo, que no cuenta. undefined = la captura ya no estaba
+ *  pendiente (doble toque): no se crea nada. */
+export async function completeInboxItemAction(
+  itemId: string
+): Promise<({ cardId: string } & ProgressFeedback) | undefined> {
+  await requireAuth();
+  const [item] = await db.select().from(schema.inboxItems).where(eq(schema.inboxItems.id, itemId)).limit(1);
+  if (!item || item.processed) return undefined;
+
+  const cardId = await createCardInColumnKind({
+    title: item.content,
+    description: item.note ?? "",
+    projectId: item.projectId,
+    columnKind: "terminado",
+  });
+  // updatedAt se deja igual a createdAt a propósito: así Deshacer sabe si la
+  // tarea se tocó después (cualquier edición, reapertura o aviso lo cambia).
+  await db
+    .update(schema.cards)
+    .set({ completedAt: now(), isStarter: item.isStarter ?? false })
+    .where(eq(schema.cards.id, cardId));
+  await db
+    .update(schema.inboxItems)
+    .set({ processed: true, convertedTo: `tarea:${cardId}` })
+    .where(eq(schema.inboxItems.id, itemId));
+
+  const progress = await progressAfterChange(cardId, false, true);
   revalidatePath("/inbox");
   revalidatePath("/");
   revalidatePath("/tareas");
-  if (card?.projectId) revalidatePath(`/proyectos/${card.projectId}`);
-  return true;
+  revalidatePath("/biblioteca/jardin");
+  if (item.projectId) revalidatePath(`/proyectos/${item.projectId}`);
+  return { cardId, ...progress };
+}
+
+export type UndoDoneResult =
+  | ({ status: "ok" } & ProgressFeedback)
+  | { status: "changed" } // la tarea se tocó después: no se revierte nada
+  | { status: "failed" }; // el progreso no pudo revocarse: no se borró nada
+
+/** Deshace «✓ Hecho» desde el toast. Solo si la captura sigue apuntando a esa
+ *  tarea y la tarea sigue completada, sin archivar y sin tocar desde que se
+ *  creó; si no, no se revierte nada (`changed`). Tampoco si su punto ya lo
+ *  consumió otra recompensa que se conserva: la captura no puede dar dos.
+ *  Primero se revoca el punto — con `rewardId`, exactamente la lógica de F1:
+ *  si ese completado ganó la recompensa y sigue siendo la más reciente sin
+ *  usar, se revoca y la ficha vuelve al frente de la bolsa. Si revocar falla,
+ *  no se borra la tarea (`failed`): quedaría un punto de una tarea que ya no
+ *  existe sin forma de quitarlo. */
+export async function undoInboxDoneAction(itemId: string, rewardId?: string | null): Promise<UndoDoneResult> {
+  await requireAuth();
+  const found = await captureWithCard(itemId);
+  if (!found?.card) return { status: "changed" };
+  const { cardId, card } = found;
+  if (!card.completedAt || card.archived || card.updatedAt !== card.createdAt) return { status: "changed" };
+
+  let feedback: ProgressFeedback = {};
+  try {
+    const res = await revokeCompletion(cardId, rewardId);
+    // el punto ya lo consumió otra recompensa y se conserva: borrar la tarea y
+    // devolver la captura permitiría ganarlo otra vez con un nuevo «✓ Hecho»
+    if (res && res.delta === 0) return { status: "changed" };
+    if (res) feedback = { progress: res };
+  } catch (err) {
+    console.error("[progreso] no se pudo revocar el punto de «✓ Hecho»:", err);
+    return { status: "failed" };
+  }
+  await restoreCapture(itemId, cardId, card.projectId);
+  return { status: "ok", ...feedback };
 }
 
 /** Convierte una captura en otra entidad sin re-escribirla.
