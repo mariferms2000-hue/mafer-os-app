@@ -13,7 +13,7 @@ import Image from "next/image";
 import { Droplet } from "lucide-react";
 import type { StageKey } from "@/lib/focus-logic";
 import { BASE_X, BOTTOM_PAD, PLANT_PAD, ROOT_SPAN } from "@/lib/garden/asset-bounds";
-import { plantVisual, type ArtRef, type SpecialFx } from "@/lib/garden/plant-visual";
+import { plantVisual, type ArtRef } from "@/lib/garden/plant-visual";
 import { SCENE_H as H, cqhPerCm, type Anchor, type Bench, type Material, type PlacedPlant, type SceneTemplate, type Support } from "@/lib/garden/scene-layout";
 import { SPECIES_SCALE, type Species } from "@/lib/garden/species";
 import s from "./greenhouse.module.css";
@@ -26,13 +26,14 @@ const pct = (n: number, of: number) => `${(n / of) * 100}%`;
 
 /* ───────────────────────────── estado que pinta la escena ───────────────────────────── */
 
-export type SceneCare = { thirsty: boolean; special: boolean };
+export type SceneCare = { thirsty: boolean; fresh: boolean; special: boolean };
 export type PlacedWithCare = PlacedPlant & SceneCare & { label: string };
 export type SceneHero = {
   species: Species;
   stage: StageKey;
   seed: number;
   thirsty: boolean;
+  fresh: boolean;
   label: string;
 };
 
@@ -54,33 +55,31 @@ export function GardenFilters() {
 
 /* ───────────────────────────── lámina ───────────────────────────── */
 
-function Lamina({ art, species, seed, tint }: { art: ArtRef; species?: Species; seed?: number; tint?: string }) {
+function Lamina({ art, species, seed }: { art: ArtRef; species?: Species; seed?: number }) {
   return (
     <span className={s.lamina} data-species={species} data-seed={seed}>
-      <Image src={art.src} width={art.w} height={art.h} alt="" unoptimized draggable={false} className={s.leaf} style={tint ? { filter: `var(--leaf-filter) ${tint}` } : undefined} />
+      <Image src={art.src} width={art.w} height={art.h} alt="" unoptimized draggable={false} className={s.leaf} />
       {/* Sombreado con la silueta de la propia lámina: base más oscura, sin halo. */}
       <span className={s.leafShade} style={{ maskImage: `url(${art.src})`, WebkitMaskImage: `url(${art.src})` }} aria-hidden />
     </span>
   );
 }
 
-/** La planta con su montaje especial (copias detrás, flores delante). */
-function PlantArt({ art, fx, species, seed, moment }: { art: ArtRef; fx: SpecialFx | null; species: Species; seed: number; moment: "agua" | "especial" | null }) {
+/** La lámina con las capas de su estado, todas recortadas a su silueta: puntas
+ *  secas con sed; color vivo y rocío recién regada. Lo especial (borde dorado)
+ *  es un filtro que también sigue el contorno. */
+function PlantArt({ art, species, seed, thirsty, fresh, moment }: { art: ArtRef; species: Species; seed: number; thirsty: boolean; fresh: boolean; moment: "agua" | "especial" | null }) {
+  const m: CSSProperties = { maskImage: `url(${art.src})`, WebkitMaskImage: `url(${art.src})` };
   return (
     <>
-      {fx?.copies.map((c, i) => (
-        <span
-          key={i}
-          className={s.copy}
-          style={{ transform: `translate(${c.x}%, ${c.y}%) rotate(${c.r}deg) scale(${c.flip ? -c.s : c.s}, ${c.s})`, clipPath: c.clip }}
-          aria-hidden
-        >
-          <Lamina art={art} />
-        </span>
-      ))}
-      <Lamina art={art} species={species} seed={seed} tint={fx?.tint} />
-      {fx?.blooms?.map(([x, y, size], i) => <span key={i} className={s.bloom} style={{ left: `${x}%`, top: `${y}%`, width: `${size}%` }} aria-hidden />)}
-      {moment === "agua" && <span className={s.sheen} style={{ maskImage: `url(${art.src})`, WebkitMaskImage: `url(${art.src})` }} aria-hidden />}
+      <Lamina art={art} species={species} seed={seed} />
+      {thirsty && <span className={s.tips} style={m} aria-hidden />}
+      {(fresh || moment === "agua") && (
+        <>
+          <span className={s.freshTint} style={m} aria-hidden />
+          <span className={s.dew} style={m} aria-hidden />
+        </>
+      )}
     </>
   );
 }
@@ -201,15 +200,16 @@ type UnitProps = {
   support: Support;
   raised?: boolean;
   thirsty: boolean;
+  fresh: boolean;
   special: boolean;
   moment: "agua" | "especial" | null;
 };
 
 /** Planta completada en su maceta (o en su recipiente propio, como pilea y potos). */
-function PottedUnit({ species, seed, k, material, support, raised, thirsty, special, moment }: UnitProps) {
+function PottedUnit({ species, seed, k, material, support, raised, thirsty, fresh, special, moment }: UnitProps) {
   const stage: StageKey = "planta-completa";
   const look = special ? "especial" : thirsty ? "sed" : "normal";
-  const { art, special: fx } = plantVisual(species, stage, look);
+  const { art } = plantVisual(species, stage, look);
   const sc = SPECIES_SCALE[species];
   const pad = BOTTOM_PAD[species][stage];
   const sup = supportSize(support, k);
@@ -230,12 +230,12 @@ function PottedUnit({ species, seed, k, material, support, raised, thirsty, spec
   const shift = `${-BASE_X[species][stage] * 100}% 0`;
   const plant = (
     <div className={s.plant} style={{ width: `${imgW}cqh`, height: `${imgH}cqh`, bottom: `${plantBottom}cqh`, translate: pot ? undefined : shift }}>
-      <PlantArt art={art} fx={fx} species={species} seed={seed} moment={moment} />
+      <PlantArt art={art} species={species} seed={seed} thirsty={thirsty} fresh={fresh} moment={moment} />
     </div>
   );
   return (
     <div className={s.unit} style={{ width: `${unitW}cqh`, height: `${unitH}cqh` }}>
-      {fx && <span className={s.aura} style={{ width: `${imgW * 1.5}cqh`, height: `${imgH * 1.1}cqh`, bottom: `${seat}cqh` }} aria-hidden />}
+      {special && <span className={s.aura} style={{ width: `${imgW * 1.5}cqh`, height: `${imgH * 1.1}cqh`, bottom: `${seat}cqh` }} aria-hidden />}
       {hang && <span className={s.rope} style={{ bottom: `${imgH * 0.55}cqh` }} aria-hidden />}
       {!hang && <span className={s.contact} style={{ width: `${Math.max(potW, sup.w, imgW * 0.3) * 1.5}cqh`, height: `${Math.max(potW, sup.w, 8 * k) * 0.36}cqh` }} aria-hidden />}
       {!hang && !raised && (
@@ -249,6 +249,8 @@ function PottedUnit({ species, seed, k, material, support, raised, thirsty, spec
           <Pot w={potW} h={potH} shape={pot.shape} material={material} layer="back" />
         </span>
       )}
+      {/* La tierra cuenta el agua: clara y seca con sed, oscura y brillante recién regada. */}
+      {pot && <span className={s.soil} style={{ width: `${potW * 0.9}cqh`, height: `${ry * 1.5}cqh`, bottom: `${seat + potH - ry * 1.75}cqh` }} aria-hidden />}
       {pot ? (
         <div className={s.cut} style={{ bottom: `${seat + potH - ry}cqh`, width: `${imgW}cqh`, height: `${imgH}cqh`, translate: shift }}>
           {plant}
@@ -261,6 +263,7 @@ function PottedUnit({ species, seed, k, material, support, raised, thirsty, spec
           <Pot w={potW} h={potH} shape={pot.shape} material={material} layer="front" />
         </span>
       )}
+      {thirsty && !hang && <span className={s.fallen} style={{ width: `${Math.max(potW, 8 * k) * 0.34}cqh`, left: `calc(50% + ${Math.max(potW, 8 * k) * 0.55}cqh)` }} aria-hidden />}
       {moment === "agua" && <Drops />}
     </div>
   );
@@ -268,7 +271,7 @@ function PottedUnit({ species, seed, k, material, support, raised, thirsty, spec
 
 /** La planta actual mientras crece: frasco de propagación con agua. Con sed,
  *  el agua baja. */
-function JarUnit({ species, seed, stage, k, support, thirsty, moment }: { species: Species; seed: number; stage: StageKey; k: number; support: Support; thirsty: boolean; moment: "agua" | "especial" | null }) {
+function JarUnit({ species, seed, stage, k, support, thirsty, fresh, moment }: { species: Species; seed: number; stage: StageKey; k: number; support: Support; thirsty: boolean; fresh: boolean; moment: "agua" | "especial" | null }) {
   const id = useUid();
   const { art } = plantVisual(species, stage, thirsty ? "sed" : "normal");
   const sc = SPECIES_SCALE[species];
@@ -283,7 +286,9 @@ function JarUnit({ species, seed, stage, k, support, thirsty, moment }: { specie
   const jw = Math.max(imgW * Math.max(0.34, ROOT_SPAN[species] * 1.12), 15 * k);
   const jh = Math.min(Math.max(imgH * 0.4, 18 * k), 46 * k);
   const vh = (100 * jh) / jw;
-  const water = vh * (thirsty ? 0.62 : 0.3);
+  // Nivel del agua: casi vacío con sed, lleno recién regado.
+  const level = thirsty ? 0.14 : fresh || moment === "agua" ? 0.86 : 0.7;
+  const water = vh * (1 - level);
   const unitW = Math.max(imgW, jw, sup.w);
   const jarPath = `M2 ${RIM} L2 ${vh - 10} Q2 ${vh} 14 ${vh} L86 ${vh} Q98 ${vh} 98 ${vh - 10} L98 ${RIM}`;
   const waterPath = `M2 ${water} L2 ${vh - 10} Q2 ${vh} 14 ${vh} L86 ${vh} Q98 ${vh} 98 ${vh - 10} L98 ${water} A48 ${RIM * 0.8} 0 0 1 2 ${water} Z`;
@@ -309,13 +314,17 @@ function JarUnit({ species, seed, stage, k, support, thirsty, moment }: { specie
       {/* La planta se apoya en el fondo del frasco; lo que la lámina dibuje debajo (líneas de suelo) se recorta. */}
       <div className={s.cut} style={{ bottom: `${seat + jh * 0.05}cqh`, width: `${imgW}cqh`, height: `${imgH}cqh`, translate: `${-BASE_X[species][stage] * 100}% 0` }}>
         <div className={s.plant} style={{ width: `${imgW}cqh`, height: `${imgH}cqh`, bottom: `${-pad * imgH}cqh` }}>
-          <PlantArt art={art} fx={null} species={species} seed={seed} moment={moment} />
+          <PlantArt art={art} species={species} seed={seed} thirsty={thirsty} fresh={fresh} moment={moment} />
         </div>
       </div>
       <span className={s.layer} style={{ bottom: `${seat}cqh` }}>
         <svg className={s.pot} style={{ width: `${jw}cqh`, height: `${jh}cqh` }} viewBox={`0 0 100 ${vh}`} preserveAspectRatio="none" aria-hidden>
           <path d={waterPath} style={{ ...fill("water"), opacity: 0.55 }} />
           <ellipse cx="50" cy={water} rx="48" ry={RIM * 0.8} fill="none" style={{ stroke: v("water-line") }} strokeWidth="1.2" />
+          {/* Con sed queda la marca de hasta dónde llegaba el agua. */}
+          {thirsty && <line x1="3" x2="97" y1={vh * 0.3} y2={vh * 0.3} className={s.residue} />}
+          {(fresh || moment === "agua") &&
+            [30, 55, 72].map((x, i) => <circle key={x} cx={x} cy={vh - 6} r="2.2" className={s.bubble} style={{ animationDelay: `${i * 0.7}s` }} />)}
           <path d={`M2 ${RIM} A48 ${RIM * 0.8} 0 0 0 98 ${RIM}`} fill="none" style={{ stroke: v("glass-rim") }} strokeWidth="2.4" />
           <path d={`M12 ${RIM + 8} L12 ${vh - 16}`} style={{ stroke: v("glass-hi") }} strokeWidth="3.5" strokeLinecap="round" />
           <path d={`M20 ${RIM + 10} L20 ${vh * 0.45}`} style={{ stroke: v("glass-hi") }} strokeWidth="1.4" strokeLinecap="round" opacity="0.6" />
@@ -666,7 +675,7 @@ export function GreenhouseScene({
           <button
             key={p.plant.id}
             type="button"
-            className={`${s.slot} ${p.glow ? s.lit : ""} ${p.thirsty ? s.thirsty : ""} ${p.special ? s.special : ""} ${m === "agua" ? s.revive : ""} ${m === "especial" ? s.justSpecial : ""}`}
+            className={`${s.slot} ${p.glow ? s.lit : ""} ${p.thirsty ? s.thirsty : ""} ${p.special ? s.special : ""} ${p.fresh ? s.fresh : ""} ${m === "agua" ? s.revive : ""} ${m === "especial" ? s.justSpecial : ""}`}
             style={anchorStyle(p, W, p.z)}
             onClick={() => onSelect?.(p.plant.id)}
             aria-label={p.label}
@@ -683,6 +692,7 @@ export function GreenhouseScene({
               support={p.support ?? { kind: "none" }}
               raised={p.raised}
               thirsty={p.thirsty}
+              fresh={p.fresh}
               special={p.special}
               moment={m}
             />
@@ -712,6 +722,7 @@ export function GreenhouseScene({
             k={cqhPerCm(template.hero.z, template.scale)}
             support={template.hero.support ?? { kind: "none" }}
             thirsty={hero.thirsty}
+            fresh={hero.fresh}
             moment={momentFor("actual")}
           />
         </button>

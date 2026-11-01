@@ -1,49 +1,57 @@
 import { describe, expect, it } from "vitest";
-import { MAX_THIRSTY, NO_CARE, THIRST_INTERVAL_MS, careOptions, pickThirsty, planThirst } from "../src/lib/garden/care-logic";
+import { HYDRATED_DAYS, MAX_WATERINGS_PER_WEEK, NO_CARE, STAGGER_HOURS, careOptions, dueThirst, hydratedDays, isFresh, staggerMs } from "../src/lib/garden/care-logic";
 import { REWARD_BAG, fullBag } from "../src/lib/progress/logic";
 
-const T0 = new Date("2026-11-01T12:00:00.000Z");
-const after = (intervals: number, extraMs = 0) => new Date(T0.getTime() + intervals * THIRST_INTERVAL_MS + extraMs);
-
-describe("reloj de sed", () => {
-  it("la primera vez arranca el reloj sin dar sed", () => {
-    expect(planThirst(null, T0, 0)).toEqual({ clock: T0.toISOString(), newlyThirsty: 0 });
+describe("sed por planta", () => {
+  const DAY = 86_400_000;
+  const T0 = "2026-11-01T12:00:00.000Z";
+  const at = (days: number) => new Date(Date.parse(T0) + days * DAY);
+  const p = (id: string, opts: Partial<{ seed: number; arrivedAt: string; wateredAt: string | null; thirsty: boolean }> = {}) => ({
+    id,
+    seed: opts.seed ?? 0,
+    arrivedAt: opts.arrivedAt ?? T0,
+    wateredAt: opts.wateredAt ?? null,
+    thirsty: opts.thirsty ?? false,
   });
 
-  it("un reloj ilegible o en el futuro se reinicia sin castigo", () => {
-    expect(planThirst("no-es-fecha", T0, 0)).toEqual({ clock: T0.toISOString(), newlyThirsty: 0 });
-    expect(planThirst(after(2).toISOString(), T0, 0)).toEqual({ clock: T0.toISOString(), newlyThirsty: 0 });
+  it("una planta regada se mantiene hidratada HYDRATED_DAYS días (más su desfase)", () => {
+    const plant = p("a", { wateredAt: T0 });
+    expect(dueThirst([plant], at(HYDRATED_DAYS - 0.01), null, null)).toEqual([]);
+    expect(dueThirst([plant], at(HYDRATED_DAYS + 2), null, null).map((x) => x.id)).toEqual(["a"]);
   });
 
-  it("antes de un intervalo completo no pasa nada", () => {
-    expect(planThirst(T0.toISOString(), after(0, THIRST_INTERVAL_MS - 1), 0)).toBeNull();
+  it("todas pueden tener sed a la vez: no hay tope", () => {
+    const many = Array.from({ length: 6 }, (_, i) => p(`p${i}`));
+    expect(dueThirst(many, at(30), null, null)).toHaveLength(6);
   });
 
-  it("cada intervalo da sed a una planta y el reloj avanza en intervalos enteros", () => {
-    expect(planThirst(T0.toISOString(), after(1, 5000), 0)).toEqual({ clock: after(1).toISOString(), newlyThirsty: 1 });
+  it("la especial y las que ya tienen sed no se vuelven a marcar", () => {
+    expect(dueThirst([p("a"), p("b", { thirsty: true }), p("c")], at(30), null, "c").map((x) => x.id)).toEqual(["a"]);
   });
 
-  it("nunca más de MAX_THIRSTY a la vez, y lo que no cabe se descarta (no se acumula)", () => {
-    expect(planThirst(T0.toISOString(), after(10), 0)).toEqual({ clock: after(10).toISOString(), newlyThirsty: MAX_THIRSTY });
-    expect(planThirst(T0.toISOString(), after(10), 1)?.newlyThirsty).toBe(1);
-    expect(planThirst(T0.toISOString(), after(10), 2)).toEqual({ clock: after(10).toISOString(), newlyThirsty: 0 });
-  });
-});
-
-describe("a quién le toca la sed", () => {
-  const c = (id: string, lastCare: string, thirsty = false) => ({ id, lastCare, thirsty });
-
-  it("la que lleva más tiempo sin cuidado, sin repetir las que ya tienen sed ni la especial", () => {
-    const list = [c("a", "2026-10-05"), c("b", "2026-10-01"), c("c", "2026-09-01", true), c("d", "2026-09-15")];
-    expect(pickThirsty(list, 2, "d")).toEqual(["b", "a"]);
+  it("al estrenar el cuidado nadie empieza sediento, aunque la planta sea antigua", () => {
+    const old = p("viejo", { arrivedAt: "2025-01-01T00:00:00.000Z" });
+    expect(dueThirst([old], at(1), T0, null)).toEqual([]);
+    expect(dueThirst([old], at(10), T0, null)).toHaveLength(1);
   });
 
-  it("empates por id: el resultado es estable", () => {
-    expect(pickThirsty([c("z", "2026-10-01"), c("m", "2026-10-01")], 1, null)).toEqual(["m"]);
+  it("el desfase escalona la sed y es estable por semilla", () => {
+    expect(staggerMs(5)).toBe(staggerMs(5));
+    expect(staggerMs(5)).not.toBe(staggerMs(600));
+    expect(staggerMs(123456)).toBeLessThanOrEqual(STAGGER_HOURS * 3_600_000);
   });
 
-  it("n = 0 no marca nada", () => {
-    expect(pickThirsty([c("a", "2026-10-01")], 0, null)).toEqual([]);
+  it("un jardín grande dura más hidratado: la demanda semanal nunca pasa del máximo", () => {
+    for (const n of [1, 4, 8, 12, 40, 200]) {
+      expect((n * 7) / hydratedDays(n)).toBeLessThanOrEqual(MAX_WATERINGS_PER_WEEK + 1e-9);
+    }
+    expect(hydratedDays(16)).toBe(HYDRATED_DAYS * 2);
+  });
+
+  it("recién regada dura FRESH_HOURS", () => {
+    expect(isFresh(T0, new Date(Date.parse(T0) + 2 * 3_600_000))).toBe(true);
+    expect(isFresh(T0, at(2))).toBe(false);
+    expect(isFresh(null, at(0))).toBe(false);
   });
 });
 
@@ -75,10 +83,11 @@ describe("economía", () => {
     expect(fullBag().filter((x) => x === "agua")).toHaveLength(5);
   });
 
-  it("el Agua ganada alcanza la sed máxima posible a un ritmo de 6 tareas por semana", () => {
-    const tasksPerWeek = 6;
-    const aguaPerWeek = (tasksPerWeek / 3) * (REWARD_BAG.agua / (REWARD_BAG.agua + REWARD_BAG.fertilizante));
-    const thirstPerWeek = 7 / (THIRST_INTERVAL_MS / 86_400_000);
-    expect(aguaPerWeek).toBeGreaterThanOrEqual(thirstPerWeek - 1e-9);
+  it("un jardín bien cuidado pide como máximo 8 Agua por semana: unas 4 tareas al día", () => {
+    const aguaPerTask = (1 / 3) * (REWARD_BAG.agua / (REWARD_BAG.agua + REWARD_BAG.fertilizante));
+    const tasksPerDay = MAX_WATERINGS_PER_WEEK / aguaPerTask / 7;
+    expect(MAX_WATERINGS_PER_WEEK).toBe(8);
+    expect(tasksPerDay).toBeGreaterThan(3.5);
+    expect(tasksPerDay).toBeLessThan(4.5);
   });
 });

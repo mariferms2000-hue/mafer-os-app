@@ -1,15 +1,21 @@
 /* Reglas puras del cuidado del Jardín (F4): sed, Agua y Fertilizante. Sin base
    de datos ni React; la persistencia vive en care.ts.
 
-   AGUA — hidratación relajada
-   - El jardín tiene un reloj de sed. Cada THIRST_EVERY_DAYS días, UNA planta
-     (la que lleva más tiempo sin regarse) empieza a tener sed.
-   - Nunca hay más de MAX_THIRSTY con sed a la vez. Mientras haya ese tope, los
-     días pasan sin acumular nada: ignorar el jardín no genera una pila de
-     plantas sedientas esperando.
-   - La sed solo cambia el aspecto (caída y apagada). No muere, no pierde
+   AGUA — cada planta tiene su propia sed
+   - Regar deja una planta hidratada durante un tiempo; al acabarse, tiene sed.
+     Todas las plantas (completadas y la actual) pueden tener sed a la vez.
+   - El tiempo hidratada crece con el tamaño del jardín para que la demanda
+     total no pase de MAX_WATERINGS_PER_WEEK: con 8 plantas o menos dura
+     HYDRATED_DAYS días; con 16, el doble. Así un jardín grande pide Agua
+     seguido, pero nunca se vuelve imposible tenerlo bonito.
+   - Cada planta se desfasa unas horas según su semilla: la sed llega
+     escalonada, no todas el mismo día.
+   - La sed solo cambia el aspecto (caída, seca, apagada). No muere, no pierde
      minutos ni etapas, no hay avisos. 1 Agua la recupera al momento.
+   - Recién regada (FRESH_HOURS) se ve más viva: rocío y tierra mojada.
    - La planta especial nunca tiene sed (es el premio del Fertilizante).
+   - Al estrenar el cuidado nadie empieza sediento: el reloj de cada planta
+     cuenta desde `careSince` si llegó antes.
 
    FERTILIZANTE — una planta especial
    - Solo en plantas completadas. 1 Fertilizante desbloquea para siempre la
@@ -19,68 +25,78 @@
      Fertilizante por cambiar de idea.
    - Nunca toca minutos ni etapas. */
 
-/** Cada cuántos días le da sed a UNA planta. 5 días = como mucho 1,4 riegos por
- *  semana, que el Agua de la bolsa (5 de cada 6 recompensas) cubre desde unas 6
- *  tareas por semana. */
-export const THIRST_EVERY_DAYS = 5;
-export const MAX_THIRSTY = 2;
-const DAY_MS = 24 * 60 * 60 * 1000;
-export const THIRST_INTERVAL_MS = THIRST_EVERY_DAYS * DAY_MS;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
-export type ThirstPlan = {
-  /** nuevo valor del reloj (avanza en intervalos enteros, nunca se adelanta a `now`) */
-  clock: string;
-  /** cuántas plantas deben empezar a tener sed ahora */
-  newlyThirsty: number;
-};
+/** Días que una planta se mantiene hidratada en un jardín de hasta
+ *  WATER_CAP_PLANTS plantas. */
+export const HYDRATED_DAYS = 7;
+/** A partir de este tamaño el tiempo hidratado se alarga en proporción. */
+export const WATER_CAP_PLANTS = 8;
+/** Riegos semanales que pide un jardín bien cuidado, como máximo. */
+export const MAX_WATERINGS_PER_WEEK = (WATER_CAP_PLANTS * 7) / HYDRATED_DAYS;
+/** Desfase máximo por planta, para que la sed llegue escalonada. */
+export const STAGGER_HOURS = 36;
+/** Cuánto dura el aspecto «recién regada». */
+export const FRESH_HOURS = 24;
 
-/** Qué hacer con el reloj de sed al abrir el jardín.
- *  - Sin reloj (primera vez): arranca ahora y nada tiene sed todavía.
- *  - Reloj ilegible: se reinicia ahora, sin castigo.
- *  - Pasaron `ticks` intervalos: el reloj avanza esos intervalos y se marcan
- *    como mucho los que quepan bajo el tope; el resto se descarta.
- *  null = no pasó ningún intervalo completo; no hay nada que guardar. */
-export function planThirst(clock: string | null | undefined, now: Date, thirstyNow: number): ThirstPlan | null {
-  const nowMs = now.getTime();
-  const start = clock ? Date.parse(clock) : Number.NaN;
-  if (!Number.isFinite(start) || start > nowMs) return { clock: now.toISOString(), newlyThirsty: 0 };
-  const ticks = Math.floor((nowMs - start) / THIRST_INTERVAL_MS);
-  if (ticks < 1) return null;
-  const room = Math.max(0, MAX_THIRSTY - Math.max(0, thirstyNow));
-  return {
-    clock: new Date(start + ticks * THIRST_INTERVAL_MS).toISOString(),
-    newlyThirsty: Math.min(ticks, room),
-  };
+/** Días hidratada según el tamaño del jardín. */
+export function hydratedDays(plants: number): number {
+  return HYDRATED_DAYS * Math.max(1, plants / WATER_CAP_PLANTS);
 }
 
-export type CareCandidate = {
+/** Desfase estable de una planta (0 a STAGGER_HOURS), según su semilla visual. */
+export function staggerMs(seed: number): number {
+  const x = Math.abs(Math.trunc(seed)) % 997;
+  return Math.round((x / 996) * STAGGER_HOURS * HOUR_MS);
+}
+
+export type ThirstInput = {
   id: string;
-  /** último riego; si nunca se regó, cuándo llegó al jardín */
-  lastCare: string;
+  seed: number;
+  /** cuándo llegó al jardín: completed_at (completadas) o started_at (la actual) */
+  arrivedAt: string;
+  wateredAt: string | null;
   thirsty: boolean;
 };
 
-/** A quién le toca la sed: las que no tienen sed ni son la especial, de la que
- *  lleva más tiempo sin cuidado a la más reciente (empate: por id, estable). */
-export function pickThirsty(candidates: readonly CareCandidate[], n: number, specialId: string | null): string[] {
-  if (n <= 0) return [];
-  return candidates
-    .filter((c) => !c.thirsty && c.id !== specialId)
-    .sort((a, b) => (a.lastCare === b.lastCare ? a.id.localeCompare(b.id) : a.lastCare < b.lastCare ? -1 : 1))
-    .slice(0, n)
-    .map((c) => c.id);
+/** Cuándo le toca la sed a una planta (ISO). */
+export function thirstDueAt(p: ThirstInput, plants: number, careSince: string | null): string {
+  const times = [p.wateredAt ?? p.arrivedAt, careSince].filter((t): t is string => !!t).map((t) => Date.parse(t)).filter(Number.isFinite);
+  const from = times.length ? Math.max(...times) : Date.now();
+  return new Date(from + hydratedDays(plants) * DAY_MS + staggerMs(p.seed)).toISOString();
+}
+
+/** Plantas que ya deberían tener sed y aún no la tienen, con la hora en que
+ *  empezó (para que el registro cuente la historia real). */
+export function dueThirst(plants: readonly ThirstInput[], now: Date, careSince: string | null, specialId: string | null): { id: string; since: string }[] {
+  const n = plants.length;
+  const t = now.getTime();
+  return plants
+    .filter((p) => !p.thirsty && p.id !== specialId)
+    .map((p) => ({ id: p.id, since: thirstDueAt(p, n, careSince) }))
+    .filter((x) => Date.parse(x.since) <= t);
+}
+
+/** ¿Se regó hace poco? */
+export function isFresh(wateredAt: string | null, now: Date): boolean {
+  if (!wateredAt) return false;
+  const w = Date.parse(wateredAt);
+  return Number.isFinite(w) && now.getTime() - w < FRESH_HOURS * HOUR_MS && now.getTime() >= w;
 }
 
 /** Estado de cuidado de una planta tal como lo ve la interfaz. */
 export type PlantCare = {
   thirsty: boolean;
+  /** recién regada: se ve más viva por unas horas */
+  fresh: boolean;
   /** ya tiene su versión especial desbloqueada */
   fertilized: boolean;
   /** es LA planta especial que se luce ahora */
   special: boolean;
 };
 
-export const NO_CARE: PlantCare = { thirsty: false, fertilized: false, special: false };
+export const NO_CARE: PlantCare = { thirsty: false, fresh: false, fertilized: false, special: false };
 
 /** Qué puede hacerse con una planta, para que la interfaz no lo adivine. */
 export type CareOptions = {

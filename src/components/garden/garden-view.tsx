@@ -134,6 +134,7 @@ export function GardenView({
           ...p,
           material: c.special ? "esmalte" : p.material === "esmalte" ? "marfil" : p.material,
           thirsty: c.thirsty,
+          fresh: c.fresh,
           special: c.special,
           label: `${name} completada${c.special ? " · planta especial" : ""}${c.thirsty ? " · tiene sed" : ""}. Ver detalle`,
         };
@@ -150,9 +151,10 @@ export function GardenView({
         stage: current.stage,
         seed: current.visualSeed,
         thirsty: heroCare.thirsty,
+        fresh: heroCare.fresh,
         label: `Tu planta actual: ${nameOf(current.species)}, ${STAGE_LABEL[current.stage].toLowerCase()}${heroCare.thirsty ? ", tiene sed" : ""}. Ver detalle`,
       }
-    : { species: "helecho", stage: "semilla", seed: 0, thirsty: false, label: "Semilla nueva. Tu primera sesión de enfoque la hará nacer" };
+    : { species: "helecho", stage: "semilla", seed: 0, thirsty: false, fresh: false, label: "Semilla nueva. Tu primera sesión de enfoque la hará nacer" };
 
   // En el iPhone la planta actual vive sola en su escena: se agranda según su
   // especie para que una semilla de helecho no se pierda (el escritorio
@@ -176,7 +178,7 @@ export function GardenView({
       return;
     }
     setOpenId(null);
-    setOverrides((o) => ({ ...o, [plantId]: { ...o[plantId], thirsty: false } }));
+    setOverrides((o) => ({ ...o, [plantId]: { ...o[plantId], thirsty: false, fresh: true } }));
     setMoment({ id: current?.id === plantId ? "actual" : plantId, kind: "agua" });
     toast.show({
       tone: "ok",
@@ -453,7 +455,7 @@ export function GardenView({
                         visualSeed={p.visualSeed}
                         stage="planta-completa"
                         size="small"
-                        className={`h-28 w-28 md:h-32 md:w-32 text-sage-deep transition-[filter] ${c.thirsty ? "saturate-50 opacity-80" : ""}`}
+                        className={`h-28 w-28 md:h-32 md:w-32 text-sage-deep transition-[filter] ${c.thirsty ? "[filter:saturate(0.3)_sepia(0.55)_hue-rotate(-14deg)_contrast(0.85)] scale-y-[0.88] origin-bottom" : ""}`}
                       />
                       <p className="font-display text-lg text-forest-deep mt-2">{nameOf(p.species)}</p>
                       <p className="text-xs text-stone mt-0.5">Completada el {fecha(p.completedAt)}</p>

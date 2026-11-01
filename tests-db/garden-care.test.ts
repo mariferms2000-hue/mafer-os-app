@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { eq, inArray, like } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { featurePlant, fertilizePlant, getCareState, settleThirst, undoFertilize, undoWater, waterPlant } from "@/lib/garden/care";
-import { MAX_THIRSTY, THIRST_INTERVAL_MS } from "@/lib/garden/care-logic";
+import { HYDRATED_DAYS } from "@/lib/garden/care-logic";
 
 /* Cuidado del Jardín (F4) contra la base de pruebas (mafer_e2e). El cuidado es
  * global (reloj de sed, planta especial), así que cada prueba empieza con
@@ -10,7 +10,7 @@ import { MAX_THIRSTY, THIRST_INTERVAL_MS } from "@/lib/garden/care-logic";
  * prueba llevan el prefijo «care-» y se borran al final. */
 
 const P = "care-";
-const KEYS = ["garden_thirst_clock", "garden_special_plant"];
+const KEYS = ["garden_care_since", "garden_special_plant"];
 let n = 0;
 
 async function plant(opts: { completed?: boolean; daysAgo?: number } = {}): Promise<string> {
@@ -103,31 +103,41 @@ describe("Agua", () => {
   });
 });
 
-describe("reloj de sed", () => {
-  it("la primera apertura solo arranca el reloj", async () => {
-    await plant();
+describe("sed por planta", () => {
+  const DAY = 86_400_000;
+
+  it("la primera apertura estrena el cuidado: nadie empieza sediento", async () => {
+    await plant({ daysAgo: 90 });
     await settleThirst(new Date());
     expect(Object.values((await getCareState()).care).some((c) => c.thirsty)).toBe(false);
   });
 
-  it("con muchos intervalos vencidos, nunca más de MAX_THIRSTY y le toca a la más descuidada", async () => {
-    const old = await plant({ daysAgo: 60 });
-    await plant({ daysAgo: 30 });
-    await plant({ daysAgo: 10 });
-    const start = new Date(Date.now() - 20 * THIRST_INTERVAL_MS);
+  it("pasado su tiempo hidratadas, todas pueden tener sed a la vez", async () => {
+    const ids = [await plant({ daysAgo: 30 }), await plant({ daysAgo: 30 }), await plant({ daysAgo: 30 }), await plant({ daysAgo: 30 })];
+    const start = new Date(Date.now() - (HYDRATED_DAYS + 3) * DAY);
     await settleThirst(start);
     await settleThirst(new Date());
     const care = (await getCareState()).care;
-    const ids = Object.entries(care).filter(([, c]) => c.thirsty).map(([id]) => id);
-    expect(ids).toHaveLength(MAX_THIRSTY);
-    expect(ids).toContain(old);
+    expect(ids.every((id) => care[id]?.thirsty)).toBe(true);
+    // y repetir no cambia nada (idempotente)
+    await settleThirst(new Date());
+    expect(Object.values((await getCareState()).care).filter((c) => c.thirsty)).toHaveLength(4);
+  });
+
+  it("regar la deja hidratada y recién regada; no vuelve a tener sed hasta su tiempo", async () => {
+    const id = await plant();
+    await thirsty(id);
+    await give("agua");
+    await waterPlant(id);
+    await settleThirst(new Date());
+    expect((await getCareState()).care[id]).toMatchObject({ thirsty: false, fresh: true });
   });
 
   it("la planta especial nunca tiene sed", async () => {
     const a = await plant({ daysAgo: 90 });
     await give("fertilizante");
     expect((await fertilizePlant(a)).ok).toBe(true);
-    await settleThirst(new Date(Date.now() - 3 * THIRST_INTERVAL_MS));
+    await settleThirst(new Date(Date.now() - (HYDRATED_DAYS + 3) * DAY));
     await settleThirst(new Date());
     expect((await getCareState()).care[a]?.thirsty).toBeFalsy();
   });

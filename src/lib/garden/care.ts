@@ -1,7 +1,7 @@
 import "server-only";
 import { eq, isNull, sql, count } from "drizzle-orm";
 import { db, now, schema } from "@/lib/db";
-import { MAX_THIRSTY, NO_CARE, pickThirsty, planThirst, type PlantCare } from "./care-logic";
+import { NO_CARE, dueThirst, isFresh, type PlantCare } from "./care-logic";
 
 /* Persistencia del cuidado del Jardín (F4). Las reglas viven en care-logic.ts.
 
@@ -13,10 +13,10 @@ import { MAX_THIRSTY, NO_CARE, pickThirsty, planThirst, type PlantCare } from ".
    Estado:
    - garden_plant_care: sed, último riego y fertilización por planta.
    - garden_rewards.used_at / used_on: qué ficha se gastó y en qué planta.
-   - settings `garden_thirst_clock`: reloj de la sed.
+   - settings `garden_care_since`: cuándo se estrenó el cuidado (nadie empieza sediento).
    - settings `garden_special_plant`: la planta especial que se luce ('' = ninguna). */
 
-const CLOCK_KEY = "garden_thirst_clock";
+const SINCE_KEY = "garden_care_since";
 const SPECIAL_KEY = "garden_special_plant";
 
 export type CareState = {
@@ -37,41 +37,34 @@ async function specialId(): Promise<string | null> {
   return (await readSetting(SPECIAL_KEY)) || null;
 }
 
-/** Avanza el reloj de sed y marca las plantas a las que les toca. Se llama al
- *  abrir el jardín (no hay tareas programadas). Si dos aperturas compiten, el
- *  reloj solo avanza si nadie lo cambió desde que se leyó (compare-and-swap),
- *  así que la sed nunca se aplica dos veces. Nunca rompe la página. */
+/** Marca la sed que ya venció. Se llama al abrir el jardín (no hay tareas
+ *  programadas). Es idempotente: solo escribe en plantas sin sed, así que dos
+ *  aperturas simultáneas dan el mismo resultado. La primera vez guarda
+ *  `garden_care_since`: nadie empieza sediento al estrenar el cuidado. Nunca
+ *  rompe la página. */
 export async function settleThirst(at: Date = new Date()): Promise<void> {
   try {
-    const raw = await readSetting(CLOCK_KEY);
-    const rows = await db.execute<{ id: string; started_at: string; completed_at: string | null; watered_at: string | null; thirsty_since: string | null }>(sql`
-      SELECT p.id, p.started_at, p.completed_at, c.watered_at, c.thirsty_since
+    const t = at.toISOString();
+    await db.execute(sql`
+      INSERT INTO settings (key, value, updated_at) VALUES (${SINCE_KEY}, ${t}, ${t})
+      ON CONFLICT (key) DO NOTHING
+    `);
+    const careSince = await readSetting(SINCE_KEY);
+    const rows = await db.execute<{ id: string; visual_seed: number; started_at: string; completed_at: string | null; watered_at: string | null; thirsty_since: string | null }>(sql`
+      SELECT p.id, p.visual_seed, p.started_at, p.completed_at, c.watered_at, c.thirsty_since
       FROM focus_plants p LEFT JOIN garden_plant_care c ON c.plant_id = p.id
     `);
-    const thirstyNow = rows.filter((r) => r.thirsty_since).length;
-    const plan = planThirst(raw, at, thirstyNow);
-    if (!plan) return;
-    const ids = pickThirsty(
-      rows.map((r) => ({ id: r.id, lastCare: r.watered_at ?? r.completed_at ?? r.started_at, thirsty: !!r.thirsty_since })),
-      Math.min(plan.newlyThirsty, MAX_THIRSTY),
+    const due = dueThirst(
+      rows.map((r) => ({ id: r.id, seed: r.visual_seed, arrivedAt: r.completed_at ?? r.started_at, wateredAt: r.watered_at, thirsty: !!r.thirsty_since })),
+      at,
+      careSince,
       await specialId(),
     );
-    const t = at.toISOString();
-    const clock = sql`
-      INSERT INTO settings (key, value, updated_at) VALUES (${CLOCK_KEY}, ${plan.clock}, ${t})
-      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at
-      WHERE settings.value IS NOT DISTINCT FROM ${raw}::text
-      RETURNING 1`;
-    if (ids.length === 0) {
-      await db.execute(clock);
-      return;
-    }
-    const values = sql.join(ids.map((id) => sql`(${id})`), sql`, `);
+    if (due.length === 0) return;
+    const values = sql.join(due.map((d) => sql`(${d.id}, ${d.since})`), sql`, `);
     await db.execute(sql`
-      WITH adv AS (${clock})
       INSERT INTO garden_plant_care (plant_id, thirsty_since, updated_at)
-      SELECT v.id, ${t}, ${t} FROM (VALUES ${values}) AS v(id)
-      WHERE EXISTS (SELECT 1 FROM adv)
+      SELECT v.id, v.since, ${t} FROM (VALUES ${values}) AS v(id, since)
       ON CONFLICT (plant_id) DO UPDATE SET thirsty_since = EXCLUDED.thirsty_since, updated_at = EXCLUDED.updated_at
       WHERE garden_plant_care.thirsty_since IS NULL
     `);
@@ -83,7 +76,7 @@ export async function settleThirst(at: Date = new Date()): Promise<void> {
 /** Todo lo que el jardín necesita para pintar el cuidado. Si la base aún no
  *  tiene la migración 0004, devuelve el estado vacío: el jardín se ve como
  *  siempre y nada se rompe. */
-export async function getCareState(): Promise<CareState> {
+export async function getCareState(at: Date = new Date()): Promise<CareState> {
   try {
     const rows = await db.select().from(schema.gardenPlantCare);
     const special = await specialId();
@@ -94,8 +87,13 @@ export async function getCareState(): Promise<CareState> {
       .groupBy(schema.gardenRewards.item);
     const care: Record<string, PlantCare> = {};
     for (const r of rows) {
-      const c: PlantCare = { thirsty: !!r.thirstySince && r.plantId !== special, fertilized: !!r.fertilizedAt, special: r.plantId === special };
-      if (c.thirsty || c.fertilized || c.special) care[r.plantId] = c;
+      const c: PlantCare = {
+        thirsty: !!r.thirstySince && r.plantId !== special,
+        fresh: !r.thirstySince && isFresh(r.wateredAt, at),
+        fertilized: !!r.fertilizedAt,
+        special: r.plantId === special,
+      };
+      if (c.thirsty || c.fresh || c.fertilized || c.special) care[r.plantId] = c;
     }
     if (special && !care[special]) care[special] = { ...NO_CARE, special: true };
     const n = (item: string) => Number(inv.find((x) => x.item === item)?.n ?? 0);

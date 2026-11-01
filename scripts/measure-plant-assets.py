@@ -2,7 +2,8 @@
 
 Correr tras reemplazar el arte de las plantas (requiere Pillow):
     python3 scripts/measure-plant-assets.py
-Mide la versión clara, tamaño large, con alfa > 40.
+Mide la versión clara, tamaño large (o la HD de planta completa si existe),
+con alfa > 40.
 """
 from pathlib import Path
 from PIL import Image
@@ -12,8 +13,16 @@ STAGES = ["semilla", "brote", "hojas", "planta-joven", "planta-completa"]
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def source(species, stage):
+    """La lámina HD (docs/arte-plantas.md) cuando existe; si no, la actual."""
+    hd = ROOT / f"public/plants/hd/{species}-completa.webp"
+    if stage == "planta-completa" and hd.exists():
+        return hd
+    return ROOT / f"public/plants/{species}-{stage}-light-large.webp"
+
+
 def measure(species, stage):
-    im = Image.open(ROOT / f"public/plants/{species}-{stage}-light-large.webp").convert("RGBA")
+    im = Image.open(source(species, stage)).convert("RGBA")
     w, h = im.size
     a = im.getchannel("A").load()
     rows = [[x for x in range(w) if a[x, y] > 40] for y in range(h)]

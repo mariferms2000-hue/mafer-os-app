@@ -1,6 +1,6 @@
 // Jardín de demostración para revisar F4 en la preview (mafer_preview): más
 // plantas completadas de todos los tamaños, Agua y Fertilizante en el
-// inventario y dos plantas con sed. Nunca toca producción: usa la misma guardia
+// inventario, varias plantas con sed y una recién regada. Nunca toca producción: usa la misma guardia
 // que el resto de las previews (scripts/lib/require-test-db.mjs).
 //
 //   node scripts/seed-garden-preview.mjs           agrega lo que falte (idempotente)
@@ -35,7 +35,7 @@ try {
   }
   if (reset) {
     await sql`DELETE FROM garden_plant_care`;
-    await sql`DELETE FROM settings WHERE key IN ('garden_thirst_clock', 'garden_special_plant')`;
+    await sql`DELETE FROM settings WHERE key IN ('garden_thirst_clock', 'garden_care_since', 'garden_special_plant')`;
     await sql`UPDATE garden_rewards SET used_at = NULL, used_on = NULL WHERE id LIKE 'jardin-demo-%'`;
   }
   const want = { agua: 5, fertilizante: 2 };
@@ -45,11 +45,12 @@ try {
       await sql`INSERT INTO garden_rewards (id, item, earned_at) VALUES (${`jardin-demo-${item}-${i}-${Date.now()}`}, ${item}, ${iso(1)})`;
     }
   }
-  // Dos con sed: la lavanda y la planta actual (para ver el frasco con poca agua).
+  // Cuatro con sed (tres completadas y la planta actual, para ver el frasco casi
+  // vacío) y la palmera recién regada.
   const [{ n: thirsty }] = await sql`SELECT count(*)::int AS n FROM garden_plant_care WHERE thirsty_since IS NOT NULL`;
   if (thirsty === 0) {
     const targets = await sql`
-      (SELECT id FROM focus_plants WHERE species = 'lavanda' AND completed_at IS NOT NULL ORDER BY completed_at LIMIT 1)
+      (SELECT id FROM focus_plants WHERE species IN ('lavanda', 'monstera', 'cactus') AND completed_at IS NOT NULL)
       UNION ALL (SELECT id FROM focus_plants WHERE completed_at IS NULL LIMIT 1)`;
     const t = iso(1);
     for (const { id } of targets) {
@@ -57,10 +58,14 @@ try {
         INSERT INTO garden_plant_care (plant_id, thirsty_since, updated_at) VALUES (${id}, ${t}, ${t})
         ON CONFLICT (plant_id) DO UPDATE SET thirsty_since = EXCLUDED.thirsty_since, updated_at = EXCLUDED.updated_at`;
     }
+    const w = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    await sql`
+      INSERT INTO garden_plant_care (plant_id, watered_at, updated_at) VALUES ('jardin-demo-palmera', ${w}, ${w})
+      ON CONFLICT (plant_id) DO UPDATE SET watered_at = EXCLUDED.watered_at, thirsty_since = NULL, updated_at = EXCLUDED.updated_at`;
   }
-  // El reloj de sed arranca ahora: nada más tendrá sed hasta dentro de 5 días.
+  // El cuidado se estrena ahora: el resto de las plantas empieza hidratado.
   await sql`
-    INSERT INTO settings (key, value, updated_at) VALUES ('garden_thirst_clock', ${new Date().toISOString()}, ${new Date().toISOString()})
+    INSERT INTO settings (key, value, updated_at) VALUES ('garden_care_since', ${new Date().toISOString()}, ${new Date().toISOString()})
     ON CONFLICT (key) DO NOTHING`;
   console.log("Jardín de demostración listo en mafer_preview ✓");
 } finally {
