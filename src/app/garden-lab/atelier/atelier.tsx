@@ -1,30 +1,34 @@
 "use client";
 
-/* Laboratorio del jardín · Ronda 2 — refinamiento de A (Atelier Invernadero).
+/* Laboratorio del jardín · Ronda 3 — A2 (Luz de invernadero) y tres propuestas de iPhone.
 
    La arquitectura y la luz son SVG vectorial (nítido a cualquier tamaño); las
    plantas son las láminas actuales, siempre la versión clara, integradas con
    sombra de contacto, sombra proyectada y un sombreado enmascarado con su propia
    silueta. Todo vive en memoria: no lee ni escribe la base. */
 
-import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Image from "next/image";
 import { Moon, Sun, Monitor, Smartphone } from "lucide-react";
 import type { StageKey } from "@/lib/focus-logic";
 import { PLANT_ASSET_DIMS, plantAssetPath } from "@/lib/plant-assets";
 import { SPECIES_LABEL } from "@/lib/plant-svg-v2";
 import { SPECIES_ORDER, SPECIES_SCALE, STAGE_OPTIONS, type Species } from "../lab-data";
-import { BOTTOM_PAD } from "../asset-bounds";
+import { BASE_X, BOTTOM_PAD, PLANT_PAD, ROOT_SPAN } from "../asset-bounds";
 import {
+  DESKTOP,
   LATIN,
-  LAYOUTS,
-  VARIANTS,
+  M1,
+  M3_COLLECTION,
+  M3_HERO,
+  PHONE_VARIANTS,
   cqhPerCm,
-  type Frame,
+  type Bench,
+  type Layout,
   type Material,
+  type PhoneVariant,
   type Slot,
   type Support,
-  type Variant,
 } from "./atelier-data";
 import s from "./atelier.module.css";
 
@@ -165,13 +169,15 @@ function PottedUnit({ species, stage, k, material, support, hero, raised }: Unit
   const unitH = supH + potH + plantCm * k;
   const hang = support.kind === "hang";
   const plantBottom = pot ? -(sinkCm * k) - pad * imgH : seat - pad * imgH;
+  // El tallo (no el lienzo) va al centro de la maceta.
+  const shift = `${-BASE_X[species][stage] * 100}% 0`;
 
   return (
     <div className={`${s.unit} ${hero ? s.hero : ""}`} style={{ width: `${unitW}cqh`, height: `${unitH}cqh` }}>
       {hang && <span className={s.rope} style={{ bottom: `${imgH * 0.55}cqh` }} aria-hidden />}
       {!hang && <span className={s.contact} style={{ width: `${Math.max(potW, supW, imgW * 0.3) * 1.5}cqh`, height: `${Math.max(potW, supW, 8 * k) * 0.36}cqh` }} aria-hidden />}
       {!hang && !raised && (
-        <span className={s.cast} style={{ width: `${imgW}cqh`, height: `${imgH + supH + potH}cqh` }} aria-hidden>
+        <span className={s.cast} style={{ width: `${imgW}cqh`, height: `${imgH + supH + potH}cqh`, translate: shift }} aria-hidden>
           <Image src={src(species, stage)} width={d.w} height={d.h} alt="" unoptimized draggable={false} />
         </span>
       )}
@@ -182,13 +188,13 @@ function PottedUnit({ species, stage, k, material, support, hero, raised }: Unit
         </span>
       )}
       {pot ? (
-        <div className={s.cut} style={{ bottom: `${cut}cqh`, width: `${imgW}cqh`, height: `${imgH}cqh` }}>
+        <div className={s.cut} style={{ bottom: `${cut}cqh`, width: `${imgW}cqh`, height: `${imgH}cqh`, translate: shift }}>
           <div className={s.plant} style={{ width: `${imgW}cqh`, height: `${imgH}cqh`, bottom: `${plantBottom}cqh` }}>
             <Lamina species={species} stage={stage} />
           </div>
         </div>
       ) : (
-        <div className={s.plant} style={{ width: `${imgW}cqh`, height: `${imgH}cqh`, bottom: `${plantBottom}cqh` }}>
+        <div className={s.plant} style={{ width: `${imgW}cqh`, height: `${imgH}cqh`, bottom: `${plantBottom}cqh`, translate: shift }}>
           <Lamina species={species} stage={stage} />
         </div>
       )}
@@ -207,15 +213,16 @@ function JarUnit({ species, stage, k, support }: { species: Species; stage: Stag
   const sc = SPECIES_SCALE[species];
   const d = PLANT_ASSET_DIMS[species].large;
   const padFull = BOTTOM_PAD[species]["planta-completa"];
-  const pad = BOTTOM_PAD[species][stage];
+  const pad = PLANT_PAD[species][stage];
   const plantCm = sc.cm - (sc.pot?.h ?? 0);
   const imgH = ((plantCm + 4) * k) / (1 - padFull);
   const imgW = imgH * (d.w / d.h);
   const supH = support.kind === "plinth" ? support.cm * k : 0;
   const supW = support.kind === "plinth" ? support.w * k : 0;
   const seat = supH > 0 ? supH - (supW * RIM) / 100 * 0.7 : 0;
-  const jw = Math.max(imgW * 0.3, 15 * k);
-  const jh = Math.min(Math.max(imgH * 0.4, 18 * k), 34 * k);
+  // Nunca más angosto que las raíces de la etapa más ancha que vive en el frasco.
+  const jw = Math.max(imgW * Math.max(0.34, ROOT_SPAN[species] * 1.12), 15 * k);
+  const jh = Math.min(Math.max(imgH * 0.4, 18 * k), 46 * k);
   const vh = (100 * jh) / jw;
   const water = vh * 0.3;
   const unitW = Math.max(imgW, jw, supW);
@@ -243,8 +250,11 @@ function JarUnit({ species, stage, k, support }: { species: Species; stage: Stag
           {glass}
         </svg>
       </span>
-      <div className={s.plant} style={{ width: `${imgW}cqh`, height: `${imgH}cqh`, bottom: `${seat + jh * 0.05 - pad * imgH}cqh` }}>
-        <Lamina species={species} stage={stage} />
+      {/* La planta se apoya en el fondo del frasco; lo que la lámina dibuje debajo (líneas de suelo) se recorta. */}
+      <div className={s.cut} style={{ bottom: `${seat + jh * 0.05}cqh`, width: `${imgW}cqh`, height: `${imgH}cqh`, translate: `${-BASE_X[species][stage] * 100}% 0` }}>
+        <div className={s.plant} style={{ width: `${imgW}cqh`, height: `${imgH}cqh`, bottom: `${-pad * imgH}cqh` }}>
+          <Lamina species={species} stage={stage} />
+        </div>
       </div>
       <span className={s.layer} style={{ bottom: `${seat}cqh` }}>
         <svg className={s.pot} style={{ width: `${jw}cqh`, height: `${jh}cqh` }} viewBox={`0 0 100 ${vh}`} preserveAspectRatio="none" aria-hidden>
@@ -282,9 +292,7 @@ function Mystery({ k }: { k: number }) {
 
 /* ───────────────────────────── arquitectura ───────────────────────────── */
 
-type ArchProps = { W: number; uid: string };
-
-/** Proyección de una ventana sobre el suelo: (x, y) → (x + a·(B−y), B + b·(B−y)). */
+/** Proyección del cristal sobre el suelo: (x, y) → (x + a·(B−y), B + b·(B−y)). */
 const project = (a: number, b: number, B: number) => `matrix(1 0 ${-a} ${-b} ${a * B} ${B * (1 + b)})`;
 
 function FloorJoints({ W, B, vpY, step, rows }: { W: number; B: number; vpY: number; step: number; rows: number[] }) {
@@ -299,122 +307,33 @@ function FloorJoints({ W, B, vpY, step, rows }: { W: number; B: number; vpY: num
   return <g style={{ stroke: v("joint") }} strokeWidth="1.2">{lines}</g>;
 }
 
-function ArchA1({ W, uid }: ArchProps) {
-  const B = 700;
-  const cx = W / 2;
-  const wide = W > 1000;
-  const ww = wide ? 470 : 360;
-  const L = cx - ww / 2;
-  const R = cx + ww / 2;
-  const rad = ww / 2;
-  const spring = wide ? 320 : 330;
-  const win = `M${L} ${B} L${L} ${spring} A${rad} ${rad} 0 0 1 ${R} ${spring} L${R} ${B} Z`;
-  const fan = rad * 0.4;
-  const cols = [1, 2, 3].map((i) => L + (ww * i) / 4);
-  const bars = (
-    <>
-      {cols.map((x) => (
-        <line key={x} x1={x} x2={x} y1={B} y2={spring - Math.sqrt(Math.max(0, rad * rad - (x - cx) ** 2)) * (Math.abs(x - cx) < 1 ? 0 : 1) - (Math.abs(x - cx) < 1 ? fan : 0)} />
-      ))}
-      <line x1={L} x2={R} y1={spring} y2={spring} />
-      <line x1={L} x2={R} y1={spring + (B - spring) * 0.5} y2={spring + (B - spring) * 0.5} />
-      <path d={`M${cx - fan} ${spring} A${fan} ${fan} 0 0 1 ${cx + fan} ${spring}`} fill="none" />
-      {[30, 60, 120, 150].map((deg) => {
-        const r = (deg * Math.PI) / 180;
-        return <line key={deg} x1={cx + Math.cos(r) * fan} y1={spring - Math.sin(r) * fan} x2={cx + Math.cos(r) * rad} y2={spring - Math.sin(r) * rad} />;
-      })}
-    </>
-  );
-  const niches = wide
-    ? [
-        { l: 150, r: 390 },
-        { l: 1210, r: 1450 },
-      ]
-    : [];
+/** Banco de trasplante o escalón de grada. */
+function BenchEl({ b, uid }: { b: Bench; uid: string }) {
+  const w = b.r - b.l;
   return (
-    <svg className={s.arch} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden>
-      <defs>
-        <linearGradient id={`${uid}wall`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" style={stop("wall-top")} />
-          <stop offset="1" style={stop("wall-low")} />
-        </linearGradient>
-        <linearGradient id={`${uid}floor`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" style={stop("floor-far")} />
-          <stop offset="1" style={stop("floor-near")} />
-        </linearGradient>
-        <linearGradient id={`${uid}glass`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" style={stop("sky-top")} />
-          <stop offset="1" style={stop("sky-low")} />
-        </linearGradient>
-        <radialGradient id={`${uid}glow`}>
-          <stop offset="0" style={stop("wall-glow")} />
-          <stop offset="1" style={stop("wall-glow", 0)} />
-        </radialGradient>
-        <clipPath id={`${uid}win`}>
-          <path d={win} />
-        </clipPath>
-        <mask id={`${uid}panes`}>
-          <path d={win} fill="#fff" />
-          <g stroke="#000" strokeWidth="9" fill="none">{bars}</g>
-        </mask>
-        <filter id={`${uid}b6`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="6" />
-        </filter>
-        <filter id={`${uid}b22`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="22" />
-        </filter>
-      </defs>
-      <rect width={W} height={B} fill={`url(#${uid}wall)`} />
-      <ellipse cx={cx} cy={spring + 40} rx={ww * 1.05} ry={460} fill={`url(#${uid}glow)`} />
-      {niches.map((n) => (
-        <g key={n.l}>
-          <path d={`M${n.l} ${B} L${n.l} 330 A${(n.r - n.l) / 2} ${(n.r - n.l) / 2} 0 0 1 ${n.r} 330 L${n.r} ${B} Z`} style={fill("niche")} />
-          <path d={`M${n.l} ${B} L${n.l} 330 A${(n.r - n.l) / 2} ${(n.r - n.l) / 2} 0 0 1 ${n.r} 330`} fill="none" style={{ stroke: v("niche-edge") }} strokeWidth="5" />
-        </g>
-      ))}
-      {wide && (
-        <g>
-          <ellipse cx={1330} cy={538} rx={110} ry={10} style={fill("contact")} filter={`url(#${uid}b6)`} />
-          <rect x={1222} y={520} width={216} height={11} rx={1.5} style={fill("wood")} />
-          <rect x={1222} y={529} width={216} height={3} style={fill("wood-lo")} />
-        </g>
-      )}
-      {/* Ventanal: derrame del muro, cielo, jardín exterior y herrería. */}
-      <path d={`M${L - 18} ${B} L${L - 18} ${spring} A${rad + 18} ${rad + 18} 0 0 1 ${R + 18} ${spring} L${R + 18} ${B} Z`} style={fill("reveal")} />
-      <path d={win} fill={`url(#${uid}glass)`} />
-      <g clipPath={`url(#${uid}win)`}>
-        <g filter={`url(#${uid}b6)`} style={fill("outside")}>
-          <ellipse cx={L + 40} cy={560} rx={120} ry={110} />
-          <ellipse cx={cx + 30} cy={600} rx={170} ry={80} />
-          <ellipse cx={R - 30} cy={540} rx={110} ry={130} />
-        </g>
-        <rect x={L} y={636} width={ww} height={70} style={fill("outside-low")} filter={`url(#${uid}b6)`} />
+    <g>
+      <ellipse cx={(b.l + b.r) / 2} cy={b.floor + 3} rx={w * 0.55} ry={14} style={fill("contact")} filter={`url(#${uid}b8)`} />
+      <g style={{ stroke: v("iron") }} strokeWidth="5" strokeLinecap="round">
+        <line x1={b.l + 18} y1={b.y + 18} x2={b.l + 22} y2={b.floor} />
+        <line x1={b.r - 18} y1={b.y + 18} x2={b.r - 22} y2={b.floor} />
+        {b.floor - b.y > 70 && <line x1={b.l + 20} y1={b.floor - 32} x2={b.r - 20} y2={b.floor - 32} strokeWidth="3" />}
       </g>
-      <g style={{ stroke: v("frame") }} strokeWidth="3.6" fill="none">{bars}</g>
-      <path d={win} fill="none" style={{ stroke: v("frame") }} strokeWidth="7" />
-      <rect x={0} y={B - 12} width={W} height={12} style={fill("skirting")} />
-      <rect x={L - 26} y={B - 6} width={ww + 52} height={10} rx={2} style={fill("plinth-top")} />
-      <rect y={B} width={W} height={H - B} fill={`url(#${uid}floor)`} />
-      <FloorJoints W={W} B={B} vpY={250} step={wide ? 190 : 150} rows={[0.14, 0.36, 0.7]} />
-      <rect y={B} width={W} height={36} style={fill("floor-ao")} filter={`url(#${uid}b6)`} />
-      {/* Luz del ventanal proyectada en el suelo, con la sombra de la herrería. */}
-      <g transform={project(-0.08, 0.6, B)} filter={`url(#${uid}b6)`}>
-        <rect x={L - 10} y={0} width={ww + 20} height={B} mask={`url(#${uid}panes)`} style={fill("sun")} />
-      </g>
-    </svg>
+      <path d={`M${b.l + 10} ${b.y - 10} L${b.r - 10} ${b.y - 10} L${b.r} ${b.y + 2} L${b.l} ${b.y + 2} Z`} style={fill("wood-top")} />
+      <rect x={b.l} y={b.y + 2} width={w} height={16} style={fill("wood")} />
+      <rect x={b.l} y={b.y + 16} width={w} height={3} style={fill("wood-lo")} />
+    </g>
   );
 }
 
-function ArchA2({ W, uid }: ArchProps) {
+function Greenhouse({ W, benches, uid }: { W: number; benches: Bench[]; uid: string }) {
   const B = 700;
   const knee = 592;
   const top = 112;
   const cx = W / 2;
-  const wide = W > 1000;
   const posts: number[] = [];
-  for (let x = 0; x <= W; x += 200) posts.push(x);
+  for (let x = cx % 200; x <= W; x += 200) posts.push(x);
   const bars: number[] = [];
-  for (let x = 50; x < W; x += 50) if (x % 200) bars.push(x);
+  for (let x = cx % 50; x < W; x += 50) if (!posts.includes(x)) bars.push(x);
   const transoms = [262, 428];
   const glazing = (scale = 1) => (
     <>
@@ -423,7 +342,6 @@ function ArchA2({ W, uid }: ArchProps) {
       {posts.map((x) => <line key={`p${x}`} x1={x} x2={x} y1={top} y2={knee} strokeWidth={8 * scale} />)}
     </>
   );
-  const bench = wide ? { l: 150, r: 620 } : { l: 20, r: 290 };
   return (
     <svg className={s.arch} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden>
       <defs>
@@ -477,121 +395,29 @@ function ArchA2({ W, uid }: ArchProps) {
       </g>
       <rect y={knee - 4} width={W} height={13} style={fill("plinth-top")} />
       <rect y={B} width={W} height={H - B} fill={`url(#${uid}floor)`} />
-      <FloorJoints W={W} B={B} vpY={360} step={wide ? 160 : 130} rows={[0.1, 0.26, 0.5, 0.84]} />
+      <FloorJoints W={W} B={B} vpY={360} step={160} rows={[0.1, 0.26, 0.5, 0.84]} />
       <rect y={B} width={W} height={30} style={fill("floor-ao")} filter={`url(#${uid}b8)`} />
       {/* El sol atraviesa el cristal y dibuja la retícula de la herrería en el suelo. */}
       <g transform={project(0.42, 0.5, B)} filter={`url(#${uid}b3)`}>
         <rect y={top} width={W} height={knee - top} mask={`url(#${uid}panes)`} style={fill("sun")} />
       </g>
-      {/* Banco de trasplante. */}
-      <ellipse cx={(bench.l + bench.r) / 2} cy={885} rx={(bench.r - bench.l) * 0.55} ry={16} style={fill("contact")} filter={`url(#${uid}b8)`} />
-      <g style={{ stroke: v("iron") }} strokeWidth="5" strokeLinecap="round">
-        <line x1={bench.l + 18} y1={790} x2={bench.l + 22} y2={882} />
-        <line x1={bench.r - 18} y1={790} x2={bench.r - 22} y2={882} />
-        <line x1={bench.l + 20} y1={850} x2={bench.r - 20} y2={850} strokeWidth="3" />
-      </g>
-      <path d={`M${bench.l + 10} 762 L${bench.r - 10} 762 L${bench.r} 774 L${bench.l} 774 Z`} style={fill("wood-top")} />
-      <rect x={bench.l} y={774} width={bench.r - bench.l} height={16} style={fill("wood")} />
-      <rect x={bench.l} y={788} width={bench.r - bench.l} height={3} style={fill("wood-lo")} />
+      {[...benches].sort((a, b) => a.y - b.y).map((b) => (
+        <BenchEl key={`${b.l}${b.y}`} b={b} uid={uid} />
+      ))}
     </svg>
   );
 }
 
-function ArchA3({ W, uid }: ArchProps) {
-  const cx = W / 2;
-  const wide = W > 1000;
-  const bw = wide ? 380 : 230;
-  const bl = cx - bw / 2;
-  const br = cx + bw / 2;
-  const bt = 285;
-  const bb = 640;
-  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-  const ribs = [0.16, 0.4, 0.58, 0.72, 0.83];
-  const sideBars = [0.12, 0.3, 0.5, 0.7, 0.88];
-  return (
-    <svg className={s.arch} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden>
-      <defs>
-        <linearGradient id={`${uid}side`} x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0" style={stop("side-near")} />
-          <stop offset="1" style={stop("sky-low")} />
-        </linearGradient>
-        <linearGradient id={`${uid}sideR`} x1="1" x2="0" y1="0" y2="0">
-          <stop offset="0" style={stop("side-near")} />
-          <stop offset="1" style={stop("sky-low")} />
-        </linearGradient>
-        <linearGradient id={`${uid}roof`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" style={stop("roof-top")} />
-          <stop offset="1" style={stop("sky-top")} />
-        </linearGradient>
-        <linearGradient id={`${uid}floor`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" style={stop("floor-far")} />
-          <stop offset="1" style={stop("floor-near")} />
-        </linearGradient>
-        <radialGradient id={`${uid}back`} cx="50%" cy="60%" r="70%">
-          <stop offset="0" style={stop("back-glow")} />
-          <stop offset="1" style={stop("sky-low")} />
-        </radialGradient>
-        <filter id={`${uid}b8`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="8" />
-        </filter>
-      </defs>
-      <rect width={W} height={H} style={fill("sky-low")} />
-      <path d={`M0 0 L${W} 0 L${br} ${bt} L${bl} ${bt} Z`} fill={`url(#${uid}roof)`} />
-      <path d={`M0 0 L${bl} ${bt} L${bl} ${bb} L0 ${H} Z`} fill={`url(#${uid}side)`} />
-      <path d={`M${W} 0 L${br} ${bt} L${br} ${bb} L${W} ${H} Z`} fill={`url(#${uid}sideR)`} />
-      <rect x={bl} y={bt} width={bw} height={bb - bt} fill={`url(#${uid}back)`} />
-      <g filter={`url(#${uid}b8)`} style={fill("outside")}>
-        <ellipse cx={cx - bw * 0.3} cy={bb - 40} rx={bw * 0.32} ry={60} />
-        <ellipse cx={cx + bw * 0.25} cy={bb - 30} rx={bw * 0.36} ry={50} />
-      </g>
-      <g style={{ stroke: v("frame") }} fill="none">
-        {/* Travesaños de cristal en las paredes laterales y el techo, hacia el punto de fuga. */}
-        {sideBars.map((f) => {
-          const yL = f * H;
-          const yB = lerp(bt, bb, f);
-          return (
-            <g key={f} strokeWidth="2">
-              <line x1={0} y1={yL} x2={bl} y2={yB} />
-              <line x1={W} y1={yL} x2={br} y2={yB} />
-              <line x1={f * W} y1={0} x2={lerp(bl, br, f)} y2={bt} />
-            </g>
-          );
-        })}
-        <rect x={bl} y={bt} width={bw} height={bb - bt} strokeWidth="4" />
-        <line x1={cx} x2={cx} y1={bt + 70} y2={bb} strokeWidth="3" />
-        <path d={`M${bl + bw * 0.18} ${bb} L${bl + bw * 0.18} ${bt + 120} A${bw * 0.32} ${bw * 0.32} 0 0 1 ${br - bw * 0.18} ${bt + 120} L${br - bw * 0.18} ${bb}`} strokeWidth="4" />
-        {ribs.map((t) => {
-          const L = lerp(0, bl, t);
-          const R = lerp(W, br, t);
-          const fl = lerp(H + 40, bb, t);
-          const tp = lerp(-30, bt, t);
-          const sp = lerp(tp, fl, 0.3);
-          return (
-            <path
-              key={t}
-              d={`M${L} ${fl} L${L} ${sp} A${(R - L) / 2} ${sp - tp} 0 0 1 ${R} ${sp} L${R} ${fl}`}
-              strokeWidth={lerp(15, 3.5, t)}
-            />
-          );
-        })}
-      </g>
-      <path d={`M0 ${H} L${W} ${H} L${br} ${bb} L${bl} ${bb} Z`} fill={`url(#${uid}floor)`} />
-      <path d={`M${cx - (wide ? 300 : 170)} ${H} L${cx + (wide ? 300 : 170)} ${H} L${cx + bw * 0.16} ${bb} L${cx - bw * 0.16} ${bb} Z`} style={fill("aisle")} />
-      <g style={{ stroke: v("joint") }} strokeWidth="2" fill="none">
-        <line x1={cx - (wide ? 300 : 170)} y1={H} x2={cx - bw * 0.16} y2={bb} />
-        <line x1={cx + (wide ? 300 : 170)} y1={H} x2={cx + bw * 0.16} y2={bb} />
-      </g>
-      <rect x={bl} y={bb - 4} width={bw} height={30} style={fill("floor-ao")} filter={`url(#${uid}b8)`} />
-    </svg>
-  );
-}
+/* ───────────────────────────── luz ───────────────────────────── */
 
-/* ───────────────────────────── atmósfera ───────────────────────────── */
-
-/** Capa de luz por encima de las plantas (modo «screen»). */
-function Atmosphere({ variant, W, heroX, uid }: { variant: Variant; W: number; heroX: number; uid: string }) {
-  const cx = W / 2;
-  const wide = W > 1000;
+/** Capa de luz por encima de las plantas (modo «screen»). De día, rayos de sol;
+ *  de noche, guirnaldas, lámparas y luces secundarias que nunca superan el foco
+ *  de la planta actual. */
+function Atmosphere({ layout, uid }: { layout: Layout; uid: string }) {
+  const { W } = layout;
+  const hero = layout.slots.find((x) => x.what === "hero");
+  const glows = layout.slots.filter((x) => x.glow);
+  const beams = Array.from({ length: Math.ceil(W / 340) }, (_, i) => 60 + i * 330);
   return (
     <svg className={s.atmos} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden>
       <defs>
@@ -604,85 +430,85 @@ function Atmosphere({ variant, W, heroX, uid }: { variant: Variant; W: number; h
           <stop offset="0.25" style={stop("lamp", 0.5)} />
           <stop offset="1" style={stop("lamp", 0.2)} />
         </linearGradient>
+        <linearGradient id={`${uid}up`} x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0" style={stop("lamp-soft", 0.9)} />
+          <stop offset="1" style={stop("lamp-soft", 0)} />
+        </linearGradient>
         <radialGradient id={`${uid}pool`}>
           <stop offset="0" style={stop("lamp")} />
           <stop offset="1" style={stop("lamp", 0)} />
         </radialGradient>
-        <radialGradient id={`${uid}haze`}>
-          <stop offset="0" style={stop("haze")} />
-          <stop offset="1" style={stop("haze", 0)} />
+        <radialGradient id={`${uid}soft`}>
+          <stop offset="0" style={stop("lamp-soft")} />
+          <stop offset="1" style={stop("lamp-soft", 0)} />
         </radialGradient>
         <filter id={`${uid}b18`} x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="18" />
+        </filter>
+        <filter id={`${uid}b10`} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="10" />
         </filter>
         <filter id={`${uid}b4`} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="4" />
         </filter>
       </defs>
 
-      {/* Foco sobre la planta actual: luz cálida de noche, apenas un velo de día. */}
-      <g className={s.lampOnly}>
-        <path d={`M${heroX - 26} 0 L${heroX + 26} 0 L${heroX + 250} 960 L${heroX - 250} 960 Z`} fill={`url(#${uid}cone)`} filter={`url(#${uid}b18)`} opacity="0.55" />
+      <g className={s.sunOnly} filter={`url(#${uid}b18)`}>
+        {beams.map((x, i) => (
+          <path key={x} d={`M${x} 110 L${x + 90 + i * 10} 110 L${x + 470} ${H} L${x + 330} ${H} Z`} fill={`url(#${uid}beam)`} />
+        ))}
       </g>
-      <ellipse cx={heroX} cy={945} rx={250} ry={52} fill={`url(#${uid}pool)`} opacity="0.9" />
 
-      {variant === "1" && <ellipse cx={cx} cy={520} rx={wide ? 420 : 300} ry={360} fill={`url(#${uid}haze)`} />}
+      <g className={s.nightOnly}>
+        <StringLights W={W} y={92} sag={36} span={400} uid={uid} />
+        <StringLights W={W} y={150} sag={58} span={W > 1000 ? 533 : W / 2} uid={uid} offset={0.5} />
+        {/* Luces secundarias: un foco al pie de las plantas de suelo y charcos suaves. */}
+        {glows.map((g) => {
+          const k = cqhPerCm(g.z, layout.scale) * 10; // unidades del SVG por cm
+          const sp = g.what as Species;
+          const h = SPECIES_SCALE[sp].cm * k;
+          const w = Math.max(40, (SPECIES_SCALE[sp].pot?.w ?? 20) * k);
+          return g.glow === "up" ? (
+            <g key={`${g.x}${g.y}`}>
+              <path d={`M${g.x - w * 0.3} ${g.y} L${g.x + w * 0.3} ${g.y} L${g.x + h * 0.32} ${g.y - h * 0.95} L${g.x - h * 0.32} ${g.y - h * 0.95} Z`} fill={`url(#${uid}up)`} filter={`url(#${uid}b10)`} opacity="0.5" />
+              <ellipse cx={g.x} cy={g.y + 4} rx={w * 1.1} ry={w * 0.22} fill={`url(#${uid}soft)`} />
+            </g>
+          ) : (
+            <ellipse key={`${g.x}${g.y}`} cx={g.x} cy={g.y + 4} rx={w * 2.4} ry={w * 0.5} fill={`url(#${uid}soft)`} />
+          );
+        })}
+        {layout.lamps.map((l) => (
+          <Pendant key={`${l.x}${l.y}`} x={l.x} y={l.y} uid={uid} small={l.small} />
+        ))}
+        {hero && <Pendant x={hero.x} y={250} uid={uid} />}
+      </g>
 
-      {variant === "2" && (
+      {/* Foco principal sobre la planta actual: siempre el más intenso de la escena. */}
+      {hero && (
         <>
-          <g className={s.sunOnly} filter={`url(#${uid}b18)`}>
-            {(wide ? [60, 330, 640, 1000] : [-40, 200, 480]).map((x, i) => (
-              <path key={x} d={`M${x} 110 L${x + 90 + i * 10} 110 L${x + 470} ${H} L${x + 330} ${H} Z`} fill={`url(#${uid}beam)`} />
-            ))}
+          <g className={s.lampOnly}>
+            <path d={`M${hero.x - 26} 260 L${hero.x + 26} 260 L${hero.x + 250} 960 L${hero.x - 250} 960 Z`} fill={`url(#${uid}cone)`} filter={`url(#${uid}b18)`} opacity="0.6" />
           </g>
-          <g className={s.nightOnly}>
-            <StringLights W={W} uid={uid} />
-            <Pendant x={heroX} y={250} uid={uid} />
-            <Pendant x={wide ? 385 : 150} y={330} uid={uid} small />
-          </g>
-          <g className={s.motes} style={fill("mote")}>
-            {Array.from({ length: wide ? 16 : 9 }, (_, i) => (
-              <circle key={i} cx={(i * 97 + 140) % W} cy={240 + ((i * 131) % 520)} r={1.2 + (i % 3) * 0.6} style={{ animationDelay: `${-i * 1.7}s` }} />
-            ))}
-          </g>
+          <ellipse cx={hero.x} cy={hero.y + 10} rx={250} ry={52} fill={`url(#${uid}pool)`} opacity="0.95" />
         </>
       )}
 
-      {variant === "3" && (
-        <>
-          <ellipse cx={cx} cy={520} rx={wide ? 420 : 260} ry={300} fill={`url(#${uid}haze)`} />
-          <rect y={560} width={W} height={140} style={fill("mist")} filter={`url(#${uid}b18)`} />
-          <g className={s.sunOnly} filter={`url(#${uid}b18)`}>
-            <path d={`M${cx - 260} 0 L${cx - 120} 0 L${cx + 60} 800 L${cx - 120} 800 Z`} fill={`url(#${uid}beam)`} />
-            <path d={`M${cx + 80} 0 L${cx + 170} 0 L${cx + 330} 760 L${cx + 200} 760 Z`} fill={`url(#${uid}beam)`} />
-          </g>
-          <g className={s.nightOnly}>
-            {[0.32, 0.56, 0.76].flatMap((t) => {
-              const half = (wide ? 300 : 170) * (1 - t) + 70 * t;
-              const y = H - (H - 645) * t;
-              const r = 70 * (1 - t) + 16 * t;
-              return [-1, 1].map((side) => (
-                <g key={`${t}${side}`}>
-                  <circle cx={cx + side * half} cy={y - r * 0.3} r={r} fill={`url(#${uid}pool)`} />
-                  <circle cx={cx + side * half} cy={y - r * 0.32} r={Math.max(2, r * 0.07)} style={fill("bulb")} />
-                </g>
-              ));
-            })}
-          </g>
-        </>
-      )}
+      <g className={s.motes} style={fill("mote")}>
+        {Array.from({ length: Math.round(W / 100) }, (_, i) => (
+          <circle key={i} cx={(i * 97 + 140) % W} cy={240 + ((i * 131) % 520)} r={1.2 + (i % 3) * 0.6} style={{ animationDelay: `${-i * 1.7}s` }} />
+        ))}
+      </g>
     </svg>
   );
 }
 
-function StringLights({ W, uid }: { W: number; uid: string }) {
+function StringLights({ W, y, sag, span, uid, offset = 0 }: { W: number; y: number; sag: number; span: number; uid: string; offset?: number }) {
   const swags: ReactNode[] = [];
-  for (let x = 0; x < W; x += 400) {
-    const x2 = Math.min(x + 400, W);
-    const y = 92;
-    const sag = 36;
-    const pts = Array.from({ length: 8 }, (_, i) => {
-      const t = (i + 0.5) / 8;
+  for (let x = -span * offset; x < W; x += span) {
+    const x2 = x + span;
+    const n = Math.max(5, Math.round(span / 50));
+    const pts = Array.from({ length: n }, (_, i) => {
+      const t = (i + 0.5) / n;
       return { px: x + (x2 - x) * t, py: y + 4 * sag * t * (1 - t) };
     });
     swags.push(
@@ -705,7 +531,7 @@ function Pendant({ x, y, uid, small }: { x: number; y: number; uid: string; smal
   return (
     <g>
       <line x1={x} x2={x} y1={0} y2={y - r} style={{ stroke: v("cord") }} strokeWidth="1.4" />
-      <circle cx={x} cy={y} r={r * 6} fill={`url(#${uid}pool)`} opacity="0.55" />
+      <circle cx={x} cy={y} r={r * 6} fill={`url(#${uid}pool)`} opacity={small ? 0.4 : 0.55} />
       <circle cx={x} cy={y} r={r} style={fill("bulb")} opacity="0.92" />
       <path d={`M${x - r * 0.55} ${y - r * 0.82} A${r} ${r} 0 0 1 ${x + r * 0.55} ${y - r * 0.82}`} style={fill("cord")} />
     </g>
@@ -716,15 +542,16 @@ function Pendant({ x, y, uid, small }: { x: number; y: number; uid: string; smal
 
 const pct = (n: number, of: number) => `${(n / of) * 100}%`;
 
-function SlotEl({ slot, W, heroSpecies, heroStage }: { slot: Slot; W: number; heroSpecies: Species; heroStage: StageKey }) {
-  const k = cqhPerCm(slot.z);
+type HeroState = { heroSpecies: Species; heroStage: StageKey };
+
+function SlotEl({ slot, layout, heroSpecies, heroStage }: { slot: Slot; layout: Layout } & HeroState) {
+  const k = cqhPerCm(slot.z, layout.scale);
   const support = slot.support ?? { kind: "none" };
   const style = {
-    left: pct(slot.x, W),
+    left: pct(slot.x, layout.W),
     bottom: pct(H - slot.y, H),
     zIndex: Math.round(slot.y) + (slot.what === "hero" ? 200 : 0),
     ["--z" as string]: Math.max(0, slot.z),
-    ["--dof" as string]: `${slot.dof ?? 0}px`,
   } as CSSProperties;
   let body: ReactNode;
   if (slot.what === "mystery") body = <Mystery k={k} />;
@@ -737,27 +564,8 @@ function SlotEl({ slot, W, heroSpecies, heroStage }: { slot: Slot; W: number; he
       );
   } else body = <PottedUnit species={slot.what} stage="planta-completa" k={k} material={slot.material ?? "marfil"} support={support} raised={slot.raised} />;
   return (
-    <div className={s.slot} style={style}>
+    <div className={`${s.slot} ${slot.glow ? s.lit : ""}`} style={style}>
       {body}
-    </div>
-  );
-}
-
-function FrameEl({ f, W }: { f: Frame; W: number }) {
-  const d = PLANT_ASSET_DIMS[f.species].large;
-  return (
-    <div
-      className={s.frame}
-      style={{
-        left: pct(f.x, W),
-        bottom: pct(H - f.y, H),
-        height: pct(f.h, H),
-        aspectRatio: `${d.w} / ${d.h}`,
-        transform: `translateX(-50%) rotate(${f.rot ?? 0}deg) scaleX(${f.flip ? -1 : 1})`,
-      }}
-      aria-hidden
-    >
-      <Image src={src(f.species, "planta-completa")} width={d.w} height={d.h} alt="" unoptimized draggable={false} />
     </div>
   );
 }
@@ -765,15 +573,15 @@ function FrameEl({ f, W }: { f: Frame; W: number }) {
 const STAGE_MIN: Record<StageKey, number> = Object.fromEntries(STAGE_OPTIONS.map((o) => [o.key, o.minutes])) as Record<StageKey, number>;
 const STAGE_LABEL: Record<StageKey, string> = Object.fromEntries(STAGE_OPTIONS.map((o) => [o.key, o.label])) as Record<StageKey, string>;
 
-function Caption({ species, stage, className }: { species: Species; stage: StageKey; className?: string }) {
-  const min = STAGE_MIN[stage];
+function Caption({ heroSpecies, heroStage, className }: HeroState & { className?: string }) {
+  const min = STAGE_MIN[heroStage];
   return (
     <div className={`${s.caption} ${className ?? ""}`}>
       <p className={s.eyebrow}>Planta actual</p>
-      <p className={s.name}>{SPECIES_LABEL[species]}</p>
-      <p className={s.latin}>{LATIN[species]}</p>
+      <p className={s.name}>{SPECIES_LABEL[heroSpecies]}</p>
+      <p className={s.latin}>{LATIN[heroSpecies]}</p>
       <p className={s.meta}>
-        {STAGE_LABEL[stage]} · {min} de 150 min
+        {STAGE_LABEL[heroStage]} · {min} de 150 min
       </p>
       <span className={s.bar}>
         <i style={{ width: `${(min / 150) * 100}%` }} />
@@ -782,39 +590,84 @@ function Caption({ species, stage, className }: { species: Species; stage: Stage
   );
 }
 
-function Scene({ variant, narrow, heroSpecies, heroStage }: { variant: Variant; narrow: boolean; heroSpecies: Species; heroStage: StageKey }) {
+function Scene({ layout, caption, className, style, ...hero }: { layout: Layout; caption?: boolean; className?: string; style?: CSSProperties } & HeroState) {
   const uid = useUid();
-  const W = narrow ? 800 : 1600;
-  const layout = LAYOUTS[variant][narrow ? "narrow" : "wide"];
-  const heroX = layout.slots.find((x) => x.what === "hero")?.x ?? W / 2;
-  const Arch = variant === "1" ? ArchA1 : variant === "2" ? ArchA2 : ArchA3;
   return (
-    <div className={`${s.sceneWrap} ${narrow ? s.narrowWrap : ""}`}>
-      <div className={`${s.scene} ${narrow ? s.narrow : s.wide}`}>
-        <Arch W={W} uid={uid} />
-        {layout.slots
-          .filter((sl) => sl.what !== heroSpecies)
-          .map((sl, i) => (
-            <SlotEl key={`${variant}${i}`} slot={sl} W={W} heroSpecies={heroSpecies} heroStage={heroStage} />
-          ))}
-        <Atmosphere variant={variant} W={W} heroX={heroX} uid={`${uid}a`} />
-        {layout.frames?.map((f, i) => <FrameEl key={i} f={f} W={W} />)}
-        <span className={s.vignette} aria-hidden />
-        {!narrow && <Caption species={heroSpecies} stage={heroStage} className={s.captionOver} />}
-      </div>
-      {narrow && <Caption species={heroSpecies} stage={heroStage} className={s.captionBelow} />}
+    <div className={`${s.scene} ${className ?? ""}`} style={{ aspectRatio: `${layout.W} / ${H}`, ...style }}>
+      <Greenhouse W={layout.W} benches={layout.benches} uid={uid} />
+      {layout.slots
+        .filter((sl) => sl.what !== hero.heroSpecies)
+        .map((sl, i) => (
+          <SlotEl key={i} slot={sl} layout={layout} {...hero} />
+        ))}
+      <Atmosphere layout={layout} uid={`${uid}a`} />
+      <span className={s.vignette} aria-hidden />
+      {caption && <Caption {...hero} className={s.captionOver} />}
     </div>
+  );
+}
+
+/* ───────────────────────────── iPhone ───────────────────────────── */
+
+const COLLECTION_COUNT = 11;
+
+function Panorama(hero: HeroState) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const heroX = DESKTOP.slots.find((x) => x.what === "hero")?.x ?? DESKTOP.W / 2;
+    el.scrollLeft = (heroX / DESKTOP.W) * el.scrollWidth - el.clientWidth / 2;
+  }, []);
+  return (
+    <>
+      <div ref={ref} className={s.pano}>
+        <Scene layout={DESKTOP} className={s.panoScene} style={{ width: 736, height: 460 }} {...hero} />
+      </div>
+      <p className={s.hint}>← Desliza para recorrer tu invernadero →</p>
+    </>
+  );
+}
+
+function PhoneView({ id, ...hero }: { id: PhoneVariant } & HeroState) {
+  if (id === "M1") {
+    return (
+      <>
+        <Scene layout={M1} className={s.phoneScene} {...hero} />
+        <Caption {...hero} className={s.captionBelow} />
+      </>
+    );
+  }
+  if (id === "M2") {
+    return (
+      <>
+        <Panorama {...hero} />
+        <Caption {...hero} className={s.captionBelow} />
+      </>
+    );
+  }
+  return (
+    <>
+      <Scene layout={M3_HERO} className={s.phoneScene} {...hero} />
+      <Caption {...hero} className={s.captionBelow} />
+      <div className={s.sectionHead}>
+        <p className={s.name}>Tu invernadero</p>
+        <p className={s.meta}>{COLLECTION_COUNT} plantas · la próxima es una sorpresa</p>
+      </div>
+      <Scene layout={M3_COLLECTION} className={s.phoneScene} {...hero} />
+    </>
   );
 }
 
 /* ───────────────────────────── laboratorio ───────────────────────────── */
 
-export function AtelierLab({ initialVariant }: { initialVariant: Variant }) {
-  const [variant, setVariant] = useState<Variant>(initialVariant);
+export function AtelierLab() {
   const [dark, setDark] = useState(false);
   const [phone, setPhone] = useState(false);
+  const [mobileId, setMobileId] = useState<PhoneVariant>("M1");
   const [heroSpecies, setHeroSpecies] = useState<Species>("monstera");
   const [heroStage, setHeroStage] = useState<StageKey>("planta-joven");
+  const hero = { heroSpecies, heroStage };
 
   useEffect(() => {
     // Arranca con el tema de la app; luego el lab lo cambia solo dentro de sí mismo.
@@ -822,15 +675,8 @@ export function AtelierLab({ initialVariant }: { initialVariant: Variant }) {
     setDark(document.documentElement.getAttribute("data-theme") === "dark");
   }, []);
 
-  const pick = (id: Variant) => {
-    setVariant(id);
-    const url = new URL(window.location.href);
-    url.searchParams.set("v", id);
-    window.history.replaceState(null, "", url);
-  };
-
   return (
-    <div className={`${s.lab} ${s[`v${variant}`]} ${dark ? s.dark : ""}`}>
+    <div className={`${s.lab} ${s.v2} ${dark ? s.dark : ""}`}>
       {/* De noche, el papel blanco de las láminas (lavados, brillos) se vuelve
           transparente en vez de verse como un halo gris. */}
       <svg width="0" height="0" className={s.defs} aria-hidden>
@@ -839,20 +685,11 @@ export function AtelierLab({ initialVariant }: { initialVariant: Variant }) {
           <feComposite in="SourceGraphic" in2="m" operator="in" />
         </filter>
       </svg>
-      <div className={s.inner}>
+      <div className={`${s.inner} ${phone ? s.innerWide : ""}`}>
         <header className={s.head}>
-          <p className={s.kicker}>Laboratorio del jardín · Ronda 2</p>
-          <h1 className={s.title}>Atelier Invernadero</h1>
+          <p className={s.kicker}>Laboratorio del jardín · Ronda 3</p>
+          <h1 className={s.title}>Luz de invernadero</h1>
         </header>
-
-        <nav className={s.tabs} aria-label="Variantes">
-          {VARIANTS.map((x) => (
-            <button key={x.id} type="button" onClick={() => pick(x.id)} className={`${s.tab} ${variant === x.id ? s.tabOn : ""}`} aria-pressed={variant === x.id}>
-              <span>{x.name}</span>
-              <small>{x.line}</small>
-            </button>
-          ))}
-        </nav>
 
         <div className={s.controls}>
           <div className={s.seg} role="group" aria-label="Tema">
@@ -868,17 +705,8 @@ export function AtelierLab({ initialVariant }: { initialVariant: Variant }) {
               <Monitor size={14} /> Escritorio
             </button>
             <button type="button" onClick={() => setPhone(true)} aria-pressed={phone} className={phone ? s.segOn : ""}>
-              <Smartphone size={14} /> iPhone
+              <Smartphone size={14} /> iPhone · M1 M2 M3
             </button>
-          </div>
-        </div>
-
-        <div className={s.stageArea}>
-          <div className={`${s.desktopOnly} ${phone ? s.hidden : ""}`}>
-            <Scene variant={variant} narrow={false} heroSpecies={heroSpecies} heroStage={heroStage} />
-          </div>
-          <div className={`${s.phoneOnly} ${phone ? s.phoneShown : ""}`}>
-            <Scene variant={variant} narrow heroSpecies={heroSpecies} heroStage={heroStage} />
           </div>
         </div>
 
@@ -898,6 +726,40 @@ export function AtelierLab({ initialVariant }: { initialVariant: Variant }) {
             ))}
           </div>
         </div>
+
+        {/* Escritorio */}
+        <div className={`${s.desktopOnly} ${phone ? s.hidden : ""}`}>
+          <Scene layout={DESKTOP} caption {...hero} />
+        </div>
+
+        {/* Comparador de iPhone en escritorio: las tres propuestas lado a lado. */}
+        {phone && (
+          <div className={`${s.desktopOnly} ${s.compare}`}>
+            {PHONE_VARIANTS.map((m) => (
+              <section key={m.id} className={s.phoneCol}>
+                <p className={s.phoneName}>{m.name}</p>
+                <p className={s.phoneLine}>{m.line}</p>
+                <div className={s.phoneFrame} data-m={m.id}>
+                  <PhoneView id={m.id} {...hero} />
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+
+        {/* iPhone real */}
+        <div className={s.phoneOnly}>
+          <nav className={s.mtabs} aria-label="Propuestas de iPhone">
+            {PHONE_VARIANTS.map((m) => (
+              <button key={m.id} type="button" onClick={() => setMobileId(m.id)} aria-pressed={mobileId === m.id} className={`${s.chip} ${mobileId === m.id ? s.chipOn : ""}`}>
+                {m.id}
+              </button>
+            ))}
+          </nav>
+          <p className={s.phoneLine}>{PHONE_VARIANTS.find((m) => m.id === mobileId)?.line}</p>
+          <PhoneView id={mobileId} {...hero} />
+        </div>
+
         <p className={s.foot}>
           Prototipo sin datos reales. <a href="/garden-lab">Ver ronda 1</a>
         </p>

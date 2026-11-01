@@ -54,53 +54,6 @@
   font-family: var(--font-body);
 }
 
-/* ── A1 · Editorial ── */
-.v1 {
-  --wall-top: #f1ece1;
-  --wall-low: #e6dfd0;
-  --wall-glow: rgba(255, 253, 246, 0.9);
-  --niche: rgba(214, 205, 186, 0.35);
-  --niche-edge: rgba(255, 255, 255, 0.6);
-  --reveal: #ddd4c2;
-  --sky-top: #e7ede2;
-  --sky-low: #f5f2e8;
-  --outside: #bfcfb6;
-  --outside-low: #a9bba0;
-  --frame: #4b5a46;
-  --skirting: #ddd5c4;
-  --floor-far: #ddd5c3;
-  --floor-near: #e9e3d5;
-  --floor-ao: rgba(90, 80, 55, 0.14);
-  --joint: rgba(120, 108, 84, 0.13);
-  --sun: rgba(255, 252, 240, 0.7);
-  --lamp: rgba(255, 252, 240, 0.55);
-  --haze: rgba(255, 253, 246, 0.18);
-  --beam: rgba(255, 250, 235, 0);
-  --cast-t: skewX(8deg) scaleY(-0.2);
-  --cast: 0.08;
-}
-.dark.v1 {
-  --wall-top: #252b22;
-  --wall-low: #1d2219;
-  --wall-glow: rgba(120, 150, 165, 0.12);
-  --niche: rgba(0, 0, 0, 0.18);
-  --niche-edge: rgba(255, 255, 255, 0.04);
-  --reveal: #1a1f17;
-  --sky-top: #0e1619;
-  --sky-low: #1d2a2b;
-  --outside: #1f2d25;
-  --outside-low: #17221c;
-  --frame: #323d2f;
-  --skirting: #1a1e17;
-  --floor-far: #181c15;
-  --floor-near: #20251c;
-  --floor-ao: rgba(0, 0, 0, 0.35);
-  --joint: rgba(255, 255, 255, 0.035);
-  --sun: rgba(170, 196, 214, 0.13);
-  --lamp: rgba(255, 196, 128, 0.42);
-  --haze: rgba(0, 0, 0, 0);
-}
-
 /* ── A2 · Luz de invernadero ── */
 .v2 {
   --wall-top: #e4ddcd;
@@ -119,6 +72,7 @@
   --beam: rgba(255, 246, 220, 0.42);
   --lamp: rgba(255, 248, 232, 0.4);
   --mote: rgba(255, 250, 230, 0.9);
+  --lamp-soft: rgba(255, 248, 232, 0);
   --cord: #3a3a30;
   --bulb: #fff1d2;
   --cast-t: skewX(-46deg) scaleY(-0.3);
@@ -140,51 +94,11 @@
   --sun: rgba(0, 0, 0, 0);
   --lamp: rgba(255, 190, 115, 0.5);
   --mote: rgba(0, 0, 0, 0);
+  --lamp-soft: rgba(255, 196, 128, 0.3);
   --cord: #12150f;
   --bulb: #ffe0a8;
   --cast-t: skewX(0deg) scaleY(-0.22);
-  --cast: 0.2;
-}
-
-/* ── A3 · Profundidad ── */
-.v3 {
-  --roof-top: #dfe7da;
-  --sky-top: #eaf0e5;
-  --sky-low: #f2f1e7;
-  --side-near: #dae4d3;
-  --back-glow: #fbfaf3;
-  --outside: #c3d2b9;
-  --frame: #56684f;
-  --floor-far: #e3ddcd;
-  --floor-near: #d8cfbb;
-  --aisle: rgba(244, 240, 229, 0.75);
-  --floor-ao: rgba(255, 255, 255, 0.4);
-  --joint: rgba(120, 108, 84, 0.18);
-  --haze: rgba(255, 255, 250, 0.55);
-  --mist: rgba(255, 255, 250, 0.35);
-  --beam: rgba(255, 252, 238, 0.4);
-  --lamp: rgba(255, 252, 240, 0.4);
-  --cast-t: skewX(0deg) scaleY(-0.18);
-  --cast: 0.08;
-}
-.dark.v3 {
-  --roof-top: #070c10;
-  --sky-top: #0c1418;
-  --sky-low: #142024;
-  --side-near: #0d1416;
-  --back-glow: #33454a;
-  --outside: #1c2b2a;
-  --frame: #2b3a33;
-  --floor-far: #1a2020;
-  --floor-near: #151a15;
-  --aisle: rgba(60, 70, 62, 0.35);
-  --floor-ao: rgba(0, 0, 0, 0.25);
-  --joint: rgba(255, 255, 255, 0.05);
-  --haze: rgba(70, 100, 110, 0.18);
-  --mist: rgba(60, 90, 100, 0.12);
-  --beam: rgba(0, 0, 0, 0);
-  --lamp: rgba(255, 188, 112, 0.45);
-  --bulb: #ffe2ad;
+  --cast: 0.12;
 }
 
 /* ── oscuro común ── */
@@ -651,4 +565,92 @@
 .foot a {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* Plantas con luz secundaria: de noche se ven un poco más que el resto, pero
+   menos que la planta actual. */
+.dark .lit .leaf {
+  filter: url(#lab-dewhite) brightness(0.84) saturate(1.04) contrast(1.05) sepia(0.06);
+}
+
+.innerWide {
+  max-width: 1240px;
+}
+.scene {
+  width: 100%;
+}
+.phoneScene {
+  border-radius: 18px;
+}
+
+/* comparador de iPhone */
+.compare {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.phoneCol {
+  min-width: 0;
+}
+.phoneName {
+  font-family: var(--font-display);
+  font-size: 17px;
+}
+.phoneLine {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  margin: 2px 0 10px;
+  min-height: 2.8em;
+}
+.phoneFrame {
+  width: 100%;
+  max-width: 390px;
+  border: 1px solid var(--line);
+  border-radius: 34px;
+  padding: 14px 12px 22px;
+  background: var(--page);
+  box-shadow: 0 30px 60px -36px rgba(0, 0, 0, 0.45);
+}
+.phoneFrame .captionBelow,
+.phoneOnly .captionBelow {
+  padding: 12px 4px 4px;
+}
+.mtabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+/* M2 · panorama deslizable */
+.pano {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 18px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.pano::-webkit-scrollbar {
+  display: none;
+}
+.pano .panoScene {
+  width: auto;
+  height: 460px;
+  border-radius: 0;
+  box-shadow: none;
+}
+.hint {
+  text-align: center;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  margin-top: 8px;
+}
+
+/* M3 · encabezado de la colección */
+.sectionHead {
+  padding: 22px 4px 10px;
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
 }
