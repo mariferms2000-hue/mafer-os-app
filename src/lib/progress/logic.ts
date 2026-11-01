@@ -16,8 +16,12 @@ export const PROGRESS_GOAL = 3;
 export const REWARD_ITEMS = ["agua", "fertilizante"] as const;
 export type RewardItem = (typeof REWARD_ITEMS)[number];
 
-/** Composición de una bolsa: 6 + 2 = 75 % agua, 25 % fertilizante. */
-export const REWARD_BAG: Record<RewardItem, number> = { agua: 6, fertilizante: 2 };
+/** Composición de una bolsa (F4): 5 + 1. El Agua repone la sed del jardín
+ *  (como mucho una planta cada THIRST_EVERY_DAYS días, ver garden/care-logic);
+ *  el Fertilizante es raro: uno cada 6 recompensas = 18 tareas. Las bolsas ya
+ *  empezadas con la composición anterior (6 + 2) se vacían tal cual; la
+ *  siguiente ya sale con esta. */
+export const REWARD_BAG: Record<RewardItem, number> = { agua: 5, fertilizante: 1 };
 
 export const REWARD_LABEL: Record<RewardItem, string> = { agua: "Agua", fertilizante: "Fertilizante" };
 

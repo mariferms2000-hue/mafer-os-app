@@ -31,6 +31,7 @@ const TABLES = [
   "card_reminders",
   "progress_credits",
   "garden_rewards",
+  "garden_plant_care",
 ];
 
 const url = requireTestDatabaseUrl();
