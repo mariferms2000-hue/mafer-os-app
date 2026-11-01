@@ -1,0 +1,540 @@
+/* Laboratorio de cuidado. Toma la paleta del invernadero (.garden) y prueba
+   un tratamiento nuevo de las láminas: borde definido, más presencia, y estados
+   que se leen de un vistazo. */
+
+.lab {
+  background: var(--color-paper, #fffefb);
+  color: var(--color-forest-deep, #2f3a2b);
+  min-height: 100dvh;
+  font-family: var(--font-body);
+  /* ── tratamiento base de la lámina (nuevo) ── */
+  --leaf-base: saturate(1.12) contrast(1.08) drop-shadow(0 0 0.35px rgba(46, 58, 38, 0.6));
+  --leaf-sed: saturate(0.28) sepia(0.6) hue-rotate(-14deg) brightness(1.04) contrast(0.82);
+  --leaf-regada: saturate(1.5) brightness(1.06) contrast(1.12) drop-shadow(0 0 0.9cqh rgba(130, 205, 215, 0.55));
+  --leaf-especial: saturate(1.3) contrast(1.12) brightness(1.02);
+  --rim-gold: drop-shadow(0 0 1.1cqh rgba(255, 210, 130, 0.55));
+  --soil-dry: radial-gradient(ellipse at 50% 40%, #b49a78, #8a7155);
+  --soil-wet: radial-gradient(ellipse at 42% 35%, #5a4535 0 10%, #2f2219 40%, #1c140d);
+  --soil-ok: radial-gradient(ellipse at 50% 40%, #5b4737, #2f251c);
+  --card-top: #edf1e6;
+  --card-mid: #f5f1e4;
+  --card-floor: #e2d9c7;
+  --card-line: #ddd5c4;
+  --cap: #6b7463;
+  --tips: linear-gradient(180deg, rgba(150, 96, 36, 0.75) 0%, rgba(170, 120, 50, 0.35) 30%, transparent 55%);
+}
+:global(html[data-theme="dark"]) .lab {
+  --leaf-base: url(#garden-dewhite) brightness(0.84) saturate(1.1) contrast(1.08);
+  --leaf-sed: saturate(0.25) sepia(0.55) hue-rotate(-14deg) brightness(0.82) contrast(0.85);
+  --leaf-regada: saturate(1.45) brightness(1.15) contrast(1.08) drop-shadow(0 0 0.9cqh rgba(130, 205, 215, 0.35));
+  --leaf-especial: saturate(1.3) brightness(1.08) contrast(1.1);
+  --rim-gold: drop-shadow(0 0 1.1cqh rgba(255, 200, 120, 0.35));
+  --soil-dry: radial-gradient(ellipse at 50% 40%, #7a6650, #54453a);
+  --soil-ok: radial-gradient(ellipse at 50% 40%, #2b2219, #120e0a);
+  --soil-wet: radial-gradient(ellipse at 42% 35%, #3a2d23 0 10%, #18110b 40%, #0d0906);
+  --card-top: #0f1719;
+  --card-mid: #1a2422;
+  --card-floor: #1d221a;
+  --card-line: #2f3829;
+  --cap: #9aa48e;
+}
+
+.inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 16px 56px;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cap);
+}
+.title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  margin-top: 4px;
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--card-line);
+  border-radius: 999px;
+  padding: 3px;
+}
+.seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--cap);
+}
+.seg .segOn {
+  background: var(--card-mid);
+  color: inherit;
+}
+
+.row {
+  margin-bottom: 26px;
+}
+.rowTitle {
+  font-family: var(--font-display);
+  font-size: 21px;
+  margin-bottom: 10px;
+}
+.rowTitle small {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--cap);
+  margin-left: 8px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 767px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cell {
+  margin: 0;
+}
+.stage {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  container-type: size;
+  overflow: clip;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, var(--card-top) 0%, var(--card-mid) 62%, var(--card-floor) 62.4%, var(--card-floor) 100%);
+  box-shadow: 0 18px 40px -28px rgba(40, 46, 30, 0.4);
+}
+.caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--cap);
+  padding: 8px 4px 0;
+}
+.caption b {
+  color: var(--color-forest-deep, #324230);
+  font-weight: 600;
+}
+.replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--card-line);
+}
+.na {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18%;
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--cap);
+}
+
+/* ── unidad ── */
+.unit {
+  position: absolute;
+  left: 50%;
+  bottom: 9%;
+  translate: -50% 0;
+}
+.unit > * {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+}
+.layer {
+  bottom: 0;
+  line-height: 0;
+}
+.contact {
+  bottom: 0;
+  translate: -50% 45%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--contact), transparent);
+}
+.cut {
+  clip-path: inset(-100% -100% 0 -100%);
+}
+.cut > .plant {
+  position: absolute;
+  left: 0;
+}
+.plant {
+  transform-origin: 50% 100%;
+}
+.plant > * {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.leaf {
+  display: block;
+  filter: var(--leaf-base);
+}
+.ao,
+.fresh,
+.tips,
+.dew,
+.lavender,
+.emerald,
+.gloss {
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  pointer-events: none;
+}
+.ao {
+  background: var(--leaf-shade);
+  mix-blend-mode: multiply;
+}
+.soil {
+  border-radius: 50%;
+  background: var(--soil-ok);
+}
+
+/* ── CON SED: caída, encogida, seca, puntas cafés, tierra clara, una hoja caída ── */
+.sed .plant {
+  transform: perspective(520px) rotateX(26deg) scaleY(0.8) scaleX(1.05) skewX(-2.5deg);
+}
+.sed .leaf {
+  filter: var(--leaf-base) var(--leaf-sed);
+}
+.tips {
+  background: var(--tips);
+  mix-blend-mode: multiply;
+}
+.sed .soil {
+  background: var(--soil-dry);
+}
+.fallen {
+  bottom: -1%;
+  left: 74% !important;
+  aspect-ratio: 2 / 1;
+  border-radius: 80% 10% 80% 10%;
+  background: linear-gradient(135deg, #c9a46a, #9a7444);
+  rotate: -14deg;
+  opacity: 0.9;
+}
+:global(html[data-theme="dark"]) .fallen {
+  filter: brightness(0.6);
+}
+.sed .water {
+  background: linear-gradient(180deg, rgba(190, 175, 130, 0.35), rgba(160, 140, 95, 0.45));
+}
+
+.fresh {
+  background: linear-gradient(180deg, rgba(90, 170, 110, 0.35), rgba(60, 140, 90, 0.2));
+  mix-blend-mode: color;
+}
+
+/* ── RECIÉN REGADA: más viva, rocío, tierra oscura y brillante ── */
+.regada .leaf {
+  filter: var(--leaf-base) var(--leaf-regada);
+}
+.dew {
+  background-image:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 1) 0 0.35cqh, rgba(170, 225, 235, 0.8) 0.5cqh, transparent 0.8cqh),
+    radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.95) 0 0.25cqh, rgba(170, 225, 235, 0.7) 0.4cqh, transparent 0.65cqh);
+  background-size: 11% 9%, 15% 13%;
+  mix-blend-mode: screen;
+  animation: twinkle 3.2s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.regada .soil {
+  background: var(--soil-wet);
+  box-shadow: inset 0 -0.3cqh 0.6cqh rgba(170, 210, 220, 0.25);
+}
+.regada.play .plant {
+  animation: revive 1.6s 0.35s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.regada.play .leaf {
+  animation: reviveColor 1.6s 0.35s ease both;
+}
+.regada.play .dew {
+  animation: dewIn 1.4s 0.9s ease both;
+}
+@keyframes revive {
+  0% {
+    transform: perspective(520px) rotateX(26deg) scaleY(0.8) scaleX(1.05) skewX(-2.5deg);
+  }
+  55% {
+    transform: perspective(520px) rotateX(-3deg) scaleY(1.05);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes reviveColor {
+  0% {
+    filter: var(--leaf-base) var(--leaf-sed);
+  }
+  100% {
+    filter: var(--leaf-base) var(--leaf-regada);
+  }
+}
+@keyframes dewIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.drops {
+  left: 0 !important;
+  translate: 0 0 !important;
+  width: 100%;
+  bottom: 70%;
+  height: 40%;
+  pointer-events: none;
+}
+.drops i {
+  position: absolute;
+  top: 0;
+  width: 1.2cqh;
+  aspect-ratio: 0.7;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: linear-gradient(180deg, rgba(225, 244, 248, 0.95), rgba(120, 180, 200, 0.9));
+  opacity: 0;
+}
+.play .drops i {
+  animation: fall 0.8s ease-in both;
+}
+@keyframes fall {
+  0% {
+    transform: translateY(-6cqh);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(26cqh);
+    opacity: 0;
+  }
+}
+
+/* ── ESPECIAL: más plena, borde dorado que abraza la silueta, maceta esmaltada ── */
+.especial .plant {
+  scale: 1.07;
+}
+.especial .leaf {
+  filter: var(--leaf-base) var(--leaf-especial) var(--rim-gold);
+}
+.halo {
+  bottom: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 60%, var(--aura), transparent 62%);
+}
+.dense {
+  transform: scaleX(-1) scale(0.94);
+  transform-origin: 50% 100%;
+  opacity: 0.85;
+}
+.dense img {
+  width: 100%;
+  height: 100%;
+  filter: var(--leaf-base) saturate(1.3) brightness(0.9);
+}
+.emerald {
+  background: linear-gradient(180deg, rgba(40, 120, 70, 0.55), rgba(30, 90, 60, 0.4));
+  mix-blend-mode: color;
+}
+.gloss {
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 240, 0.55) 45%, transparent 58%);
+  mix-blend-mode: soft-light;
+}
+.lavender {
+  background: linear-gradient(180deg, #5a3a9a, #8a63c7);
+  mix-blend-mode: color;
+  opacity: 0.9;
+}
+.flower {
+  position: absolute !important;
+  right: auto !important;
+  bottom: auto !important;
+  height: auto !important;
+  translate: -50% -38%;
+  overflow: visible;
+}
+.petal {
+  fill: #ef9fb0;
+  stroke: #c9707f;
+  stroke-width: 0.35;
+}
+.petalIn {
+  fill: #f7c3cc;
+}
+.pistil {
+  fill: #f2cf6d;
+}
+:global(html[data-theme="dark"]) .flower {
+  filter: brightness(0.82);
+}
+.sparkles {
+  left: 0 !important;
+  translate: 0 0 !important;
+  inset: -10% -10% 20% -10%;
+  pointer-events: none;
+}
+.sparkles i {
+  position: absolute;
+  width: 1.1cqh;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(255, 236, 180, 1) 0 20%, rgba(255, 220, 150, 0.5) 35%, transparent 70%);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  animation: glint 3.5s ease-in-out infinite;
+}
+@keyframes glint {
+  0%,
+  100% {
+    opacity: 0;
+    scale: 0.4;
+  }
+  40% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+.especial.play .plant {
+  animation: bloom 1.7s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.especial.play .leaf {
+  animation: goldIn 1.7s ease both;
+}
+@keyframes bloom {
+  0% {
+    scale: 1;
+  }
+  60% {
+    scale: 1.11;
+  }
+  100% {
+    scale: 1.07;
+  }
+}
+@keyframes goldIn {
+  0% {
+    filter: var(--leaf-base);
+  }
+  45% {
+    filter: var(--leaf-base) var(--leaf-especial) drop-shadow(0 0 2.6cqh rgba(255, 220, 150, 0.9));
+  }
+  100% {
+    filter: var(--leaf-base) var(--leaf-especial) var(--rim-gold);
+  }
+}
+
+/* ── frasco ── */
+.jarBack,
+.jarFront {
+  bottom: 0;
+  border-radius: 0.6cqh 0.6cqh 2.2cqh 2.2cqh;
+}
+.jarBack {
+  background: linear-gradient(90deg, var(--glass-edge), var(--glass-body) 22% 78%, var(--glass-edge));
+}
+.jarFront {
+  box-shadow:
+    inset 0 0 0 0.25cqh var(--glass-edge),
+    inset 0.9cqh 0 0 -0.4cqh var(--glass-hi);
+  border-top: 0.35cqh solid var(--glass-rim);
+}
+.water {
+  bottom: 0.3cqh;
+  border-radius: 0 0 2cqh 2cqh;
+  background: linear-gradient(180deg, rgba(160, 205, 200, 0.55), rgba(120, 180, 175, 0.6));
+  border-top: 0.3cqh solid var(--water-line);
+  overflow: hidden;
+  z-index: 3;
+  mix-blend-mode: multiply;
+}
+:global(html[data-theme="dark"]) .water {
+  mix-blend-mode: screen;
+  background: linear-gradient(180deg, rgba(90, 140, 135, 0.4), rgba(70, 120, 115, 0.45));
+}
+.regada .water {
+  background: linear-gradient(180deg, rgba(150, 215, 220, 0.65), rgba(100, 180, 190, 0.65));
+}
+.play .water {
+  animation: fill 1.4s 0.2s cubic-bezier(0.3, 0.8, 0.3, 1) both;
+}
+@keyframes fill {
+  from {
+    height: 14%;
+  }
+}
+.water b {
+  position: absolute;
+  bottom: 0;
+  width: 0.8cqh;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 0.15cqh solid rgba(255, 255, 255, 0.8);
+  animation: bubble 2.4s ease-in infinite;
+}
+.water b:nth-child(1) { left: 30%; }
+.water b:nth-child(2) { left: 55%; animation-delay: 0.8s; }
+.water b:nth-child(3) { left: 70%; animation-delay: 1.5s; }
+@keyframes bubble {
+  from {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateY(-14cqh);
+    opacity: 0;
+  }
+}
+.ring {
+  height: 0;
+  border-top: 0.3cqh dashed rgba(150, 125, 85, 0.6);
+  z-index: 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dew,
+  .sparkles i,
+  .water b,
+  .regada.play .plant,
+  .regada.play .leaf,
+  .especial.play .plant,
+  .especial.play .leaf,
+  .play .drops i,
+  .play .water {
+    animation: none;
+  }
+}

@@ -95,7 +95,7 @@ const POT_SHAPE = {
 const RIM = 11; // semieje vertical de la boca, en unidades de un ancho de 100
 
 /** Maceta en dos capas: la boca (detrás de la planta) y el cuerpo (delante). */
-function Pot({ w, h, shape, material, layer }: { w: number; h: number; shape: keyof typeof POT_SHAPE; material: Material; layer: "back" | "front" }) {
+export function Pot({ w, h, shape, material, layer }: { w: number; h: number; shape: keyof typeof POT_SHAPE; material: Material; layer: "back" | "front" }) {
   const id = useUid();
   const vh = (100 * h) / w;
   const { taper, round } = POT_SHAPE[shape];
