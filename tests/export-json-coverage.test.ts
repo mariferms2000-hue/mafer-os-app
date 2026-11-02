@@ -23,6 +23,7 @@ vi.mock("@/lib/db", async () => {
           { key: "garden_special_plant", value: "p1", updatedAt: "x", __table: name },
           { key: "password_hash", value: "$2a$12$secreto", updatedAt: "x", __table: name },
           { key: "google_tokens", value: '{"refresh_token":"secreto"}', updatedAt: "x", __table: name },
+          { key: "stripe_api_key", value: "sk_secreto", updatedAt: "x", __table: name },
         ]
       : [{ id: `${name}-1`, __table: name }];
   return {
@@ -44,7 +45,7 @@ vi.mock("@/lib/db", async () => {
   };
 });
 
-const { exportAllJson, SCHEMA_VERSION } = await import("@/lib/export/exporters");
+const { exportAllJson, isSecretSettingKey, SCHEMA_VERSION } = await import("@/lib/export/exporters");
 
 const schemaTables = Object.values(schema)
   .filter((t) => is(t, PgTable))
@@ -103,7 +104,8 @@ describe("exportAllJson — respaldo completo", () => {
     const json = await exportAllJson();
     const texto = JSON.stringify(json);
     expect(texto).not.toContain("secreto");
-    expect(json.omittedSettings).toEqual(["password_hash", "google_tokens"]);
+    expect(json.omittedSettings).toEqual(["password_hash", "google_tokens", "stripe_api_key"]);
+    expect(json.omittedSettings.every((k) => typeof k === "string")).toBe(true);
   });
 
   it("conserva las claves de la v1 y sube la versión de esquema", async () => {
@@ -131,5 +133,32 @@ describe("exportAllJson — respaldo completo", () => {
 
   it("detecta las 26 tablas del schema", () => {
     expect(new Set(schemaTables).size).toBe(26);
+  });
+});
+
+describe("isSecretSettingKey — credenciales futuras en settings", () => {
+  it.each([
+    "password_hash", "google_tokens", // exclusión explícita
+    "admin_password", "passwordReset", "smtp-passwd", "wifi_passphrase",
+    "notion_token", "refreshToken", "github:tokens", "GOOGLE_ACCESS_TOKEN",
+    "webhook_secret", "clientSecret", "jwt.secrets",
+    "openai_api_key", "anthropicApiKey", "resend-api-keys", "apikey", "mapsApikey",
+    "ssh_private_key", "privateKey", "vapid_privatekey",
+    "google_credentials", "aws:credential",
+  ])("omite %s", (key) => {
+    expect(isSecretSettingKey(key)).toBe(true);
+  });
+
+  it.each([
+    // claves reales de hoy
+    "user_name", "google_calendar_id", "google_avisos_calendar_id", "avisos_activos", "avisos_prueba",
+    "sim_gcal_falla", "sim_gcal_ev:primary:abc123", "data_environment", "last_backup_at",
+    "last_obsidian_sync_at", "review:weekly-day", "energy:2026-11-02", "progress_reward_bag",
+    "garden_care_since", "garden_special_plant",
+    // coincidencias parciales que NO son credenciales
+    "tokenizer_mode", "secretaria_nombre", "keyboard_layout", "monkey_key", "api_version",
+    "private_notes", "passport_country", "key_dates", "credentialing_course",
+  ])("exporta %s", (key) => {
+    expect(isSecretSettingKey(key)).toBe(false);
   });
 });

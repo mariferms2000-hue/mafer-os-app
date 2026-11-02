@@ -13,6 +13,26 @@ export const SCHEMA_VERSION = 2;
  *  restaurar: contraseña nueva y volver a conectar Google. */
 export const SECRET_SETTING_KEYS = ["password_hash", "google_tokens"] as const;
 
+/* Segunda defensa para claves futuras: palabras completas de la clave (separadas
+ * por _ - : . espacio o camelCase), nunca subcadenas — «tokenizer» o «secretaria»
+ * se exportan; «stripe_api_key» o «webhookSecret» no. */
+const SECRET_WORDS = new Set([
+  "password", "passwords", "passwd", "passphrase", "token", "tokens", "secret", "secrets",
+  "credential", "credentials", "apikey", "apikeys", "privatekey", "privatekeys",
+]);
+const SECRET_PAIRS = [["api", "key"], ["api", "keys"], ["private", "key"], ["private", "keys"]];
+
+const keyWords = (key: string) =>
+  key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
+/** ¿Esta clave de settings es una credencial que no debe salir en el respaldo? */
+export function isSecretSettingKey(key: string): boolean {
+  if ((SECRET_SETTING_KEYS as readonly string[]).includes(key)) return true;
+  const words = keyWords(key);
+  if (words.some((w) => SECRET_WORDS.has(w))) return true;
+  return words.some((w, i) => SECRET_PAIRS.some(([a, b]) => w === a && words[i + 1] === b));
+}
+
 /** Postgres «undefined_table». Drizzle envuelve el error del driver en `cause`. */
 const isUndefinedTable = (e: unknown): boolean => {
   const err = e as { code?: string; cause?: unknown } | null;
@@ -68,8 +88,7 @@ export async function exportAllJson() {
     optional("gardenPlantCare", db.select().from(schema.gardenPlantCare)),
     optional("recentViews", db.select().from(schema.recentViews)),
   ]);
-  const secret = new Set<string>(SECRET_SETTING_KEYS);
-  const settings = allSettings.filter((s) => !secret.has(s.key));
+  const settings = allSettings.filter((s) => !isSecretSettingKey(s.key));
   return {
     app: "Mafer OS",
     schemaVersion: SCHEMA_VERSION,
@@ -87,7 +106,7 @@ export async function exportAllJson() {
       gardenPlantCare: gardenPlantCare.length, recentViews: recentViews.length, settings: settings.length,
     },
     /** Claves de settings omitidas a propósito (solo los nombres, nunca el valor). */
-    omittedSettings: allSettings.filter((s) => secret.has(s.key)).map((s) => s.key),
+    omittedSettings: allSettings.filter((s) => isSecretSettingKey(s.key)).map((s) => s.key),
     missingTables,
     data: {
       projects, boards, columns, cards, inbox, journal, learning, ideas,
