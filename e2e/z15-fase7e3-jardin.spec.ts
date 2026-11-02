@@ -110,6 +110,9 @@ async function cleanFixtures() {
     `CREATE TABLE IF NOT EXISTS _z15_respaldo AS SELECT * FROM focus_plants WHERE false;
      INSERT INTO focus_plants SELECT * FROM _z15_respaldo WHERE id NOT IN (SELECT id FROM focus_plants);
      DROP TABLE _z15_respaldo;
+     DELETE FROM garden_plant_care WHERE plant_id LIKE 'z15-%';
+     DELETE FROM garden_rewards WHERE id LIKE 'z15-%';
+     DELETE FROM settings WHERE key = 'garden_special_plant' AND value LIKE 'z15-%';
      DELETE FROM focus_plants WHERE id LIKE 'z15-%';`
   );
 }
@@ -243,6 +246,106 @@ test("el cuarto: las plantas posadas en las repisas abren su popup y el invernad
   await page.getByTestId("garden-room-current").click();
   await expect(page.getByTestId("plant-detail-modal")).toBeVisible();
   await expect(page.getByTestId("plant-detail-modal")).toContainText("Planta actual");
+});
+
+test("cada gota de sed abre exactamente su planta, también entre plantas vecinas", async ({ page }) => {
+  await seedCompletedFixtures();
+  const now = new Date().toISOString();
+  // todas con sed a la vez: el caso con más gotas juntas
+  await run(
+    `INSERT INTO garden_plant_care (plant_id, thirsty_since, updated_at)
+     SELECT id, '${now}', '${now}' FROM focus_plants WHERE id LIKE 'z15-%'
+     ON CONFLICT (plant_id) DO UPDATE SET thirsty_since = EXCLUDED.thirsty_since;`
+  );
+
+  await login(page);
+  await page.goto("/biblioteca/jardin");
+
+  const drops = page.getByTestId("garden-thirst-drop");
+  const n = await drops.count();
+  expect(n).toBeGreaterThan(0);
+  for (let i = 0; i < n; i++) {
+    const drop = drops.nth(i);
+    const id = await drop.getAttribute("data-plant-id");
+    if (id === "actual") continue;
+    const species = await page.locator(`[data-testid="garden-room-plant"][data-plant-id="${id}"] [data-species]`).first().getAttribute("data-species");
+    await drop.click();
+    await expect(page.getByTestId("plant-detail-modal").getByRole("heading")).toHaveText(SPECIES_LABEL[species!]);
+    await page.getByRole("button", { name: "Cerrar" }).click();
+    await expect(page.getByTestId("plant-detail-modal")).toHaveCount(0);
+  }
+
+  await run(`DELETE FROM garden_plant_care WHERE plant_id LIKE 'z15-%';`);
+});
+
+test("regar y fertilizar persisten al recargar, y Deshacer lo devuelve todo", async ({ page }) => {
+  await seedCompletedFixtures();
+  const now = new Date().toISOString();
+  const [a, b] = ["z15-planta-01", "z15-planta-02"];
+  await run(
+    `INSERT INTO garden_plant_care (plant_id, thirsty_since, updated_at) VALUES ('${a}', '${now}', '${now}'), ('${b}', '${now}', '${now}')
+     ON CONFLICT (plant_id) DO UPDATE SET thirsty_since = EXCLUDED.thirsty_since, fertilized_at = NULL;
+     INSERT INTO garden_rewards (id, item, earned_at) VALUES ('z15-r-agua', 'agua', '${now}'), ('z15-r-fert', 'fertilizante', '${now}')
+     ON CONFLICT (id) DO UPDATE SET used_at = NULL, used_on = NULL;`
+  );
+  const care = async (id: string) => (await q<{ thirsty_since: string | null; fertilized_at: string | null }>(`SELECT thirsty_since, fertilized_at FROM garden_plant_care WHERE plant_id = '${id}'`))[0];
+  const usedOn = async (rid: string) => (await q<{ used_on: string | null }>(`SELECT used_on FROM garden_rewards WHERE id = '${rid}'`))[0]?.used_on ?? null;
+  const drop = (id: string) => page.locator(`[data-testid="garden-thirst-drop"][data-plant-id="${id}"]`);
+
+  await login(page);
+  await page.goto("/biblioteca/jardin");
+
+  // Regar, Deshacer y volver a regar
+  await drop(a).click();
+  await page.getByTestId("garden-care-water").click();
+  await expect(drop(a)).toHaveCount(0);
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect(drop(a)).toHaveCount(1);
+  await expect.poll(() => usedOn("z15-r-agua")).toBeNull();
+  await drop(a).click();
+  await page.getByTestId("garden-care-water").click();
+  await expect(drop(a)).toHaveCount(0);
+  await page.reload();
+  await expect(drop(a)).toHaveCount(0);
+  expect((await care(a)).thirsty_since).toBeNull();
+  expect(await usedOn("z15-r-agua")).toBe(a);
+
+  // Fertilizar: queda como la única especial, también tras recargar
+  await drop(b).click();
+  await page.getByTestId("garden-care-fertilize").click();
+  await page.reload();
+  await expect(page.locator(`[data-testid="garden-room-plant"][data-special]`)).toHaveCount(1);
+  await expect(page.locator(`[data-testid="garden-room-plant"][data-plant-id="${b}"]`)).toHaveAttribute("data-special", "true");
+  expect((await care(b)).fertilized_at).not.toBeNull();
+  expect(await usedOn("z15-r-fert")).toBe(b);
+
+  // Los minutos de las plantas no cambian
+  const mins = await q<{ accumulated_minutes: number }>(`SELECT accumulated_minutes FROM focus_plants WHERE id IN ('${a}', '${b}')`);
+  expect(mins.every((m) => m.accumulated_minutes === 150)).toBe(true);
+});
+
+test("Deshacer la fertilización devuelve el Fertilizante y quita la especial", async ({ page }) => {
+  await seedCompletedFixtures();
+  const now = new Date().toISOString();
+  const b = "z15-planta-02";
+  await run(
+    `DELETE FROM settings WHERE key = 'garden_special_plant';
+     INSERT INTO garden_plant_care (plant_id, thirsty_since, updated_at) VALUES ('${b}', '${now}', '${now}')
+     ON CONFLICT (plant_id) DO UPDATE SET thirsty_since = EXCLUDED.thirsty_since, fertilized_at = NULL;
+     INSERT INTO garden_rewards (id, item, earned_at) VALUES ('z15-r-fert', 'fertilizante', '${now}')
+     ON CONFLICT (id) DO UPDATE SET used_at = NULL, used_on = NULL;`
+  );
+  await login(page);
+  await page.goto("/biblioteca/jardin");
+  await page.locator(`[data-testid="garden-thirst-drop"][data-plant-id="${b}"]`).click();
+  await page.getByTestId("garden-care-fertilize").click();
+  await expect(page.locator(`[data-testid="garden-room-plant"][data-plant-id="${b}"]`)).toHaveAttribute("data-special", "true");
+  await page.getByRole("button", { name: "Deshacer" }).click();
+  await expect.poll(async () => (await q(`SELECT 1 FROM garden_rewards WHERE id = 'z15-r-fert' AND used_at IS NULL`)).length).toBe(1);
+  await page.reload();
+  await expect(page.locator(`[data-testid="garden-room-plant"][data-special]`)).toHaveCount(0);
+  // vuelve a tener la sed que tenía
+  await expect(page.locator(`[data-testid="garden-thirst-drop"][data-plant-id="${b}"]`)).toHaveCount(1);
 });
 
 test("«Enfocarme» abre el overlay existente; cerrarlo devuelve al jardín sin tocar nada", async ({ page }) => {

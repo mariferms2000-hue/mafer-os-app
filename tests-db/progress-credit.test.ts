@@ -136,7 +136,7 @@ describe("recompensas", () => {
     expect(all[0]).toMatchObject({ id: res!.reward!.id, item: res!.reward!.item, usedAt: null });
     const credits = await db.select().from(schema.progressCredits).where(inArray(schema.progressCredits.cardId, [a, b, c]));
     expect(credits.every((cr) => cr.rewardId === res!.reward!.id)).toBe(true);
-    expect(await bag()).toHaveLength(7);
+    expect(await bag()).toHaveLength(5);
   });
 
   it("un punto ya gastado no se quita al reabrir y no se vuelve a ganar", async () => {
@@ -206,12 +206,12 @@ describe("recompensas", () => {
     expect(await db.select().from(schema.progressCredits)).toHaveLength(3);
   });
 
-  it("8 recompensas seguidas con el azar real dan 6 de agua y 2 de fertilizante", async () => {
-    for (let i = 0; i < 24; i++) await creditCompletion(await tarea());
+  it("6 recompensas seguidas con el azar real dan 5 de agua y 1 de fertilizante", async () => {
+    for (let i = 0; i < 18; i++) await creditCompletion(await tarea());
     const all = await rewards();
-    expect(all).toHaveLength(8);
-    expect(all.filter((r) => r.item === "agua")).toHaveLength(6);
-    expect(all.filter((r) => r.item === "fertilizante")).toHaveLength(2);
+    expect(all).toHaveLength(6);
+    expect(all.filter((r) => r.item === "agua")).toHaveLength(5);
+    expect(all.filter((r) => r.item === "fertilizante")).toHaveLength(1);
     expect(await bag()).toHaveLength(0);
   });
 });

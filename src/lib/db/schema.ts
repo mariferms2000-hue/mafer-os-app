@@ -380,11 +380,32 @@ export const progressCredits = pgTable("progress_credits", {
 }, (table) => [index("idx_progress_credits_reward").on(table.rewardId)]);
 
 /** Recompensas del Jardín: inventario (used_at null) e historial en una tabla.
- *  item: agua | fertilizante (después, cosmetico:<clave>). used_at queda
- *  siempre null hasta que exista «usar» (fase posterior). */
+ *  item: agua | fertilizante (después, cosmetico:<clave>).
+ *  - used_at: cuándo se usó (F4); null = sigue en el inventario.
+ *  - used_on: la planta en la que se usó (referencia lógica a focus_plants, sin
+ *    FK). Sirve para Deshacer y para el historial; null en las no usadas. */
 export const gardenRewards = pgTable("garden_rewards", {
   id: text("id").primaryKey(),
   item: text("item").notNull(),
   earnedAt: text("earned_at").notNull(),
   usedAt: text("used_at"),
+  usedOn: text("used_on"),
+});
+
+/** Cuidado de las plantas del Jardín (F4). Tabla aditiva: focus_plants no
+ *  cambia. Una fila por planta que alguna vez tuvo sed, se regó o se fertilizó;
+ *  sin fila = hidratada y sin fertilizar.
+ *  - thirsty_since: desde cuándo tiene sed; null = hidratada. Nunca empeora ni
+ *    afecta minutos o etapas.
+ *  - watered_at: último riego (ordena a quién le toca la próxima sed).
+ *  - fertilized_at: la planta (completada) ya desbloqueó su versión especial;
+ *    queda desbloqueada para siempre. Cuál de las fertilizadas se luce como
+ *    especial vive en settings (`garden_special_plant`): una sola a la vez.
+ *  Referencia lógica a focus_plants (sin FK), como progress_credits. */
+export const gardenPlantCare = pgTable("garden_plant_care", {
+  plantId: text("plant_id").primaryKey(),
+  thirstySince: text("thirsty_since"),
+  wateredAt: text("watered_at"),
+  fertilizedAt: text("fertilized_at"),
+  updatedAt: text("updated_at").notNull(),
 });

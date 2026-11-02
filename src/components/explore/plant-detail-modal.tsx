@@ -9,8 +9,9 @@ import type { GardenPlant } from "@/lib/queries/focus";
 
 /* Popup de detalle de una planta del Jardín de enfoque — abre desde Mi jardín
    al tocar la tarjeta de la planta actual o cualquiera del grid de completadas.
-   Solo lectura: la misma información que ya se calcula en esa página, en un
-   layout centrado con el arte de la planta más grande. name/note de
+   La misma información que ya se calcula en esa página, en un layout centrado
+   con el arte de la planta más grande; debajo, las acciones de cuidado que el
+   Jardín le pase (F4). name/note de
    focus_plants quedan fuera (fuera de la interfaz v1 en el schema). */
 
 export type PlantDetailData = GardenPlant & {
@@ -32,7 +33,9 @@ function fecha(iso: string | null): string {
   return new Date(iso).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
 }
 
-export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; onClose: () => void }) {
+/** `children` = acciones de cuidado (F4: regar, fertilizar, lucir como especial),
+ *  que el Jardín pinta debajo de la información de la planta. */
+export function PlantDetailModal({ plant, onClose, children }: { plant: PlantDetailData; onClose: () => void; children?: React.ReactNode }) {
   return (
     <div
       className="fixed inset-0 z-[55] overlay-screen flex items-end md:items-center justify-center px-3 pb-0 md:p-6"
@@ -71,6 +74,7 @@ export function PlantDetailModal({ plant, onClose }: { plant: PlantDetailData; o
               : `La cuidas desde el ${fecha(plant.startedAt)} · ${plant.accumulatedMinutes} min de enfoque`}
           </p>
         </div>
+        {children}
       </div>
     </div>
   );

@@ -198,7 +198,7 @@ test("capturas: inventario con recursos y tarjeta de recompensa, escritorio e iP
       const box = page.getByTestId("garden-rewards");
       await expect(box.getByTestId("garden-inventory-agua")).toHaveAttribute("data-count", "3");
       await expect(box.getByTestId("garden-inventory-fertilizante")).toHaveAttribute("data-count", "1");
-      await expect(box.getByTestId("garden-inventory-note")).toHaveText("Pronto podrás usarlas en tus plantas.");
+      await expect(box.getByTestId("garden-inventory-note")).toHaveText("Toca una planta con sed para regarla, o una completada para fertilizarla.");
       await centrar(page, "garden-rewards");
       await shot(page, `05-inventario-${nombre}`);
 

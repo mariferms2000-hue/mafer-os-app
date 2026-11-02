@@ -6,8 +6,8 @@ import { REWARD_ICON } from "@/components/progress/reward-icon";
 import { ClearRewardParam } from "./clear-reward-param";
 
 /** «Recompensas del jardín» (F3): el camino hacia la próxima recompensa y el
- *  inventario. Solo se muestra: usar Agua o Fertilizante llega en una fase
- *  posterior. `highlight` = el recurso recién ganado al entrar desde «Ver
+ *  inventario. El Agua y el Fertilizante se usan tocando una planta (F4).
+ *  `highlight` = el recurso recién ganado al entrar desde «Ver
  *  jardín»: su ficha brilla una vez. */
 export function GardenRewards({ progress, highlight }: { progress: ProgressOverview; highlight?: string | null }) {
   const counts = new Map(progress.inventory.map((r) => [r.item, r.count]));
@@ -59,7 +59,7 @@ export function GardenRewards({ progress, highlight }: { progress: ProgressOverv
             })}
           </ul>
           <p className="intro-italic text-[13px] mt-3" data-testid={hasAny ? "garden-inventory-note" : "garden-inventory-empty"}>
-            {hasAny ? "Pronto podrás usarlas en tus plantas." : `Completa ${progress.goal} tareas para tu primera recompensa.`}
+            {hasAny ? "Toca una planta con sed para regarla, o una completada para fertilizarla." : `Completa ${progress.goal} tareas para tu primera recompensa.`}
           </p>
         </div>
       </div>
