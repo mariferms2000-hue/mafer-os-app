@@ -40,13 +40,19 @@ export type SceneHero = {
 /** Animaciones de un instante: la planta recién regada o recién fertilizada. */
 export type SceneMoment = { id: string; kind: "agua" | "especial" } | null;
 
-/** Filtro nocturno que vuelve transparente el blanco de las láminas. Se monta
- *  una sola vez por página, junto a las escenas. */
+/** Filtros que vuelven transparente el blanco de las láminas (de noche, todo lo
+ *  claro; de día, solo el papel). Se montan una sola vez por página. */
 export function GardenFilters() {
   return (
     <svg width="0" height="0" className={s.defs} aria-hidden>
       <filter id="garden-dewhite" colorInterpolationFilters="sRGB">
         <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -3.33 -3.33 -3.33 0 9.1" result="m" />
+        <feComposite in="SourceGraphic" in2="m" operator="in" />
+      </filter>
+      {/* De día, solo el papel casi blanco (lavados, restos de fondo) se vuelve
+          transparente; las hojas pálidas se conservan. */}
+      <filter id="garden-dewhite-soft" colorInterpolationFilters="sRGB">
+        <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -4 -4 -4 0 11.4" result="m" />
         <feComposite in="SourceGraphic" in2="m" operator="in" />
       </filter>
     </svg>

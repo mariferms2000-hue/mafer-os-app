@@ -69,13 +69,15 @@ export const DESKTOP_SCENE: SceneTemplate = {
   mystery: { x: 1000, y: 955, z: -0.12 },
   slots: [
     { x: 1110, y: 735, z: 0.55, accepts: ["suelo", "alta"], glow: "up" },
-    { x: 1390, y: 760, z: 0.4, accepts: TALL, glow: "up" },
+    // Las más altas van al fondo: de cerca sus láminas se ven borrosas.
+    { x: 1390, y: 748, z: 0.58, accepts: TALL, glow: "up" },
     { x: 250, y: 772, z: 0.26, accepts: SMALL, raised: true },
     { x: 395, y: 772, z: 0.26, accepts: SMALL, raised: true },
     { x: 520, y: 772, z: 0.26, accepts: SMALL, raised: true },
     { x: 1210, y: 915, z: 0, accepts: ["pedestal", "mesa", "mini"], support: stand(), glow: "pool" },
     { x: 610, y: 330, z: 0.3, accepts: ["colgante"], alsoSpecies: ["helecho"], support: hang },
-    { x: 1490, y: 960, z: -0.08, accepts: ["pedestal", "suelo"], glow: "up" },
+    // Más atrás que antes: una palmera en primer plano se veía borrosa y tapaba la escena.
+    { x: 1470, y: 900, z: 0.2, accepts: ["pedestal", "suelo"], glow: "up" },
     { x: 70, y: 745, z: 0.5, accepts: TALL, glow: "up" },
   ],
 };
