@@ -51,7 +51,7 @@ describe("focus-sound — sin entorno de navegador (SSR / Node)", () => {
   });
 
   it("FOCUS_SOUND_OPTIONS trae los cuatro ringtones con id, label y src únicos", () => {
-    expect(FOCUS_SOUND_OPTIONS).toHaveLength(4);
+    expect(FOCUS_SOUND_OPTIONS).toHaveLength(5);
     const ids = FOCUS_SOUND_OPTIONS.map((o) => o.id);
     expect(new Set(ids).size).toBe(4);
     for (const o of FOCUS_SOUND_OPTIONS) {
