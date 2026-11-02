@@ -1,0 +1,680 @@
+/* El invernadero del Jardín (F4 · A2 Luz de invernadero). Claro de día, noche
+   con guirnaldas y lámparas en el tema oscuro de la app. */
+
+.garden {
+  /* materiales de maceta */
+  --m-marfil-hi: #f4f0e7;
+  --m-marfil-mid: #e5dfd2;
+  --m-marfil-lo: #c0b7a5;
+  --m-barro-hi: #d8ab90;
+  --m-barro-mid: #bf8a6d;
+  --m-barro-lo: #8b5f4a;
+  --m-salvia-hi: #cfdbc6;
+  --m-salvia-mid: #aabca1;
+  --m-salvia-lo: #6f8468;
+  --m-piedra-hi: #d4d1c9;
+  --m-piedra-mid: #bebbb2;
+  --m-piedra-lo: #918e85;
+  --m-esmalte-hi: #d6e6dc;
+  --m-esmalte-mid: #9fc0b0;
+  --m-esmalte-lo: #5d8574;
+  --m-esmalte-rim: #d9b876;
+  --soil-hi: #5b4737;
+  --soil-lo: #2f251c;
+  --plinth-top: #f6f2ea;
+  --plinth-hi: #f1ece2;
+  --plinth-mid: #e2dbcd;
+  --plinth-lo: #c3baa8;
+  --iron: #3d4a3a;
+  --wood: #b49470;
+  --wood-top: #cdb08c;
+  --wood-lo: #8a6f50;
+  --glass-body: rgba(236, 244, 238, 0.32);
+  --glass-edge: rgba(150, 176, 160, 0.55);
+  --glass-rim: rgba(255, 255, 255, 0.85);
+  --glass-hi: rgba(255, 255, 255, 0.75);
+  --water: rgba(182, 210, 200, 0.42);
+  --water-line: rgba(255, 255, 255, 0.7);
+  --contact: rgba(58, 52, 36, 0.3);
+  /* Más presencia para las láminas acuareladas: color, contraste y un borde
+     apenas definido que separa la silueta del fondo. */
+  --leaf-filter: url(#garden-dewhite-soft) saturate(1.12) contrast(1.08) drop-shadow(0 0 0.35px rgba(46, 58, 38, 0.6));
+  --hero-filter: url(#garden-dewhite-soft) saturate(1.14) contrast(1.09) drop-shadow(0 0 0.35px rgba(46, 58, 38, 0.6));
+  --lit-filter: var(--leaf-filter);
+  --fresh-filter: saturate(1.45) brightness(1.03) contrast(1.12) drop-shadow(0 0 0.5cqh rgba(130, 205, 215, 0.4));
+  --special-filter: saturate(1.3) contrast(1.12) brightness(1.02) drop-shadow(0 0 1.1cqh rgba(255, 210, 130, 0.6));
+  --tips: linear-gradient(180deg, rgba(150, 96, 36, 0.75) 0%, rgba(170, 120, 50, 0.35) 30%, transparent 55%);
+  --soil-ok: radial-gradient(ellipse at 50% 40%, #5b4737, #2f251c);
+  --soil-dry: radial-gradient(ellipse at 50% 40%, #b49a78, #8a7155);
+  --soil-wet: radial-gradient(ellipse at 42% 35%, #5a4535 0 10%, #2f2219 40%, #1c140d);
+  --leaf-shade: linear-gradient(180deg, rgba(40, 52, 34, 0) 45%, rgba(40, 52, 34, 0.28) 100%);
+  --hero-shade: var(--leaf-shade);
+  --thirst-filter: saturate(0.28) sepia(0.6) hue-rotate(-14deg) brightness(1.04) contrast(0.82);
+  --z-bright: 0.05;
+  --z-sat: 0.3;
+  --vignette: radial-gradient(120% 90% at 50% 40%, transparent 60%, rgba(60, 54, 36, 0.12) 100%);
+  --aura: rgba(255, 233, 184, 0.55);
+  --badge-bg: rgba(255, 254, 251, 0.92);
+  --badge-ink: #4f7a8a;
+
+  /* A2 · día */
+  --wall-top: #e4ddcd;
+  --wall-low: #d6cdb9;
+  --roof-top: #dfe7da;
+  --sky-top: #edf1e6;
+  --sky-low: #f6f1e2;
+  --outside: #b8c9ad;
+  --outside-low: #9fb394;
+  --frame: #3f4d3c;
+  --floor-far: #d2c8b4;
+  --floor-near: #e2d9c7;
+  --floor-ao: rgba(90, 76, 48, 0.16);
+  --joint: rgba(110, 96, 70, 0.14);
+  --sun: rgba(255, 244, 214, 0.62);
+  --beam: rgba(255, 246, 220, 0.42);
+  --lamp: rgba(255, 248, 232, 0.4);
+  --mote: rgba(255, 250, 230, 0.9);
+  --lamp-soft: rgba(255, 248, 232, 0);
+  --cord: #3a3a30;
+  --bulb: #fff1d2;
+  --cast-t: skewX(-46deg) scaleY(-0.3);
+  --cast: 0.14;
+}
+
+/* noche */
+:global(html[data-theme="dark"]) .garden {
+  --m-marfil-hi: #6f6c62;
+  --m-marfil-mid: #55534b;
+  --m-marfil-lo: #2c2b26;
+  --m-barro-hi: #8d6553;
+  --m-barro-mid: #6c4b3d;
+  --m-barro-lo: #382720;
+  --m-salvia-hi: #7b8f73;
+  --m-salvia-mid: #5a6b53;
+  --m-salvia-lo: #2c372a;
+  --m-piedra-hi: #63615b;
+  --m-piedra-mid: #4b4a45;
+  --m-piedra-lo: #282725;
+  --m-esmalte-hi: #7fa597;
+  --m-esmalte-mid: #557a6c;
+  --m-esmalte-lo: #24392f;
+  --m-esmalte-rim: #b89a5c;
+  --soil-hi: #2b2219;
+  --soil-lo: #120e0a;
+  --plinth-top: #6a6a5d;
+  --plinth-hi: #4f5045;
+  --plinth-mid: #3d3e35;
+  --plinth-lo: #24251f;
+  --iron: #11140f;
+  --wood: #5c4a37;
+  --wood-top: #6e5a44;
+  --wood-lo: #3a2e22;
+  --glass-body: rgba(150, 180, 175, 0.08);
+  --glass-edge: rgba(170, 200, 190, 0.32);
+  --glass-rim: rgba(220, 235, 230, 0.4);
+  --glass-hi: rgba(230, 240, 235, 0.3);
+  --water: rgba(90, 130, 125, 0.32);
+  --water-line: rgba(200, 225, 220, 0.35);
+  --contact: rgba(0, 0, 0, 0.55);
+  /* De noche, el papel blanco de las láminas (lavados, brillos) se vuelve
+     transparente en vez de verse como un halo gris (#garden-dewhite). */
+  --leaf-filter: url(#garden-dewhite) brightness(0.78) saturate(1.1) contrast(1.08);
+  --lit-filter: url(#garden-dewhite) brightness(0.88) saturate(1.12) contrast(1.06) sepia(0.06);
+  --hero-filter: url(#garden-dewhite) brightness(0.86) saturate(1.14) contrast(1.06) sepia(0.12);
+  --fresh-filter: saturate(1.45) brightness(1.15) contrast(1.08) drop-shadow(0 0 0.9cqh rgba(130, 205, 215, 0.35));
+  --special-filter: saturate(1.3) brightness(1.08) contrast(1.1) drop-shadow(0 0 1.1cqh rgba(255, 200, 120, 0.35));
+  --soil-dry: radial-gradient(ellipse at 50% 40%, #7a6650, #54453a);
+  --soil-ok: radial-gradient(ellipse at 50% 40%, #2b2219, #120e0a);
+  --soil-wet: radial-gradient(ellipse at 42% 35%, #3a2d23 0 10%, #18110b 40%, #0d0906);
+  --leaf-shade: linear-gradient(180deg, rgba(40, 70, 60, 0.32) 0%, rgba(8, 16, 13, 0.6) 100%);
+  --hero-shade: linear-gradient(180deg, rgba(255, 214, 160, 0) 0%, rgba(8, 16, 13, 0.4) 100%);
+  --thirst-filter: saturate(0.25) sepia(0.55) hue-rotate(-14deg) brightness(0.82) contrast(0.85);
+  --z-bright: -0.42;
+  --z-sat: 0.4;
+  --vignette: radial-gradient(120% 90% at 50% 40%, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+  --aura: rgba(230, 200, 140, 0.2);
+  --badge-bg: rgba(22, 27, 19, 0.88);
+  --badge-ink: #9cc6d2;
+
+  --wall-top: #262b21;
+  --wall-low: #1d2119;
+  --roof-top: #070c0e;
+  --sky-top: #0d1517;
+  --sky-low: #182325;
+  --outside: #1b2821;
+  --outside-low: #141e18;
+  --frame: #2c3729;
+  --floor-far: #171b14;
+  --floor-near: #1f241b;
+  --floor-ao: rgba(0, 0, 0, 0.35);
+  --joint: rgba(255, 255, 255, 0.035);
+  --sun: rgba(0, 0, 0, 0);
+  --beam: rgba(0, 0, 0, 0);
+  --lamp: rgba(255, 190, 115, 0.5);
+  --mote: rgba(0, 0, 0, 0);
+  --lamp-soft: rgba(255, 196, 128, 0.3);
+  --cord: #12150f;
+  --bulb: #ffe0a8;
+  --cast-t: skewX(0deg) scaleY(-0.22);
+  --cast: 0.12;
+}
+
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* ── escena ── */
+.scene {
+  position: relative;
+  width: 100%;
+  /* clip, no hidden: al enfocar una planta del borde, el navegador no puede
+     desplazar la escena (con hidden sí podía, y se descuadraba). */
+  overflow: clip;
+  container-type: size;
+  isolation: isolate;
+  background: var(--floor-near);
+}
+.arch,
+.atmos {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.arch {
+  z-index: 0;
+}
+.atmos {
+  z-index: 1500;
+  mix-blend-mode: screen;
+}
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1700;
+  pointer-events: none;
+  background: var(--vignette);
+}
+.sunOnly {
+  opacity: 1;
+}
+.nightOnly,
+.lampOnly {
+  opacity: 0;
+}
+:global(html[data-theme="dark"]) .sunOnly {
+  opacity: 0;
+}
+:global(html[data-theme="dark"]) .nightOnly,
+:global(html[data-theme="dark"]) .lampOnly {
+  opacity: 1;
+}
+
+/* ── piezas ── */
+/* La planta no recibe toques: solo su botón (.pick, el centro de la mata) y su
+   gota. Una lámina ancha nunca tapa a la planta vecina. */
+.slot {
+  position: absolute;
+  translate: -50% 0;
+  pointer-events: none;
+  filter: saturate(calc(1 - var(--z) * var(--z-sat))) brightness(calc(1 + var(--z) * var(--z-bright)));
+}
+.unit > .hitArea {
+  bottom: 0;
+}
+.pick {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 14px;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.pick:focus-visible {
+  outline: 2px solid var(--color-border-focus, #7c9473);
+  outline-offset: 4px;
+}
+.still {
+  cursor: default;
+}
+.unit {
+  position: relative;
+  pointer-events: none;
+}
+.unit > * {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+}
+.layer {
+  line-height: 0;
+}
+.pot,
+.support {
+  display: block;
+}
+.support {
+  bottom: 0;
+}
+.cut {
+  clip-path: inset(-100% -100% 0 -100%);
+}
+.cut > .plant {
+  position: absolute;
+  left: 0;
+}
+.plant {
+  transform-origin: 50% 100%;
+  transition: transform 0.6s ease, filter 0.6s ease;
+}
+.lamina {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.leaf {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: var(--leaf-filter);
+  user-select: none;
+  transition: filter 0.8s ease;
+}
+.lit .leaf {
+  filter: var(--lit-filter);
+}
+.hero .leaf {
+  filter: var(--hero-filter);
+}
+.leafShade {
+  position: absolute;
+  inset: 0;
+  background: var(--leaf-shade);
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mix-blend-mode: multiply;
+}
+.hero .leafShade {
+  background: var(--hero-shade);
+}
+.contact {
+  bottom: 0;
+  translate: -50% 45%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--contact), transparent);
+}
+.cast {
+  bottom: 0;
+  transform-origin: 50% 100%;
+  transform: var(--cast-t);
+  opacity: var(--cast);
+  filter: brightness(0) blur(1.6px);
+}
+.cast img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.rope {
+  width: 1px;
+  height: 200cqh;
+  background: var(--iron);
+  opacity: 0.6;
+}
+
+/* ── sed: caída, encogida, seca, puntas cafés, tierra clara, una hoja caída;
+      nunca empeora ── */
+.thirsty .plant {
+  transform: perspective(520px) rotateX(26deg) scaleY(0.8) scaleX(1.05) skewX(-2.5deg);
+}
+.thirsty .leaf {
+  filter: var(--leaf-filter) var(--thirst-filter);
+}
+.thirsty.hero .leaf {
+  filter: var(--hero-filter) var(--thirst-filter);
+}
+.tips,
+.freshTint,
+.dew {
+  position: absolute;
+  inset: 0;
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  pointer-events: none;
+}
+.tips {
+  background: var(--tips);
+  mix-blend-mode: multiply;
+}
+.soil {
+  border-radius: 50%;
+  background: var(--soil-ok);
+  transition: background 0.8s ease;
+}
+.thirsty .soil {
+  background: var(--soil-dry);
+}
+.fallen {
+  bottom: -0.4cqh;
+  translate: 0 0 !important;
+  aspect-ratio: 2 / 1;
+  border-radius: 80% 10% 80% 10%;
+  background: linear-gradient(135deg, #c9a46a, #9a7444);
+  rotate: -14deg;
+  opacity: 0.9;
+}
+:global(html[data-theme="dark"]) .fallen {
+  filter: brightness(0.6);
+}
+.residue {
+  stroke: rgba(150, 125, 85, 0.65);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 2.5;
+}
+
+/* ── recién regada: color vivo, rocío y tierra mojada (FRESH_HOURS) ── */
+.fresh .leaf {
+  filter: var(--leaf-filter) var(--fresh-filter);
+}
+.fresh .soil {
+  background: var(--soil-wet);
+}
+.freshTint {
+  background: linear-gradient(180deg, rgba(90, 170, 110, 0.35), rgba(60, 140, 90, 0.2));
+  mix-blend-mode: color;
+}
+.dew {
+  background-image:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 1) 0 0.35cqh, rgba(170, 225, 235, 0.8) 0.5cqh, transparent 0.8cqh),
+    radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.95) 0 0.25cqh, rgba(170, 225, 235, 0.7) 0.4cqh, transparent 0.65cqh);
+  background-size: 17% 14%, 23% 19%;
+  mix-blend-mode: screen;
+  opacity: 0.7;
+  animation: twinkle 3.2s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+.bubble {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 0.8;
+  animation: bubble 2.4s ease-in infinite;
+}
+@keyframes bubble {
+  from {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+}
+.dropAt {
+  position: absolute;
+  translate: -50% 0;
+  line-height: 0;
+}
+.badge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: max(22px, 4.2cqh);
+  height: max(22px, 4.2cqh);
+  border-radius: 999px;
+  background: var(--badge-bg);
+  color: var(--badge-ink);
+  box-shadow: 0 2px 8px rgba(30, 40, 30, 0.18);
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Zona tocable algo mayor que la gota visible. */
+.badge::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+}
+.badge:focus-visible {
+  outline: 2px solid var(--color-border-focus, #7c9473);
+  outline-offset: 2px;
+}
+.badge svg {
+  width: 58%;
+  height: 58%;
+}
+
+/* ── riego: gotas, se yergue y recupera el color ── */
+.revive .plant {
+  animation: perk 1.6s 0.3s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.revive .leaf {
+  animation: reviveColor 1.6s 0.3s ease both;
+}
+@keyframes perk {
+  0% {
+    transform: perspective(520px) rotateX(26deg) scaleY(0.8) scaleX(1.05) skewX(-2.5deg);
+  }
+  55% {
+    transform: perspective(520px) rotateX(-3deg) scaleY(1.05);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes reviveColor {
+  0% {
+    filter: var(--leaf-filter) var(--thirst-filter);
+  }
+  100% {
+    filter: var(--leaf-filter) var(--fresh-filter);
+  }
+}
+.sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 240, 0.85) 50%, transparent 65%) 100% 0 / 300% 100% no-repeat;
+  mix-blend-mode: soft-light;
+  animation: sweep 1.3s 0.35s ease-out both;
+}
+@keyframes sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+.drops {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  bottom: 60%;
+  width: 60%;
+  height: 40%;
+  translate: -50% 0;
+}
+.drops i {
+  position: absolute;
+  top: 0;
+  width: max(4px, 0.9cqh);
+  aspect-ratio: 0.7;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: linear-gradient(180deg, rgba(220, 240, 245, 0.95), rgba(140, 190, 205, 0.9));
+  opacity: 0;
+  animation: fall 0.9s ease-in both;
+}
+.drops i:nth-child(1) { left: 18%; animation-delay: 0s; }
+.drops i:nth-child(2) { left: 42%; animation-delay: 0.12s; }
+.drops i:nth-child(3) { left: 66%; animation-delay: 0.05s; }
+.drops i:nth-child(4) { left: 30%; animation-delay: 0.26s; }
+.drops i:nth-child(5) { left: 80%; animation-delay: 0.2s; }
+@keyframes fall {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(14cqh);
+    opacity: 0;
+  }
+}
+
+/* ── especial (provisional hasta su lámina propia): borde dorado que abraza la
+      silueta, aura cálida y maceta esmaltada ── */
+.special .leaf {
+  filter: var(--leaf-filter) var(--special-filter);
+}
+.aura {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 58%, var(--aura), transparent 66%);
+  animation: breathe 6s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.75;
+    scale: 1;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.04;
+  }
+}
+.justSpecial .plant {
+  animation: bloomIn 1.7s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.justSpecial .leaf {
+  animation: goldIn 1.7s ease;
+}
+@keyframes bloomIn {
+  0% {
+    scale: 1;
+  }
+  60% {
+    scale: 1.08;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes goldIn {
+  0% {
+    filter: var(--leaf-filter);
+  }
+  45% {
+    filter: var(--leaf-filter) var(--special-filter) drop-shadow(0 0 2.6cqh rgba(255, 220, 150, 0.9));
+  }
+  100% {
+    filter: var(--leaf-filter) var(--special-filter);
+  }
+}
+
+/* ── próxima planta ── */
+.packet {
+  position: absolute;
+  translate: 0 0;
+  left: auto;
+  border-radius: 2px;
+  background: linear-gradient(170deg, #f6f1e4, #e7dfcd);
+  box-shadow: 0 1px 3px rgba(60, 50, 30, 0.25);
+  rotate: -9deg;
+  display: grid;
+  place-items: center;
+  border-top: 2px solid #c9b896;
+}
+.packet i {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 2.2cqh;
+  color: #7c9473;
+}
+:global(html[data-theme="dark"]) .packet {
+  background: linear-gradient(170deg, #4f4c42, #3b3932);
+  border-top-color: #6b5f48;
+}
+:global(html[data-theme="dark"]) .packet i {
+  color: #a5c294;
+}
+
+.motes circle {
+  animation: drift 14s linear infinite;
+}
+@keyframes drift {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(40px, 70px);
+    opacity: 0;
+  }
+}
+
+/* ── ficha de la planta actual sobre la escena (escritorio) ── */
+.captionOver {
+  position: absolute;
+  z-index: 1800;
+  left: 2.4%;
+  top: 4%;
+  max-width: min(46%, 320px);
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-paper, #fffefb) 80%, transparent);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+:global(html[data-theme="dark"]) .captionOver {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motes circle,
+  .aura,
+  .revive .plant,
+  .revive .leaf,
+  .justSpecial .plant,
+  .justSpecial .leaf,
+  .dew,
+  .bubble,
+  .sheen,
+  .drops i {
+    animation: none;
+  }
+  .drops {
+    display: none;
+  }
+  .plant,
+  .leaf {
+    transition: none;
+  }
+}

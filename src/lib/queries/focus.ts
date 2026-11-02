@@ -1,4 +1,4 @@
-import { count, desc, eq, isNull, isNotNull } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, isNotNull } from "drizzle-orm";
 import { db, today, schema } from "@/lib/db";
 import { plantStage, nextStageInfo, type StageKey } from "@/lib/focus-logic";
 import { getTodayData } from "@/lib/queries/today";
@@ -178,4 +178,24 @@ export async function getFocusOverview(): Promise<FocusOverview> {
     todayMinutes,
     garden,
   };
+}
+
+/** Plantas completadas por id (F4): la especial y las que tienen sed pueden ser
+ *  antiguas y no estar entre las más recientes, pero la escena las muestra
+ *  primero. Ids desconocidos se ignoran. */
+export async function getCompletedPlantsByIds(ids: string[]): Promise<GardenPlant[]> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .select()
+    .from(schema.focusPlants)
+    .where(and(inArray(schema.focusPlants.id, ids), isNotNull(schema.focusPlants.completedAt)));
+  return rows.map((p) => ({
+    id: p.id,
+    species: p.species,
+    visualSeed: p.visualSeed,
+    rendererVersion: p.rendererVersion,
+    accumulatedMinutes: p.accumulatedMinutes,
+    startedAt: p.startedAt,
+    completedAt: p.completedAt,
+  }));
 }

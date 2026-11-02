@@ -52,12 +52,12 @@ describe("meta", () => {
 });
 
 describe("bolsa de recompensas", () => {
-  it("una bolsa completa trae exactamente 6 de agua y 2 de fertilizante", () => {
-    expect(REWARD_BAG).toEqual({ agua: 6, fertilizante: 2 });
+  it("una bolsa completa trae exactamente 5 de agua y 1 de fertilizante (F4)", () => {
+    expect(REWARD_BAG).toEqual({ agua: 5, fertilizante: 1 });
     const bag = fullBag();
-    expect(bag).toHaveLength(8);
-    expect(count(bag, "agua")).toBe(6);
-    expect(count(bag, "fertilizante")).toBe(2);
+    expect(bag).toHaveLength(6);
+    expect(count(bag, "agua")).toBe(5);
+    expect(count(bag, "fertilizante")).toBe(1);
   });
 
   it("barajar conserva el contenido y es determinista con el mismo generador", () => {
@@ -72,19 +72,19 @@ describe("bolsa de recompensas", () => {
     expect([...out].sort()).toEqual([...fullBag()].sort());
   });
 
-  it("cada bolsa de 8 recompensas da siempre 6 + 2, en muchas semillas", () => {
+  it("cada bolsa de 6 recompensas da siempre 5 + 1, en muchas semillas", () => {
     for (let seed = 1; seed <= 200; seed++) {
       const rng = seeded(seed);
       let bag: RewardItem[] = [];
       for (let ronda = 0; ronda < 3; ronda++) {
         const sacadas: RewardItem[] = [];
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 6; i++) {
           const r = drawReward(bag, rng);
           sacadas.push(r.item);
           bag = r.rest;
         }
-        expect(count(sacadas, "agua")).toBe(6);
-        expect(count(sacadas, "fertilizante")).toBe(2);
+        expect(count(sacadas, "agua")).toBe(5);
+        expect(count(sacadas, "fertilizante")).toBe(1);
         expect(bag).toHaveLength(0);
       }
     }
@@ -92,7 +92,7 @@ describe("bolsa de recompensas", () => {
 
   it("una bolsa vacía se rellena barajada; una con fichas saca la primera sin barajar", () => {
     const fromEmpty = drawReward([], seeded(3));
-    expect(fromEmpty.rest).toHaveLength(7);
+    expect(fromEmpty.rest).toHaveLength(5);
     const r = drawReward(["fertilizante", "agua"], () => {
       throw new Error("no debería barajar");
     });
@@ -103,7 +103,7 @@ describe("bolsa de recompensas", () => {
     const rng = seeded(11);
     const first = drawReward([], rng);
     const back = returnReward(first.rest, first.item);
-    expect(back).toHaveLength(8);
+    expect(back).toHaveLength(6);
     const again = drawReward(back, rng);
     expect(again.item).toBe(first.item);
     expect(again.rest).toEqual(first.rest);
