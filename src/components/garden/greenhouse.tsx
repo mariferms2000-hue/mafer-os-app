@@ -8,7 +8,7 @@
    planta (sed, especial) lo decide plant-visual.ts; dónde va cada una,
    scene-layout.ts. Aquí solo se pinta. */
 
-import { useId, type CSSProperties, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Image from "next/image";
 import { Droplet } from "lucide-react";
 import type { StageKey } from "@/lib/focus-logic";
@@ -209,10 +209,22 @@ type UnitProps = {
   fresh: boolean;
   special: boolean;
   moment: "agua" | "especial" | null;
+  /** el botón de la planta: se monta en su zona tocable (ver HIT_CORE) */
+  hit?: ReactNode;
 };
 
+/** Ancho tocable de una planta, en fracción de su lámina: el centro de la mata,
+ *  no el lienzo entero, para que las plantas vecinas no se roben el toque. */
+const HIT_CORE = 0.5;
+
+/** Alto de una planta en su maceta y soporte (cqh): la gota de sed va encima. */
+function pottedHeight(species: Species, k: number, support: Support): number {
+  const sc = SPECIES_SCALE[species];
+  return supportSize(support, k).h + (sc.pot ? sc.pot.h * k : 0) + (sc.cm - (sc.pot?.h ?? 0)) * k;
+}
+
 /** Planta completada en su maceta (o en su recipiente propio, como pilea y potos). */
-function PottedUnit({ species, seed, k, material, support, raised, thirsty, fresh, special, moment }: UnitProps) {
+function PottedUnit({ species, seed, k, material, support, raised, thirsty, fresh, special, moment, hit }: UnitProps) {
   const stage: StageKey = "planta-completa";
   const look = special ? "especial" : thirsty ? "sed" : "normal";
   const { art } = plantVisual(species, stage, look);
@@ -229,7 +241,7 @@ function PottedUnit({ species, seed, k, material, support, raised, thirsty, fres
   const imgH = ((plantCm + sinkCm) * k) / (1 - pad);
   const imgW = imgH * (art.w / art.h);
   const unitW = Math.max(imgW, potW, sup.w);
-  const unitH = sup.h + potH + plantCm * k;
+  const unitH = pottedHeight(species, k, support);
   const hang = support.kind === "hang";
   const plantBottom = pot ? -(sinkCm * k) - pad * imgH : seat - pad * imgH;
   // El tallo (no el lienzo) va al centro de la maceta.
@@ -271,13 +283,29 @@ function PottedUnit({ species, seed, k, material, support, raised, thirsty, fres
       )}
       {thirsty && !hang && <span className={s.fallen} style={{ width: `${Math.max(potW, 8 * k) * 0.34}cqh`, left: `calc(50% + ${Math.max(potW, 8 * k) * 0.55}cqh)` }} aria-hidden />}
       {moment === "agua" && <Drops />}
+      {hit && (
+        <span className={s.hitArea} style={{ width: `${Math.max(potW, sup.w, imgW * HIT_CORE)}cqh`, height: `${unitH}cqh` }}>
+          {hit}
+        </span>
+      )}
     </div>
   );
 }
 
 /** La planta actual mientras crece: frasco de propagación con agua. Con sed,
  *  el agua baja. */
-function JarUnit({ species, seed, stage, k, support, thirsty, fresh, moment }: { species: Species; seed: number; stage: StageKey; k: number; support: Support; thirsty: boolean; fresh: boolean; moment: "agua" | "especial" | null }) {
+function JarUnit({ species, seed, stage, k, support, thirsty, fresh, moment, hit, drop }: {
+  species: Species;
+  seed: number;
+  stage: StageKey;
+  k: number;
+  support: Support;
+  thirsty: boolean;
+  fresh: boolean;
+  moment: "agua" | "especial" | null;
+  hit?: ReactNode;
+  drop?: ReactNode;
+}) {
   const id = useUid();
   const { art } = plantVisual(species, stage, thirsty ? "sed" : "normal");
   const sc = SPECIES_SCALE[species];
@@ -339,9 +367,14 @@ function JarUnit({ species, seed, stage, k, support, thirsty, fresh, moment }: {
       </span>
       {moment === "agua" && <Drops />}
       {/* La gota de sed se apoya sobre el borde del frasco, no en lo alto del lienzo. */}
-      {thirsty && (
-        <span className={s.badge} style={{ top: "auto", bottom: `${seat + jh + 1.5}cqh`, translate: "-50% 0" }} aria-hidden>
-          <Droplet strokeWidth={2} />
+      {hit && (
+        <span className={s.hitArea} style={{ width: `${Math.max(jw, sup.w, imgW * HIT_CORE)}cqh`, height: `${sup.h + imgH}cqh` }}>
+          {hit}
+        </span>
+      )}
+      {thirsty && drop && (
+        <span className={s.dropAt} style={{ bottom: `${seat + jh + 1.5}cqh` }}>
+          {drop}
         </span>
       )}
     </div>
@@ -638,6 +671,75 @@ function Pendant({ x, y, uid, small }: { x: number; y: number; uid: string; smal
 
 /* ───────────────────────────── escena ───────────────────────────── */
 
+/** Dónde termina, ya dibujada, cada planta con sed (en % del alto de la escena,
+ *  desde abajo). La gota se posa ahí y no en lo alto del lienzo: la lámina rara
+ *  vez llena su altura y con sed además se encoge, así que una gota calculada
+ *  quedaba flotando sobre la planta vecina. Antes de medir se usa el cálculo. */
+function useDrawnTops(plants: PlacedWithCare[]) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState<Record<string, number>>({});
+  const key = plants
+    .filter((p) => p.thirsty)
+    .map((p) => p.plant.id)
+    .join(",");
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const measure = () => {
+      const r = root.getBoundingClientRect();
+      if (!r.height) return;
+      // La ficha de la planta actual (escritorio) tapa la esquina: una gota que
+      // caería debajo baja hasta asomar bajo la ficha.
+      const card = (root.querySelector(`.${s.captionOver}`) ?? root.parentElement?.closest("[data-garden-stage]")?.querySelector("[data-scene-cover]"))?.getBoundingClientRect();
+      const dropPx = Math.max(22, r.height * 0.042) + 14;
+      const next: Record<string, number> = {};
+      for (const id of key ? key.split(",") : []) {
+        const slot = root.querySelector(`[data-plant-id="${CSS.escape(id)}"]`);
+        const art = slot?.querySelector("[data-species]");
+        if (!slot || !art) continue;
+        let top = art.getBoundingClientRect().top;
+        const sr = slot.getBoundingClientRect();
+        const x = sr.left + sr.width / 2;
+        if (card && x > card.left - dropPx && x < card.right + dropPx && top > card.top && top - dropPx < card.bottom) top = card.bottom + dropPx;
+        next[id] = ((r.bottom - top) / r.height) * 100;
+      }
+      setAt(next);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    // la caída de la sed es una transición: se vuelve a medir al terminar
+    root.addEventListener("transitionend", measure);
+    return () => {
+      ro.disconnect();
+      root.removeEventListener("transitionend", measure);
+    };
+  }, [key]);
+  return [ref, at] as const;
+}
+
+/** Gotas sobre todas las plantas y debajo de la ficha de la planta actual. */
+const DROP_Z = 1700;
+
+/** La gota de una planta con sed: abre exactamente esa planta. */
+function ThirstDrop({ id, label, onSelect }: { id: string; label: string; onSelect?: (id: string | "actual") => void }) {
+  return (
+    <button
+      type="button"
+      className={s.badge}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect?.(id);
+      }}
+      aria-label={label}
+      data-testid="garden-thirst-drop"
+      data-plant-id={id}
+    >
+      <Droplet strokeWidth={2} aria-hidden />
+    </button>
+  );
+}
+
 function anchorStyle(a: Anchor, W: number, z: number, extra = 0): CSSProperties {
   return {
     left: pct(a.x, W),
@@ -670,21 +772,21 @@ export function GreenhouseScene({
   const uid = useUid();
   const { W } = template;
   const momentFor = (id: string) => (moment?.id === id ? moment.kind : null);
+  const [sceneRef, drawnTop] = useDrawnTops(plants);
   return (
-    <div className={`${s.garden} ${s.scene} ${className ?? ""}`} style={{ aspectRatio: `${W} / ${H}` }} role="group" aria-label={label}>
+    <div ref={sceneRef} className={`${s.garden} ${s.scene} ${className ?? ""}`} style={{ aspectRatio: `${W} / ${H}` }} role="group" aria-label={label}>
       <Greenhouse W={W} benches={template.benches} uid={uid} />
 
+      {/* Cada planta es un contenedor que no recibe toques: solo su botón (el
+          centro de la mata) y su gota. Así una lámina ancha no tapa a la vecina. */}
       {plants.map((p) => {
         const k = cqhPerCm(p.z, template.scale);
         const m = momentFor(p.plant.id);
         return (
-          <button
+          <div
             key={p.plant.id}
-            type="button"
             className={`${s.slot} ${p.glow ? s.lit : ""} ${p.thirsty ? s.thirsty : ""} ${p.special ? s.special : ""} ${p.fresh ? s.fresh : ""} ${m === "agua" ? s.revive : ""} ${m === "especial" ? s.justSpecial : ""}`}
             style={anchorStyle(p, W, p.z)}
-            onClick={() => onSelect?.(p.plant.id)}
-            aria-label={p.label}
             data-testid="garden-room-plant"
             data-plant-id={p.plant.id}
             data-thirsty={p.thirsty || undefined}
@@ -701,23 +803,16 @@ export function GreenhouseScene({
               fresh={p.fresh}
               special={p.special}
               moment={m}
+              hit={<button type="button" className={s.pick} onClick={() => onSelect?.(p.plant.id)} aria-label={p.label} />}
             />
-            {p.thirsty && (
-              <span className={s.badge} aria-hidden>
-                <Droplet strokeWidth={2} />
-              </span>
-            )}
-          </button>
+          </div>
         );
       })}
 
       {hero && template.hero && (
-        <button
-          type="button"
+        <div
           className={`${s.slot} ${s.hero} ${hero.thirsty ? s.thirsty : ""} ${momentFor("actual") === "agua" ? s.revive : ""}`}
           style={anchorStyle(template.hero, W, template.hero.z, 200)}
-          onClick={() => onSelect?.("actual")}
-          aria-label={hero.label}
           data-testid="garden-room-current"
           data-thirsty={hero.thirsty || undefined}
         >
@@ -730,9 +825,26 @@ export function GreenhouseScene({
             thirsty={hero.thirsty}
             fresh={hero.fresh}
             moment={momentFor("actual")}
+            hit={<button type="button" className={s.pick} onClick={() => onSelect?.("actual")} aria-label={hero.label} />}
+            drop={<ThirstDrop id="actual" label={hero.label} onSelect={onSelect} />}
           />
-        </button>
+        </div>
       )}
+
+      {/* Las gotas de sed van en su propia capa, encima de todas las plantas: una
+          gota nunca queda debajo de la lámina de una vecina. */}
+      {plants
+        .filter((p) => p.thirsty)
+        .map((p) => {
+          const top = drawnTop[p.plant.id];
+          const h = pottedHeight(p.plant.species, cqhPerCm(p.z, template.scale), p.support ?? { kind: "none" });
+          const bottom = top === undefined ? `calc(${pct(H - p.y, H)} + ${h + 0.6}cqh)` : `calc(${top}% + 0.6cqh)`;
+          return (
+            <span key={p.plant.id} className={s.dropAt} style={{ left: pct(p.x, W), bottom, zIndex: DROP_Z }}>
+              <ThirstDrop id={p.plant.id} label={p.label} onSelect={onSelect} />
+            </span>
+          );
+        })}
 
       {template.mystery && (
         <div className={`${s.slot} ${s.still}`} style={anchorStyle(template.mystery, W, template.mystery.z)} aria-hidden>

@@ -214,18 +214,30 @@
 }
 
 /* ── piezas ── */
+/* La planta no recibe toques: solo su botón (.pick, el centro de la mata) y su
+   gota. Una lámina ancha nunca tapa a la planta vecina. */
 .slot {
   position: absolute;
   translate: -50% 0;
+  pointer-events: none;
+  filter: saturate(calc(1 - var(--z) * var(--z-sat))) brightness(calc(1 + var(--z) * var(--z-bright)));
+}
+.unit > .hitArea {
+  bottom: 0;
+}
+.pick {
+  display: block;
+  width: 100%;
+  height: 100%;
   padding: 0;
   border: 0;
   background: none;
   cursor: pointer;
   border-radius: 14px;
-  filter: saturate(calc(1 - var(--z) * var(--z-sat))) brightness(calc(1 + var(--z) * var(--z-bright)));
+  pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
 }
-.slot:focus-visible {
+.pick:focus-visible {
   outline: 2px solid var(--color-border-focus, #7c9473);
   outline-offset: 4px;
 }
@@ -412,12 +424,13 @@
     opacity: 0;
   }
 }
-.badge {
+.dropAt {
   position: absolute;
-  z-index: 5;
-  top: -0.6cqh;
-  left: 50%;
-  translate: -50% -100%;
+  translate: -50% 0;
+  line-height: 0;
+}
+.badge {
+  position: relative;
   display: grid;
   place-items: center;
   width: max(22px, 4.2cqh);
@@ -426,7 +439,22 @@
   background: var(--badge-bg);
   color: var(--badge-ink);
   box-shadow: 0 2px 8px rgba(30, 40, 30, 0.18);
-  pointer-events: none;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Zona tocable algo mayor que la gota visible. */
+.badge::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+}
+.badge:focus-visible {
+  outline: 2px solid var(--color-border-focus, #7c9473);
+  outline-offset: 2px;
 }
 .badge svg {
   width: 58%;

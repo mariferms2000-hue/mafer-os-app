@@ -110,6 +110,7 @@ async function cleanFixtures() {
     `CREATE TABLE IF NOT EXISTS _z15_respaldo AS SELECT * FROM focus_plants WHERE false;
      INSERT INTO focus_plants SELECT * FROM _z15_respaldo WHERE id NOT IN (SELECT id FROM focus_plants);
      DROP TABLE _z15_respaldo;
+     DELETE FROM garden_plant_care WHERE plant_id LIKE 'z15-%';
      DELETE FROM focus_plants WHERE id LIKE 'z15-%';`
   );
 }
@@ -243,6 +244,36 @@ test("el cuarto: las plantas posadas en las repisas abren su popup y el invernad
   await page.getByTestId("garden-room-current").click();
   await expect(page.getByTestId("plant-detail-modal")).toBeVisible();
   await expect(page.getByTestId("plant-detail-modal")).toContainText("Planta actual");
+});
+
+test("cada gota de sed abre exactamente su planta, también entre plantas vecinas", async ({ page }) => {
+  await seedCompletedFixtures();
+  const now = new Date().toISOString();
+  // todas con sed a la vez: el caso con más gotas juntas
+  await run(
+    `INSERT INTO garden_plant_care (plant_id, thirsty_since, updated_at)
+     SELECT id, '${now}', '${now}' FROM focus_plants WHERE id LIKE 'z15-%'
+     ON CONFLICT (plant_id) DO UPDATE SET thirsty_since = EXCLUDED.thirsty_since;`
+  );
+
+  await login(page);
+  await page.goto("/biblioteca/jardin");
+
+  const drops = page.getByTestId("garden-thirst-drop");
+  const n = await drops.count();
+  expect(n).toBeGreaterThan(0);
+  for (let i = 0; i < n; i++) {
+    const drop = drops.nth(i);
+    const id = await drop.getAttribute("data-plant-id");
+    if (id === "actual") continue;
+    const species = await page.locator(`[data-testid="garden-room-plant"][data-plant-id="${id}"] [data-species]`).first().getAttribute("data-species");
+    await drop.click();
+    await expect(page.getByTestId("plant-detail-modal").getByRole("heading")).toHaveText(SPECIES_LABEL[species!]);
+    await page.getByRole("button", { name: "Cerrar" }).click();
+    await expect(page.getByTestId("plant-detail-modal")).toHaveCount(0);
+  }
+
+  await run(`DELETE FROM garden_plant_care WHERE plant_id LIKE 'z15-%';`);
 });
 
 test("«Enfocarme» abre el overlay existente; cerrarlo devuelve al jardín sin tocar nada", async ({ page }) => {

@@ -373,7 +373,7 @@ export function GardenView({
     <>
       <GardenFilters />
       <section aria-labelledby="planta-actual" className="mb-10" data-testid="garden-current">
-        <div className="relative">
+        <div className="relative" data-garden-stage>
           {desktop && (
             <div className={isDesktop === null ? "hidden md:block" : undefined}>
               <GreenhouseScene
@@ -393,7 +393,7 @@ export function GardenView({
             </div>
           )}
           {/* Una sola ficha: encima de la escena en escritorio, debajo en iPhone. */}
-          <div className="pt-4 px-1 md:absolute md:left-[2.4%] md:top-[4%] md:max-w-[300px] md:p-4 md:rounded-2xl md:border md:border-white/40 md:bg-paper/80 md:backdrop-blur-md md:z-[1800]">
+          <div data-scene-cover className="pt-4 px-1 md:absolute md:left-[2.4%] md:top-[4%] md:max-w-[300px] md:p-4 md:rounded-2xl md:border md:border-white/40 md:bg-paper/80 md:backdrop-blur-md md:z-[1800]">
             {caption}
           </div>
         </div>
