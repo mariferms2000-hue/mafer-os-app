@@ -3,13 +3,21 @@ import { db, schema, today } from "@/lib/db";
 import { TIMEZONE, toLocalDate } from "@/lib/tz";
 import { durationLabel, energyLabel } from "@/lib/estimates";
 
-export const SCHEMA_VERSION = 1;
+/* v2 (nov 2026): el respaldo incluye todas las tablas persistentes — Jardín,
+ * enfoque, progreso, viajes, vistas recientes y settings (sin secretos). Las
+ * claves de `data` de la v1 no cambian; solo se agregan. */
+export const SCHEMA_VERSION = 2;
+
+/** Claves de `settings` que nunca salen en el respaldo: son credenciales, no datos
+ *  (el hash de la contraseña y los tokens OAuth de Google). Se reconfiguran al
+ *  restaurar: contraseña nueva y volver a conectar Google. */
+export const SECRET_SETTING_KEYS = ["password_hash", "google_tokens"] as const;
 
 /** Exporta toda la base como objeto JSON serializable. */
 export async function exportAllJson() {
   const [
     projects, boards, columns, cards, inbox, journal, learning, ideas,
-    prompts, aiTools, agentsSkills, decisions, resources, events, priorities, reviews,
+    prompts, aiTools, agentsSkills, decisions, resources, events, priorities, reviews, allSettings,
   ] = await Promise.all([
     db.select().from(schema.projects),
     db.select().from(schema.boards),
@@ -27,9 +35,33 @@ export async function exportAllJson() {
     db.select().from(schema.events),
     db.select().from(schema.todayPriorities),
     db.select().from(schema.reviews),
+    db.select().from(schema.settings),
   ]);
-  // avisos de tareas (Bloque 3); si la tabla aún no existe, el respaldo sigue igual
-  const cardReminders = await db.select().from(schema.cardReminders).catch(() => []);
+  const missingTables: string[] = [];
+  // Tablas agregadas después del esquema base: patrón seguro de card_reminders —
+  // si una aún no existe en la base, el respaldo sigue y queda anotada en
+  // `missingTables` en lugar de fallar en silencio.
+  const optional = <T>(key: string, query: Promise<T[]>) =>
+    query.catch(() => {
+      missingTables.push(key);
+      return [] as T[];
+    });
+  const [
+    cardReminders, trips, focusSessions, focusPlants, focusSessionPlantAllocations,
+    progressCredits, gardenRewards, gardenPlantCare, recentViews,
+  ] = await Promise.all([
+    optional("cardReminders", db.select().from(schema.cardReminders)),
+    optional("trips", db.select().from(schema.trips)),
+    optional("focusSessions", db.select().from(schema.focusSessions)),
+    optional("focusPlants", db.select().from(schema.focusPlants)),
+    optional("focusSessionPlantAllocations", db.select().from(schema.focusSessionPlantAllocations)),
+    optional("progressCredits", db.select().from(schema.progressCredits)),
+    optional("gardenRewards", db.select().from(schema.gardenRewards)),
+    optional("gardenPlantCare", db.select().from(schema.gardenPlantCare)),
+    optional("recentViews", db.select().from(schema.recentViews)),
+  ]);
+  const secret = new Set<string>(SECRET_SETTING_KEYS);
+  const settings = allSettings.filter((s) => !secret.has(s.key));
   return {
     app: "Mafer OS",
     schemaVersion: SCHEMA_VERSION,
@@ -39,10 +71,21 @@ export async function exportAllJson() {
       learning: learning.length, ideas: ideas.length, prompts: prompts.length,
       decisions: decisions.length, resources: resources.length, events: events.length,
       inbox: inbox.length, reviews: reviews.length,
+      boards: boards.length, columns: columns.length, priorities: priorities.length,
+      aiTools: aiTools.length, agentsSkills: agentsSkills.length, cardReminders: cardReminders.length,
+      trips: trips.length, focusSessions: focusSessions.length, focusPlants: focusPlants.length,
+      focusSessionPlantAllocations: focusSessionPlantAllocations.length,
+      progressCredits: progressCredits.length, gardenRewards: gardenRewards.length,
+      gardenPlantCare: gardenPlantCare.length, recentViews: recentViews.length, settings: settings.length,
     },
+    /** Claves de settings omitidas a propósito (solo los nombres, nunca el valor). */
+    omittedSettings: allSettings.filter((s) => secret.has(s.key)).map((s) => s.key),
+    missingTables,
     data: {
       projects, boards, columns, cards, inbox, journal, learning, ideas,
       prompts, aiTools, agentsSkills, decisions, resources, events, priorities, reviews, cardReminders,
+      trips, focusSessions, focusPlants, focusSessionPlantAllocations,
+      progressCredits, gardenRewards, gardenPlantCare, recentViews, settings,
     },
   };
 }
