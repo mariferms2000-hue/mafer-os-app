@@ -10,6 +10,7 @@ import * as schema from "@/lib/db/schema";
 const EXCLUDED: Record<string, string> = {};
 
 const missing = new Set<string>();
+const broken = new Set<string>();
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db", async () => {
@@ -31,9 +32,12 @@ vi.mock("@/lib/db", async () => {
       select: () => ({
         from: (table: Parameters<typeof getTableName>[0]) => {
           const name = getTableName(table);
-          return missing.has(name)
-            ? Promise.reject(new Error(`relation "${name}" does not exist`))
-            : Promise.resolve(rowsFor(name));
+          // como drizzle: el error del driver llega en `cause`
+          if (missing.has(name))
+            return Promise.reject(new Error("Failed query", { cause: Object.assign(new Error(`relation "${name}" does not exist`), { code: "42P01" }) }));
+          if (broken.has(name))
+            return Promise.reject(new Error("Failed query", { cause: Object.assign(new Error("canceling statement due to statement timeout"), { code: "57014" }) }));
+          return Promise.resolve(rowsFor(name));
         },
       }),
     },
@@ -55,7 +59,10 @@ const tablesIn = (data: Record<string, unknown>) => {
   return byTable;
 };
 
-beforeEach(() => missing.clear());
+beforeEach(() => {
+  missing.clear();
+  broken.clear();
+});
 
 describe("exportAllJson — respaldo completo", () => {
   it("incluye toda tabla persistente del schema (o la excluye con razón explícita)", async () => {
@@ -63,7 +70,6 @@ describe("exportAllJson — respaldo completo", () => {
     const exported = tablesIn(json.data);
     const faltan = schemaTables.filter((t) => !exported.has(t) && !(t in EXCLUDED));
     expect(faltan).toEqual([]);
-    expect(schemaTables.length).toBeGreaterThanOrEqual(26);
   });
 
   it("las exclusiones apuntan a tablas que existen", () => {
@@ -116,5 +122,14 @@ describe("exportAllJson — respaldo completo", () => {
     expect(json.data.gardenPlantCare).toEqual([]);
     expect(json.missingTables).toEqual(["gardenPlantCare"]);
     expect(json.data.progressCredits).toHaveLength(1);
+  });
+
+  it("un error real de consulta en una tabla existente aborta el respaldo (no se disfraza de missingTables)", async () => {
+    broken.add("garden_plant_care");
+    await expect(exportAllJson()).rejects.toThrow("Failed query");
+  });
+
+  it("detecta las 26 tablas del schema", () => {
+    expect(new Set(schemaTables).size).toBe(26);
   });
 });

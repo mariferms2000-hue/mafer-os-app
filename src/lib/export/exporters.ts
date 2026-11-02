@@ -13,6 +13,12 @@ export const SCHEMA_VERSION = 2;
  *  restaurar: contraseña nueva y volver a conectar Google. */
 export const SECRET_SETTING_KEYS = ["password_hash", "google_tokens"] as const;
 
+/** Postgres «undefined_table». Drizzle envuelve el error del driver en `cause`. */
+const isUndefinedTable = (e: unknown): boolean => {
+  const err = e as { code?: string; cause?: unknown } | null;
+  return err?.code === "42P01" || (err?.cause != null && isUndefinedTable(err.cause));
+};
+
 /** Exporta toda la base como objeto JSON serializable. */
 export async function exportAllJson() {
   const [
@@ -39,10 +45,12 @@ export async function exportAllJson() {
   ]);
   const missingTables: string[] = [];
   // Tablas agregadas después del esquema base: patrón seguro de card_reminders —
-  // si una aún no existe en la base, el respaldo sigue y queda anotada en
-  // `missingTables` en lugar de fallar en silencio.
+  // si una aún no existe en la base (42P01), el respaldo sigue y queda anotada en
+  // `missingTables`. Cualquier otro error (conexión, timeout, permisos) sí aborta:
+  // un respaldo incompleto nunca debe parecer completo.
   const optional = <T>(key: string, query: Promise<T[]>) =>
-    query.catch(() => {
+    query.catch((e: unknown) => {
+      if (!isUndefinedTable(e)) throw e;
       missingTables.push(key);
       return [] as T[];
     });
