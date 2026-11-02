@@ -50,10 +50,10 @@ describe("focus-sound — sin entorno de navegador (SSR / Node)", () => {
     expect(() => setFocusSoundVolume(5)).not.toThrow();
   });
 
-  it("FOCUS_SOUND_OPTIONS trae los cuatro ringtones con id, label y src únicos", () => {
-    expect(FOCUS_SOUND_OPTIONS).toHaveLength(4);
+  it("FOCUS_SOUND_OPTIONS trae los cinco sonidos con id, label y src únicos", () => {
+    expect(FOCUS_SOUND_OPTIONS).toHaveLength(5);
     const ids = FOCUS_SOUND_OPTIONS.map((o) => o.id);
-    expect(new Set(ids).size).toBe(4);
+    expect(new Set(ids).size).toBe(5);
     for (const o of FOCUS_SOUND_OPTIONS) {
       expect(o.src.startsWith("/sounds/focus/")).toBe(true);
     }
