@@ -181,19 +181,22 @@ export async function fertilizePlant(plantId: string): Promise<FertilizeResult> 
       ORDER BY earned_at, id LIMIT 1
       FOR UPDATE SKIP LOCKED
     ),
-    u AS (
-      UPDATE garden_rewards SET used_at = ${t}, used_on = ${plantId}
-      WHERE id IN (SELECT id FROM r)
-      RETURNING id
-    ),
+    -- Primero la planta y luego la ficha: si otra petición fertilizó esta misma
+    -- planta en paralelo, el upsert no hace nada y la ficha no se gasta.
     care AS (
       INSERT INTO garden_plant_care (plant_id, fertilized_at, updated_at)
-      SELECT ${plantId}, ${t}, ${t} WHERE EXISTS (SELECT 1 FROM u)
+      SELECT ${plantId}, ${t}, ${t} WHERE EXISTS (SELECT 1 FROM r)
       ON CONFLICT (plant_id) DO UPDATE SET fertilized_at = EXCLUDED.fertilized_at, thirsty_since = NULL, updated_at = EXCLUDED.updated_at
+      WHERE garden_plant_care.fertilized_at IS NULL
       RETURNING plant_id
+    ),
+    u AS (
+      UPDATE garden_rewards SET used_at = ${t}, used_on = ${plantId}
+      WHERE id IN (SELECT id FROM r) AND EXISTS (SELECT 1 FROM care)
+      RETURNING id
     )
     INSERT INTO settings (key, value, updated_at)
-    SELECT ${SPECIAL_KEY}, ${plantId}, ${t} WHERE EXISTS (SELECT 1 FROM care)
+    SELECT ${SPECIAL_KEY}, ${plantId}, ${t} WHERE EXISTS (SELECT 1 FROM u)
     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at
     RETURNING (SELECT id FROM u) AS reward_id, (SELECT value FROM prev) AS prev_special, (SELECT thirsty_since FROM pc) AS prev_thirsty
   `);

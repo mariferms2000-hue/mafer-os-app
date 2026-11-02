@@ -172,6 +172,24 @@ describe("Fertilizante y planta especial", () => {
     expect((await getCareState()).specialId).toBeNull();
   });
 
+  it("dos fertilizaciones simultáneas de la misma planta gastan un solo Fertilizante", async () => {
+    const a = await plant();
+    await give("fertilizante", 2);
+    const results = await Promise.all([fertilizePlant(a), fertilizePlant(a)]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(await unused("fertilizante")).toBe(1);
+    expect((await getCareState()).specialId).toBe(a);
+  });
+
+  it("dos riegos simultáneos de la misma planta gastan una sola Agua", async () => {
+    const a = await plant();
+    await thirsty(a);
+    await give("agua", 2);
+    const results = await Promise.all([waterPlant(a), waterPlant(a)]);
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(await unused("agua")).toBe(1);
+  });
+
   it("no se puede lucir como especial una planta sin fertilizar", async () => {
     const a = await plant();
     expect((await featurePlant(a)).ok).toBe(false);

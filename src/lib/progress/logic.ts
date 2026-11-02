@@ -17,7 +17,7 @@ export const REWARD_ITEMS = ["agua", "fertilizante"] as const;
 export type RewardItem = (typeof REWARD_ITEMS)[number];
 
 /** Composición de una bolsa (F4): 5 + 1. El Agua repone la sed del jardín
- *  (como mucho una planta cada THIRST_EVERY_DAYS días, ver garden/care-logic);
+ *  (cada planta vuelve a tener sed días después de su riego, ver garden/care-logic);
  *  el Fertilizante es raro: uno cada 6 recompensas = 18 tareas. Las bolsas ya
  *  empezadas con la composición anterior (6 + 2) se vacían tal cual; la
  *  siguiente ya sale con esta. */
